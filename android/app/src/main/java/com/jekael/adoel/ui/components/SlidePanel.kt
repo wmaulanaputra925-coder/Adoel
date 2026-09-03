@@ -18,13 +18,13 @@ import kotlinx.coroutines.delay
  * Slide-in-from-right full-screen panel shell — mount-on-first-frame enter animation, BackHandler,
  * and a slide-out exit that only calls [onClose] once the exit animation actually finishes (so the
  * caller unmounting this composable via its own open/closed flag doesn't cut the exit short). Used
- * identically by SettingsDrawer and StatistikScreen; both durations come from a single source
- * ([Motion.PANEL_ENTER_MS]/[Motion.PANEL_EXIT_MS]) so they can't drift apart.
+ * identically by MesinDrawer, PengaturanDrawer, and StatistikScreen; both durations come from a
+ * single source ([Motion.PANEL_ENTER_MS]/[Motion.PANEL_EXIT_MS]) so they can't drift apart.
  *
  * [content] receives `requestClose` — call it to play the exit animation and then invoke [onClose].
- * A caller that needs its own escape hatch (e.g. SettingsDrawer's swipe-to-dismiss, which provides
- * its own slide-out via drag) can still call the original [onClose] directly to skip this shell's
- * animation, exactly as before this was extracted.
+ * A caller that needs its own escape hatch (e.g. MesinDrawer/PengaturanDrawer's swipe-to-dismiss,
+ * which provides its own slide-out via drag) can still call the original [onClose] directly to
+ * skip this shell's animation, exactly as before this was extracted.
  */
 @Composable
 fun SlidePanel(

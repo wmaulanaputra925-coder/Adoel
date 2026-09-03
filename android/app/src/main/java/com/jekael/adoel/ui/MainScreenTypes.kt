@@ -27,6 +27,7 @@ internal sealed class MenungguRow {
  * them as one sealed type instead of 4 independent flags makes that invariant structural. */
 internal sealed interface ActiveOverlay {
     data object None : ActiveOverlay
+    data object Mesin : ActiveOverlay
     data object Settings : ActiveOverlay
     data object Statistik : ActiveOverlay
     data class EditAkt(val id: Int) : ActiveOverlay
@@ -44,6 +45,7 @@ internal val ActiveOverlaySaver = Saver<ActiveOverlay, List<Any?>>(
     save = { overlay ->
         when (overlay) {
             is ActiveOverlay.None -> listOf("None", null)
+            is ActiveOverlay.Mesin -> listOf("Mesin", null)
             is ActiveOverlay.Settings -> listOf("Settings", null)
             is ActiveOverlay.Statistik -> listOf("Statistik", null)
             is ActiveOverlay.EditAkt -> listOf("EditAkt", overlay.id)
@@ -54,6 +56,7 @@ internal val ActiveOverlaySaver = Saver<ActiveOverlay, List<Any?>>(
     },
     restore = { saved ->
         when (saved.getOrNull(0) as? String) {
+            "Mesin" -> ActiveOverlay.Mesin
             "Settings" -> ActiveOverlay.Settings
             "Statistik" -> ActiveOverlay.Statistik
             "EditAkt" -> (saved.getOrNull(1) as? Int)?.let { ActiveOverlay.EditAkt(it) } ?: ActiveOverlay.None

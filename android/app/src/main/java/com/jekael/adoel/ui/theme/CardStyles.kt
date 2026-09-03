@@ -35,8 +35,9 @@ private fun Modifier.softCardShadow(shape: RoundedCornerShape): Modifier =
  * separation a stronger shadow would give; [softCardShadow] layers a subtle shadow on top in
  * both modes.
  *
- * Floating header/console-bar card. Shared by MainScreenHeader, ConsoleBar, SettingsDrawer's
- * header, StatistikScreen's header, and [com.jekael.adoel.ui.components.FloatingEditDialog] —
+ * Floating header/console-bar card. Shared by MainScreenHeader, ConsoleBar, MesinDrawer/
+ * PengaturanDrawer's header, StatistikScreen's header, and
+ * [com.jekael.adoel.ui.components.FloatingEditDialog] —
  * kept in one place so the look can't drift between them. Border/background always come from
  * [LocalAppColors] at every current call site, so they're read here directly rather than threaded
  * through as parameters.

@@ -102,8 +102,8 @@ import kotlinx.coroutines.launch
 
 /**
  * Full-screen panel listing archived shifts (see DoffViewModel.finishShift) with simple
- * aggregate productivity stats. Mirrors SettingsDrawer's slide-in shell (no drag-to-dismiss,
- * kept simpler since this is a read-only view).
+ * aggregate productivity stats. Mirrors MesinDrawer/PengaturanDrawer's slide-in shell (no
+ * drag-to-dismiss, kept simpler since this is a read-only view).
  */
 @Composable
 fun StatistikScreen(

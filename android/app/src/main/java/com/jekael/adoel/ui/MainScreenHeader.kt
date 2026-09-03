@@ -19,6 +19,7 @@ import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.QrCodeScanner
 import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.DropdownMenu
@@ -61,6 +62,7 @@ internal fun MainScreenHeader(
     doffCount: Int,
     showRemaining: Boolean,
     onToggleShowRemaining: () -> Unit,
+    onDaftarMesin: () -> Unit,
     onGearClick: () -> Unit,
     onSyncClick: () -> Unit,
     onShare: () -> Unit,
@@ -237,6 +239,11 @@ internal fun MainScreenHeader(
                     expanded = actionsExpanded,
                     onDismissRequest = { actionsExpanded = false },
                 ) {
+                    DropdownMenuItem(
+                        text = { Text("Daftar Mesin") },
+                        leadingIcon = { Icon(Icons.Outlined.Tune, contentDescription = null) },
+                        onClick = { actionsExpanded = false; onDaftarMesin() },
+                    )
                     DropdownMenuItem(
                         text = { Text("Statistik") },
                         leadingIcon = { Icon(Icons.Outlined.BarChart, contentDescription = null) },

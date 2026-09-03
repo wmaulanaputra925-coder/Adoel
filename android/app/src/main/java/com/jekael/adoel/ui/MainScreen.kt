@@ -385,6 +385,7 @@ fun MainScreen(
             doffCount = doffCount,
             showRemaining = showRemaining,
             onToggleShowRemaining = { showRemaining = !showRemaining },
+            onDaftarMesin = { activeOverlay = ActiveOverlay.Mesin },
             onGearClick = { activeOverlay = ActiveOverlay.Settings },
             onSyncClick = { syncOpen = true },
             onShare = { shareHistory(context, state) },
@@ -450,14 +451,26 @@ fun MainScreen(
             ToastHost(toast = toast, onDismiss = { uiVm.dismissToast() })
         }
 
-        // Settings panel — rendered in this same Box (not a separate Dialog window) so its own
-        // AnimatedVisibility is the only thing animating it in/out, drawn last to sit on top.
-        if (activeOverlay is ActiveOverlay.Settings) {
-            SettingsDrawer(
+        // Daftar Mesin / Pengaturan panels — rendered in this same Box (not a separate Dialog
+        // window) so its own AnimatedVisibility is the only thing animating it in/out, drawn
+        // last to sit on top. Two separate screens (not tabs of one drawer) matching the web
+        // app's own separate "Daftar Mesin" and "Pengaturan" menu items.
+        if (activeOverlay is ActiveOverlay.Mesin) {
+            MesinDrawer(
                 state = state,
                 onClose = { activeOverlay = ActiveOverlay.None },
                 onSetMesin = { mcNo, data -> doffVm.setMesin(mcNo, data) },
                 onResetMesin = { mcNo -> doffVm.resetMesin(mcNo) },
+                onAddCorakShortcut = { sc -> doffVm.addCorakShortcut(sc) },
+                showToast = { uiVm.showToast(it) },
+                showConfirm = { msg, fn -> uiVm.showConfirm(msg, onConfirm = fn) },
+            )
+        }
+
+        if (activeOverlay is ActiveOverlay.Settings) {
+            PengaturanDrawer(
+                state = state,
+                onClose = { activeOverlay = ActiveOverlay.None },
                 onResetDb = {
                     NotificationHelper.cancelAll(context, state.estimasi.keys.toList())
                     doffVm.resetDb()
