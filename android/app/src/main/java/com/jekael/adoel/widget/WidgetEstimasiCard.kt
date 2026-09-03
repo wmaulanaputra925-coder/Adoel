@@ -1,6 +1,7 @@
 package com.jekael.adoel.widget
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceModifier
@@ -27,10 +28,8 @@ import com.jekael.adoel.ui.components.mesinTipeColor
 import com.jekael.adoel.ui.theme.Amber500
 import com.jekael.adoel.ui.theme.Amber600
 import com.jekael.adoel.ui.theme.Cyan500
-import com.jekael.adoel.ui.theme.DarkBgElevated
 import com.jekael.adoel.ui.theme.Dimens
 import com.jekael.adoel.ui.theme.Red500
-import com.jekael.adoel.ui.theme.WarmBg100
 import com.jekael.adoel.ui.theme.Zinc50
 import com.jekael.adoel.ui.theme.Zinc900
 
@@ -48,7 +47,7 @@ fun WidgetEstimasiCard(est: Estimasi, mesin: MesinData?, now: Long, dark: Boolea
         UrgencyLevel.IMMINENT -> Amber600
         UrgencyLevel.OVERDUE -> Red500
     }
-    val bg = if (dark) DarkBgElevated else WarmBg100
+    val bg = if (dark) Zinc900 else Color.White
     val textColor = if (dark) Zinc50 else Zinc900
     val corak = est.corakOverride ?: mesin?.corak ?: "—"
     val yard = est.yardOverride ?: mesin?.targetYard

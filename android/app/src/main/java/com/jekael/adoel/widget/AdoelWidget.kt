@@ -34,12 +34,11 @@ import com.jekael.adoel.data.shiftNumberForEpochMin
 import com.jekael.adoel.data.sortedByNearest
 import com.jekael.adoel.ui.BREAK_GAP_THRESHOLD_MIN
 import com.jekael.adoel.ui.theme.Amber500
-import com.jekael.adoel.ui.theme.DarkBg
 import com.jekael.adoel.ui.theme.Emerald500
 import com.jekael.adoel.ui.theme.ThemeMode
-import com.jekael.adoel.ui.theme.WarmBg300
 import com.jekael.adoel.ui.theme.Zinc50
 import com.jekael.adoel.ui.theme.Zinc900
+import com.jekael.adoel.ui.theme.Zinc950
 
 /**
  * Home-screen widget: read-only scrollable list of every pending estimasi (nearest/most-overdue
@@ -58,7 +57,7 @@ class AdoelWidget : GlanceAppWidget() {
         val sorted = sortedByNearest(state.estimasi)
         val openApp = actionStartActivity(Intent(context, MainActivity::class.java))
         val dark = resolveWidgetDarkTheme(context, state.themeMode)
-        val bg = if (dark) DarkBg else WarmBg300
+        val bg = if (dark) Zinc950 else Zinc50
         val textColor = if (dark) Zinc50 else Zinc900
         val shiftLabel = "Shift ${shiftNumberForEpochMin(now)}"
         // Mirrors the in-app leading break gap (RadarSection's BreakGapCard): only worth

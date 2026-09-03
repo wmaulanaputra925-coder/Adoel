@@ -59,15 +59,6 @@ val Emerald400 = Color(0xFF34D399)
 // exists because nothing else in the app currently needs one.
 val Purple400 = Color(0xFFC084FC)
 
-// True dark-gray neutrals for dark mode surfaces — the brief calls for "abu-abu gelap" (dark
-// gray), not near-black. Zinc950/900/800/700 above sit much closer to black (luminance ~0.4%)
-// than a dark gray; DarkBg and friends target the same jump-in-tone ladder one step lighter and
-// warmer so shadows (see CardStyles.kt) also read against it instead of vanishing.
-val DarkBg = Color(0xFF1C1C1E)
-val DarkBgElevated = Color(0xFF242427)
-val DarkBgElevated2 = Color(0xFF2C2C30)
-val DarkBorder = Color(0xFF3D3D42)
-
 /**
  * Semantic, theme-aware neutral tokens. Every non-brand (Zinc-scale) color used across the
  * app should come from here rather than a literal Zinc constant, so that switching between
@@ -95,13 +86,12 @@ class AppColors(
 
 private val DarkAppColors = AppColors(
     isDark = true,
-    bg = DarkBg,
-    bgElevated = DarkBgElevated,
-    bgElevated2 = DarkBgElevated2,
-    border = DarkBorder,
+    bg = Zinc950,
+    bgElevated = Zinc900,
+    bgElevated2 = Zinc800,
+    border = Zinc700,
     textPrimary = Zinc100,
-    // Contrast targets carried over from the old Zinc950 base (13.46:1 / 7.76:1 / 4.12:1) — the
-    // new DarkBg is lighter but still dark enough that this ladder clears WCAG AA the same way.
+    // Contrast targets against the Zinc950 bg above: 13.46:1 / 7.76:1 / 4.12:1.
     textSecondary = Zinc300,
     textMuted = Zinc400,
     textFaint = Zinc500,
@@ -110,25 +100,12 @@ private val DarkAppColors = AppColors(
     criticalPulseTarget = Color(0xFF3A1414),
 )
 
-// Warm-neutral light palette — a soft paper/cream base instead of stark white, kept low-glare
-// on purpose (a plain white bg made list cards/header/console read as almost the same tone as
-// the page once shadows were replaced with tonal elevation — see elevatedListCard/floatingHeaderCard).
-// Text tokens are left on the cool Zinc scale: luminance (what drives WCAG contrast) barely
-// shifts moving Zinc100→WarmBg300 below, so the ratios noted on textFaint below still hold
-// (textPrimary/Secondary/Muted comfortably >7:1, textFaint ~4:1, same as before this change).
-val WarmBg300 = Color(0xFFEDEAE4)
-val WarmBg100 = Color(0xFFF7F5F1)
-// The lightest tier — was pure white before, which broke the warm-paper feel every other light
-// surface uses (this shows up as the top-most nested surface, e.g. a card-within-a-card).
-val WarmBg50 = Color(0xFFFDFCFA)
-val WarmBorder = Color(0xFFD9D3C7)
-
 private val LightAppColors = AppColors(
     isDark = false,
-    bg = WarmBg300,
-    bgElevated = WarmBg100,
-    bgElevated2 = WarmBg50,
-    border = WarmBorder,
+    bg = Zinc50,
+    bgElevated = Color.White,
+    bgElevated2 = Zinc100,
+    border = Zinc200,
     textPrimary = Zinc900,
     textSecondary = Zinc700,
     textMuted = Zinc600,
@@ -145,8 +122,8 @@ val LocalAppColors = staticCompositionLocalOf { DarkAppColors }
 private val DarkScheme = darkColorScheme(
     primary = Cyan500,
     onPrimary = Zinc950,
-    background = DarkBg,
-    surface = DarkBgElevated,
+    background = Zinc950,
+    surface = Zinc900,
     onBackground = Zinc100,
     onSurface = Zinc100,
 )

@@ -17,10 +17,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
-// Soft shadow in both modes — now that dark mode's background (see DarkBg in Theme.kt) is an
-// actual dark gray rather than near-black, a shadow reads against it same as light mode. Kept
-// small/subtle either way: this is a secondary depth cue layered on top of the tonal system
-// below, not a replacement for it.
+// Soft shadow in both modes — kept small/subtle: this is a secondary depth cue layered on top
+// of the tonal system below, not a replacement for it.
 private val CardShadowElevation = 3.dp
 
 @Composable
