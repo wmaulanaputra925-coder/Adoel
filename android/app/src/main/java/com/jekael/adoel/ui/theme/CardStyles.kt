@@ -11,9 +11,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -54,17 +58,42 @@ fun Modifier.floatingHeaderCard(): Modifier {
  * plain row passes [LocalAppColors.bgElevated]/`bgElevated2`, while RadarCard tints it toward its
  * urgency color (see `urgency()` in RadarCard.kt) — but the border is what keeps a card readable
  * as "raised" even where the tonal jump off [LocalAppColors.bg] is subtle (e.g. light theme).
+ *
+ * [borderColor] overrides the default [LocalAppColors.border]; [dashedBorder] swaps the solid
+ * ring for a dashed one — together these mark a row as needing attention (e.g. a stopped machine
+ * row in MesinTab) without a second, differently-styled card variant to keep in sync.
  */
 @Composable
-fun Modifier.elevatedListCard(backgroundColor: Color): Modifier {
+fun Modifier.elevatedListCard(
+    backgroundColor: Color,
+    borderColor: Color? = null,
+    dashedBorder: Boolean = false,
+): Modifier {
     val colors = LocalAppColors.current
     val shape = RoundedCornerShape(Dimens.RadiusCard)
+    val resolvedBorderColor = borderColor ?: colors.border
     return this
         .softCardShadow(shape)
         .clip(shape)
-        .border(1.dp, colors.border, shape)
+        .let {
+            if (dashedBorder) it.dashedRoundedBorder(resolvedBorderColor, Dimens.RadiusCard)
+            else it.border(1.dp, resolvedBorderColor, shape)
+        }
         .background(backgroundColor)
 }
+
+private fun Modifier.dashedRoundedBorder(color: Color, cornerRadius: Dp, strokeWidth: Dp = 1.dp): Modifier =
+    this.drawWithContent {
+        drawContent()
+        drawRoundRect(
+            color = color,
+            style = Stroke(
+                width = strokeWidth.toPx(),
+                pathEffect = PathEffect.dashPathEffect(floatArrayOf(8.dp.toPx(), 5.dp.toPx())),
+            ),
+            cornerRadius = CornerRadius(cornerRadius.toPx()),
+        )
+    }
 
 /**
  * Soft top/bottom fade so list content doesn't cut off with a hard edge as it scrolls behind the

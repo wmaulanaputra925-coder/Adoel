@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Search
@@ -21,8 +22,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
@@ -44,6 +47,25 @@ private data class CorakSummaryItem(
     val machines: List<String>,
     val tipes: Set<MesinTipe>,
 )
+
+/** Small bordered pill for a row's secondary specs (target yard, D405 speed, D408 koreksi) —
+ * kept as a distinct tag rather than plain inline text so several can sit side by side without
+ * running into each other visually. */
+@Composable
+private fun MetaTag(text: String) {
+    val colors = LocalAppColors.current
+    Surface(
+        shape = RoundedCornerShape(6.dp),
+        color = colors.bgElevated,
+        border = BorderStroke(1.dp, colors.border),
+    ) {
+        Text(
+            text,
+            style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = colors.textFaint),
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+        )
+    }
+}
 
 @Composable
 internal fun MesinTab(
@@ -410,7 +432,16 @@ internal fun MesinTab(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .elevatedListCard(backgroundColor = colors.bgElevated2)
+                            .alpha(if (isRunning) 1f else 0.72f)
+                            .elevatedListCard(
+                                backgroundColor = if (isRunning) {
+                                    colors.bgElevated2
+                                } else {
+                                    Amber500.copy(alpha = 0.05f).compositeOver(colors.bgElevated2)
+                                },
+                                borderColor = if (isRunning) null else Amber500.copy(alpha = 0.4f),
+                                dashedBorder = !isRunning,
+                            )
                             .clickable { loadFrom(k, v) }
                             .padding(horizontal = Dimens.Space12, vertical = 8.dp),
                         horizontalArrangement = Arrangement.spacedBy(Dimens.Space10),
@@ -452,8 +483,17 @@ internal fun MesinTab(
                             }
                         }
 
-                        if (v.targetYard != null) {
-                            Text("${formatYard(v.targetYard)}y", style = TextStyle(fontSize = 12.sp, color = colors.textFaint))
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            if (v.targetYard != null) {
+                                MetaTag("${formatYard(v.targetYard)}y")
+                            }
+                            if (v.speed != null && v.tipe == MesinTipe.D405) {
+                                MetaTag("${formatYard(v.speed)}y/m")
+                            }
+                            val koreksi = v.koreksi
+                            if (koreksi != null && v.tipe == MesinTipe.D408) {
+                                MetaTag(if (koreksi > 0) "+${formatYard(koreksi)}m" else "${formatYard(koreksi)}m")
+                            }
                         }
 
                         // Toggle ON/OFF button
@@ -484,6 +524,12 @@ internal fun MesinTab(
                                 )
                             }
                         }
+                        Icon(
+                            imageVector = Icons.Outlined.ChevronRight,
+                            contentDescription = null,
+                            tint = colors.textFaint,
+                            modifier = Modifier.size(16.dp),
+                        )
                     }
                 }
             }
