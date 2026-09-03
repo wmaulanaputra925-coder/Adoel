@@ -13,14 +13,28 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.outlined.Computer
+import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.LightMode
+import androidx.compose.material.icons.outlined.RestartAlt
+import androidx.compose.material.icons.outlined.Sell
+import androidx.compose.material.icons.outlined.Storage
+import androidx.compose.material.icons.outlined.Texture
+import androidx.compose.material.icons.outlined.Upload
+import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -35,6 +49,60 @@ import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
+/** Each settings group sits in its own elevated card — matches the web app's
+ * `.settings-section-card` (a flat divider-separated Column read as one long list there, one
+ * setting per card here so a group's boundary is unambiguous while scrolling). */
+@Composable
+private fun SectionCard(content: @Composable ColumnScope.() -> Unit) {
+    val colors = LocalAppColors.current
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .elevatedListCard(backgroundColor = colors.bgElevated)
+            .padding(Dimens.Space16),
+        verticalArrangement = Arrangement.spacedBy(Dimens.Space12),
+        content = content,
+    )
+}
+
+/** Section title: an icon (plain, or in a tinted badge for the two shortcut sections — mirrors
+ * web's cyan/emerald `settings-section-header` badges) plus the title text, [danger] swapping
+ * both to red for the Reset Data section. [trailing] hosts the shortcut-count tag / "Hapus
+ * Semua" link that sits at the opposite end of the same row on the two shortcut sections. */
+@Composable
+private fun SectionHeader(
+    icon: ImageVector,
+    title: String,
+    danger: Boolean = false,
+    badgeColor: Color? = null,
+    trailing: @Composable RowScope.() -> Unit = {},
+) {
+    val colors = LocalAppColors.current
+    val titleColor = if (danger) Red400 else colors.textPrimary
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Dimens.Space8)) {
+            if (badgeColor != null) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(badgeColor.copy(alpha = 0.15f))
+                        .padding(6.dp),
+                ) {
+                    Icon(icon, contentDescription = null, tint = badgeColor, modifier = Modifier.size(16.dp))
+                }
+            } else {
+                Icon(icon, contentDescription = null, tint = titleColor, modifier = Modifier.size(16.dp))
+            }
+            Text(title, style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = titleColor))
+        }
+        trailing()
+    }
+}
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -109,338 +177,356 @@ internal fun DataTab(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(scrollState),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(Dimens.Space12),
     ) {
         Spacer(Modifier.height(10.dp + headerHeight + Dimens.Space16))
 
         // 1. Tema Tampilan
-        FieldLabel("Tema Tampilan")
-        Text(
-            "Pilih tema antarmuka yang nyaman untuk operasional kerja.",
-            style = AppType.Caption.copy(color = colors.textMuted),
-        )
-        Row(horizontalArrangement = Arrangement.spacedBy(Dimens.Space8)) {
-            ChipBtn("Sistem", currentTheme == ThemeMode.SYSTEM) { onSetThemeMode(ThemeMode.SYSTEM) }
-            ChipBtn("Gelap", currentTheme == ThemeMode.DARK) { onSetThemeMode(ThemeMode.DARK) }
-            ChipBtn("Terang", currentTheme == ThemeMode.LIGHT) { onSetThemeMode(ThemeMode.LIGHT) }
+        SectionCard {
+            SectionHeader(icon = Icons.Outlined.LightMode, title = "Tema Tampilan")
+            Text(
+                "Pilih tema antarmuka yang nyaman untuk operasional kerja.",
+                style = AppType.Caption.copy(color = colors.textMuted),
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(Dimens.Space8)) {
+                ChipBtn("Sistem", currentTheme == ThemeMode.SYSTEM, icon = Icons.Outlined.Computer) { onSetThemeMode(ThemeMode.SYSTEM) }
+                ChipBtn("Gelap", currentTheme == ThemeMode.DARK, icon = Icons.Outlined.DarkMode) { onSetThemeMode(ThemeMode.DARK) }
+                ChipBtn("Terang", currentTheme == ThemeMode.LIGHT, icon = Icons.Outlined.LightMode) { onSetThemeMode(ThemeMode.LIGHT) }
+            }
         }
-
-        Spacer(Modifier.height(Dimens.Space4))
-        HorizontalDivider(color = colors.border)
-        Spacer(Modifier.height(Dimens.Space4))
 
         // 2. Shortcut Keterangan
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Dimens.Space8),
-            ) {
-                FieldLabel("Shortcut Keterangan")
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(colors.bgElevated2)
-                        .padding(horizontal = 6.dp, vertical = 2.dp),
-                ) {
-                    Text(
-                        "${ketShortcuts.size} shortcut",
-                        style = AppType.Caption.copy(fontSize = 11.sp, color = colors.textMuted),
-                    )
-                }
-            }
-            if (ketShortcuts.isNotEmpty()) {
-                Text(
-                    "Hapus Semua",
-                    style = AppType.Caption.copy(color = Red400, fontWeight = FontWeight.Medium),
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .clickable {
-                            showConfirm("Hapus semua shortcut keterangan kustom?") {
-                                onResetKeteranganShortcuts()
-                                showToast("Shortcut keterangan dikosongkan")
+        SectionCard {
+            SectionHeader(
+                icon = Icons.Outlined.Sell,
+                title = "Shortcut Keterangan",
+                badgeColor = Cyan400,
+                trailing = {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(colors.bgElevated2)
+                                .padding(horizontal = 6.dp, vertical = 2.dp),
+                        ) {
+                            Text(
+                                "${ketShortcuts.size} shortcut",
+                                style = AppType.Caption.copy(fontSize = 11.sp, color = colors.textMuted),
+                            )
+                        }
+                        if (ketShortcuts.isNotEmpty()) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(3.dp),
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .clickable {
+                                        showConfirm("Hapus semua shortcut keterangan kustom?") {
+                                            onResetKeteranganShortcuts()
+                                            showToast("Shortcut keterangan dikosongkan")
+                                        }
+                                    }
+                                    .padding(horizontal = 6.dp, vertical = 2.dp),
+                            ) {
+                                Icon(Icons.Outlined.Delete, contentDescription = null, tint = Red400, modifier = Modifier.size(12.dp))
+                                Text(
+                                    "Hapus Semua",
+                                    style = AppType.Caption.copy(color = Red400, fontWeight = FontWeight.Medium),
+                                )
                             }
                         }
-                        .padding(horizontal = 6.dp, vertical = 2.dp),
-                )
-            }
-        }
-        Text(
-            "Tombol cepat keterangan untuk pencatatan Doffing (cth: HB, P.LP, P.SN, GANTI BEAM).",
-            style = AppType.Caption.copy(color = colors.textMuted),
-        )
+                    }
+                },
+            )
+            Text(
+                "Tombol cepat keterangan untuk pencatatan Doffing (cth: HB, P.LP, P.SN, GANTI BEAM).",
+                style = AppType.Caption.copy(color = colors.textMuted),
+            )
 
-        if (ketShortcuts.isNotEmpty()) {
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                ketShortcuts.forEach { shortcut ->
-                    ShortcutTagChip(
-                        text = shortcut,
-                        onDelete = { onRemoveKeteranganShortcut(shortcut) },
+            if (ketShortcuts.isNotEmpty()) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    ketShortcuts.forEach { shortcut ->
+                        ShortcutTagChip(
+                            text = shortcut,
+                            onDelete = { onRemoveKeteranganShortcut(shortcut) },
+                        )
+                    }
+                }
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(Dimens.RadiusControl))
+                        .background(colors.bgElevated2)
+                        .padding(12.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        "Belum ada shortcut keterangan khusus.",
+                        style = AppType.Caption.copy(color = colors.textFaint),
                     )
                 }
             }
-        } else {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(Dimens.RadiusControl))
-                    .background(colors.bgElevated2)
-                    .padding(12.dp),
-                contentAlignment = Alignment.Center,
+
+            // Add Keterangan Form
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Dimens.Space8),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    "Belum ada shortcut keterangan khusus.",
-                    style = AppType.Caption.copy(color = colors.textFaint),
+                OutlinedTextField(
+                    value = newKetInput,
+                    onValueChange = { newKetInput = it },
+                    modifier = Modifier.weight(1f),
+                    placeholder = { Text("Ketik keterangan baru...", color = colors.textFaint) },
+                    colors = outlinedFieldColors(),
+                    shape = RoundedCornerShape(Dimens.RadiusControl),
+                    textStyle = AppType.FieldText.copy(color = colors.textPrimary),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = {
+                        val clean = newKetInput.trim()
+                        if (clean.isNotEmpty()) {
+                            onAddKeteranganShortcut(clean)
+                            newKetInput = ""
+                        }
+                    }),
                 )
+                Button(
+                    onClick = {
+                        val clean = newKetInput.trim()
+                        if (clean.isNotEmpty()) {
+                            onAddKeteranganShortcut(clean)
+                            newKetInput = ""
+                        }
+                    },
+                    modifier = Modifier.height(52.dp),
+                    shape = RoundedCornerShape(Dimens.RadiusControl),
+                    colors = ButtonDefaults.buttonColors(containerColor = Cyan600),
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("Tambah")
+                }
             }
         }
-
-        // Add Keterangan Form
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Dimens.Space8),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            OutlinedTextField(
-                value = newKetInput,
-                onValueChange = { newKetInput = it },
-                modifier = Modifier.weight(1f),
-                placeholder = { Text("Ketik keterangan baru...", color = colors.textFaint) },
-                colors = outlinedFieldColors(),
-                shape = RoundedCornerShape(Dimens.RadiusControl),
-                textStyle = AppType.FieldText.copy(color = colors.textPrimary),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = {
-                    val clean = newKetInput.trim()
-                    if (clean.isNotEmpty()) {
-                        onAddKeteranganShortcut(clean)
-                        newKetInput = ""
-                    }
-                }),
-            )
-            Button(
-                onClick = {
-                    val clean = newKetInput.trim()
-                    if (clean.isNotEmpty()) {
-                        onAddKeteranganShortcut(clean)
-                        newKetInput = ""
-                    }
-                },
-                modifier = Modifier.height(52.dp),
-                shape = RoundedCornerShape(Dimens.RadiusControl),
-                colors = ButtonDefaults.buttonColors(containerColor = Cyan600),
-                contentPadding = PaddingValues(horizontal = 16.dp),
-            ) {
-                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(4.dp))
-                Text("Tambah")
-            }
-        }
-
-        Spacer(Modifier.height(Dimens.Space4))
-        HorizontalDivider(color = colors.border)
-        Spacer(Modifier.height(Dimens.Space4))
 
         // 3. Shortcut Kode Corak
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Dimens.Space8),
-            ) {
-                FieldLabel("Shortcut Kode Corak")
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(colors.bgElevated2)
-                        .padding(horizontal = 6.dp, vertical = 2.dp),
-                ) {
-                    Text(
-                        "${corakShortcuts.size} shortcut",
-                        style = AppType.Caption.copy(fontSize = 11.sp, color = colors.textMuted),
-                    )
-                }
-            }
-            if (corakShortcuts.isNotEmpty()) {
-                Text(
-                    "Hapus Semua",
-                    style = AppType.Caption.copy(color = Red400, fontWeight = FontWeight.Medium),
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .clickable {
-                            showConfirm("Hapus semua shortcut kode corak kustom?") {
-                                onResetCorakShortcuts()
-                                showToast("Shortcut corak dikosongkan")
+        SectionCard {
+            SectionHeader(
+                icon = Icons.Outlined.Texture,
+                title = "Shortcut Kode Corak",
+                badgeColor = Emerald500,
+                trailing = {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(colors.bgElevated2)
+                                .padding(horizontal = 6.dp, vertical = 2.dp),
+                        ) {
+                            Text(
+                                "${corakShortcuts.size} shortcut",
+                                style = AppType.Caption.copy(fontSize = 11.sp, color = colors.textMuted),
+                            )
+                        }
+                        if (corakShortcuts.isNotEmpty()) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(3.dp),
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .clickable {
+                                        showConfirm("Hapus semua shortcut kode corak kustom?") {
+                                            onResetCorakShortcuts()
+                                            showToast("Shortcut corak dikosongkan")
+                                        }
+                                    }
+                                    .padding(horizontal = 6.dp, vertical = 2.dp),
+                            ) {
+                                Icon(Icons.Outlined.Delete, contentDescription = null, tint = Red400, modifier = Modifier.size(12.dp))
+                                Text(
+                                    "Hapus Semua",
+                                    style = AppType.Caption.copy(color = Red400, fontWeight = FontWeight.Medium),
+                                )
                             }
                         }
-                        .padding(horizontal = 6.dp, vertical = 2.dp),
-                )
-            }
-        }
-        Text(
-            "Tombol cepat kode corak/kain untuk formulir mesin dan penggantian corak (cth: 4500, 4505, 5000, RAYON-30).",
-            style = AppType.Caption.copy(color = colors.textMuted),
-        )
+                    }
+                },
+            )
+            Text(
+                "Tombol cepat kode corak/kain untuk formulir mesin dan penggantian corak (cth: 4500, 4505, 5000, RAYON-30).",
+                style = AppType.Caption.copy(color = colors.textMuted),
+            )
 
-        if (corakShortcuts.isNotEmpty()) {
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                corakShortcuts.forEach { shortcut ->
-                    ShortcutTagChip(
-                        text = shortcut,
-                        onDelete = { onRemoveCorakShortcut(shortcut) },
+            if (corakShortcuts.isNotEmpty()) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    corakShortcuts.forEach { shortcut ->
+                        ShortcutTagChip(
+                            text = shortcut,
+                            onDelete = { onRemoveCorakShortcut(shortcut) },
+                        )
+                    }
+                }
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(Dimens.RadiusControl))
+                        .background(colors.bgElevated2)
+                        .padding(12.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        "Belum ada shortcut kode corak khusus.",
+                        style = AppType.Caption.copy(color = colors.textFaint),
                     )
                 }
             }
-        } else {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(Dimens.RadiusControl))
-                    .background(colors.bgElevated2)
-                    .padding(12.dp),
-                contentAlignment = Alignment.Center,
+
+            // Add Corak Form
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Dimens.Space8),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    "Belum ada shortcut kode corak khusus.",
-                    style = AppType.Caption.copy(color = colors.textFaint),
+                OutlinedTextField(
+                    value = newCorakInput,
+                    onValueChange = { newCorakInput = it },
+                    modifier = Modifier.weight(1f),
+                    placeholder = { Text("Ketik kode corak baru...", color = colors.textFaint) },
+                    colors = outlinedFieldColors(),
+                    shape = RoundedCornerShape(Dimens.RadiusControl),
+                    textStyle = AppType.FieldText.copy(color = colors.textPrimary),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = {
+                        val clean = newCorakInput.trim()
+                        if (clean.isNotEmpty()) {
+                            onAddCorakShortcut(clean)
+                            newCorakInput = ""
+                        }
+                    }),
                 )
+                Button(
+                    onClick = {
+                        val clean = newCorakInput.trim()
+                        if (clean.isNotEmpty()) {
+                            onAddCorakShortcut(clean)
+                            newCorakInput = ""
+                        }
+                    },
+                    modifier = Modifier.height(52.dp),
+                    shape = RoundedCornerShape(Dimens.RadiusControl),
+                    colors = ButtonDefaults.buttonColors(containerColor = Cyan600),
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("Tambah")
+                }
             }
         }
-
-        // Add Corak Form
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Dimens.Space8),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            OutlinedTextField(
-                value = newCorakInput,
-                onValueChange = { newCorakInput = it },
-                modifier = Modifier.weight(1f),
-                placeholder = { Text("Ketik kode corak baru...", color = colors.textFaint) },
-                colors = outlinedFieldColors(),
-                shape = RoundedCornerShape(Dimens.RadiusControl),
-                textStyle = AppType.FieldText.copy(color = colors.textPrimary),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = {
-                    val clean = newCorakInput.trim()
-                    if (clean.isNotEmpty()) {
-                        onAddCorakShortcut(clean)
-                        newCorakInput = ""
-                    }
-                }),
-            )
-            Button(
-                onClick = {
-                    val clean = newCorakInput.trim()
-                    if (clean.isNotEmpty()) {
-                        onAddCorakShortcut(clean)
-                        newCorakInput = ""
-                    }
-                },
-                modifier = Modifier.height(52.dp),
-                shape = RoundedCornerShape(Dimens.RadiusControl),
-                colors = ButtonDefaults.buttonColors(containerColor = Cyan600),
-                contentPadding = PaddingValues(horizontal = 16.dp),
-            ) {
-                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(4.dp))
-                Text("Tambah")
-            }
-        }
-
-        Spacer(Modifier.height(Dimens.Space4))
-        HorizontalDivider(color = colors.border)
-        Spacer(Modifier.height(Dimens.Space4))
 
         // 4. Cadangan & Pemulihan
-        FieldLabel("Cadangan & Pemulihan Data")
-        Text(
-            "Cadangkan seluruh data (database mesin, estimasi aktif, riwayat shift, tema) ke file JSON, atau pulihkan dari file cadangan sebelumnya.",
-            style = AppType.Caption.copy(color = colors.textMuted),
-        )
-        Row(horizontalArrangement = Arrangement.spacedBy(Dimens.Space8)) {
-            OutlinedButton(
-                onClick = {
-                    val stamp = SimpleDateFormat("yyyyMMdd-HHmm", Locale.US).format(Date())
-                    runCatching { exportLauncher.launch("adoel-backup-$stamp.json") }
-                },
-                modifier = Modifier.weight(1f).height(52.dp),
-                shape = RoundedCornerShape(Dimens.RadiusControl),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.textPrimary),
-                border = BorderStroke(1.dp, colors.border),
-            ) { Text("Cadangkan Data") }
-            OutlinedButton(
-                onClick = {
-                    runCatching { importLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) }
-                },
-                modifier = Modifier.weight(1f).height(52.dp),
-                shape = RoundedCornerShape(Dimens.RadiusControl),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = Cyan500),
-                border = BorderStroke(1.dp, Cyan500),
-            ) { Text("Pulihkan Data") }
+        SectionCard {
+            SectionHeader(icon = Icons.Outlined.Storage, title = "Cadangan & Pemulihan")
+            Text(
+                "Cadangkan seluruh data (database mesin, estimasi aktif, riwayat shift, tema) ke file JSON, atau pulihkan dari file cadangan sebelumnya.",
+                style = AppType.Caption.copy(color = colors.textMuted),
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(Dimens.Space8)) {
+                OutlinedButton(
+                    onClick = {
+                        val stamp = SimpleDateFormat("yyyyMMdd-HHmm", Locale.US).format(Date())
+                        runCatching { exportLauncher.launch("adoel-backup-$stamp.json") }
+                    },
+                    modifier = Modifier.weight(1f).height(52.dp),
+                    shape = RoundedCornerShape(Dimens.RadiusControl),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.textPrimary),
+                    border = BorderStroke(1.dp, colors.border),
+                ) {
+                    Icon(Icons.Outlined.Download, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Cadangkan")
+                }
+                OutlinedButton(
+                    onClick = {
+                        runCatching { importLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) }
+                    },
+                    modifier = Modifier.weight(1f).height(52.dp),
+                    shape = RoundedCornerShape(Dimens.RadiusControl),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Cyan500),
+                    border = BorderStroke(1.dp, Cyan500),
+                ) {
+                    Icon(Icons.Outlined.Upload, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Pulihkan")
+                }
+            }
         }
 
-        Spacer(Modifier.height(Dimens.Space4))
-        HorizontalDivider(color = colors.border)
-        Spacer(Modifier.height(Dimens.Space4))
-
         // 5. Reset Data
-        FieldLabel("Reset Data")
-        Text(
-            "Mengembalikan database mesin ke konfigurasi bawaan pabrik dan menghapus seluruh estimasi serta riwayat shift.",
-            style = AppType.Caption.copy(color = colors.textMuted),
-        )
-        OutlinedButton(
-            onClick = {
-                showConfirm("Reset semua data ke default? Estimasi aktif & riwayat shift akan hilang secara permanen.") {
-                    onResetDb()
-                    showToast("Data direset ke default")
-                }
-            },
-            modifier = Modifier.fillMaxWidth().height(52.dp),
-            shape = RoundedCornerShape(Dimens.RadiusControl),
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = Red400),
-            border = BorderStroke(1.dp, Red700.copy(alpha = 0.5f)),
-        ) { Text("Reset Semua ke Default") }
-
-        Spacer(Modifier.height(Dimens.Space4))
-        HorizontalDivider(color = colors.border)
-        Spacer(Modifier.height(Dimens.Space4))
+        SectionCard {
+            SectionHeader(icon = Icons.Outlined.WarningAmber, title = "Reset Data", danger = true)
+            Text(
+                "Mengembalikan database mesin ke konfigurasi bawaan pabrik dan menghapus seluruh estimasi serta riwayat shift.",
+                style = AppType.Caption.copy(color = colors.textMuted),
+            )
+            OutlinedButton(
+                onClick = {
+                    showConfirm("Reset semua data ke default? Estimasi aktif & riwayat shift akan hilang secara permanen.") {
+                        onResetDb()
+                        showToast("Data direset ke default")
+                    }
+                },
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+                shape = RoundedCornerShape(Dimens.RadiusControl),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = Red400),
+                border = BorderStroke(1.dp, Red700.copy(alpha = 0.5f)),
+            ) {
+                Icon(Icons.Outlined.RestartAlt, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Reset Semua ke Default")
+            }
+        }
 
         // 6. Bantuan & Informasi
-        FieldLabel("Bantuan & Informasi")
-        Row(horizontalArrangement = Arrangement.spacedBy(Dimens.Space8)) {
-            OutlinedButton(
-                onClick = onOpenHelp,
-                modifier = Modifier.weight(1f).height(52.dp),
-                shape = RoundedCornerShape(Dimens.RadiusControl),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.textSecondary),
-                border = BorderStroke(1.dp, colors.border),
-            ) { Text("Panduan Penggunaan") }
-            OutlinedButton(
-                onClick = onOpenAbout,
-                modifier = Modifier.weight(1f).height(52.dp),
-                shape = RoundedCornerShape(Dimens.RadiusControl),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.textSecondary),
-                border = BorderStroke(1.dp, colors.border),
-            ) { Text("Tentang Adoel") }
+        SectionCard {
+            SectionHeader(icon = Icons.Outlined.Info, title = "Bantuan & Informasi")
+            Row(horizontalArrangement = Arrangement.spacedBy(Dimens.Space8)) {
+                OutlinedButton(
+                    onClick = onOpenHelp,
+                    modifier = Modifier.weight(1f).height(52.dp),
+                    shape = RoundedCornerShape(Dimens.RadiusControl),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.textSecondary),
+                    border = BorderStroke(1.dp, colors.border),
+                ) {
+                    Icon(Icons.AutoMirrored.Outlined.MenuBook, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Panduan")
+                }
+                OutlinedButton(
+                    onClick = onOpenAbout,
+                    modifier = Modifier.weight(1f).height(52.dp),
+                    shape = RoundedCornerShape(Dimens.RadiusControl),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.textSecondary),
+                    border = BorderStroke(1.dp, colors.border),
+                ) {
+                    Icon(Icons.Outlined.Info, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Tentang")
+                }
+            }
         }
 
         Spacer(Modifier.height(Dimens.Space24))
