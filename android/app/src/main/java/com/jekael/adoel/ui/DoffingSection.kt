@@ -111,7 +111,7 @@ fun LazyListScope.doffingSection(
                         modifier = Modifier.size(14.dp),
                     )
                     Text(
-                        text = "Hasil: ${formatYard(totalYards.toLong())} yds",
+                        text = "Hasil: ${formatYard(totalYards)} yds",
                         style = AppType.CaptionBold.copy(color = colors.textPrimary),
                     )
                 }
