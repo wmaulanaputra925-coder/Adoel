@@ -188,8 +188,7 @@ fun RadarCard(
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
         label = "checkScale",
     )
-    // One-shot diagonal "thread" sweep across the completion tint, echoing the twill-weave
-    // texture direction (see Texture.kt) instead of a generic flash.
+    // One-shot diagonal sweep across the completion tint instead of a generic flash.
     val weaveSweep by animateFloatAsState(
         targetValue = if (completing) 1f else 0f,
         animationSpec = tween(200, easing = FastOutSlowInEasing),

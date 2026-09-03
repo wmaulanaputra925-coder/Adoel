@@ -37,7 +37,6 @@ import com.jekael.adoel.ui.theme.AppType
 import com.jekael.adoel.ui.theme.Cyan500
 import com.jekael.adoel.ui.theme.Dimens
 import com.jekael.adoel.ui.theme.LocalAppColors
-import com.jekael.adoel.ui.theme.fabricTextureSubtle
 
 /** Empty-state illustration: a woven-thread bobbin/spool that breathes with a slow pulse, plus
  * title/subtitle copy that matches the guided-only workflow (Master Blueprint v9.2 §11) — no more
@@ -94,8 +93,7 @@ fun EmptyState(
                 Modifier
                     .size(60.dp)
                     .clip(CircleShape)
-                    .background(colors.bgElevated2.copy(alpha = 0.35f))
-                    .fabricTextureSubtle(),
+                    .background(colors.bgElevated2.copy(alpha = 0.35f)),
             )
 
             // The wound-thread spool itself — flanges either side of a dense band of thread.

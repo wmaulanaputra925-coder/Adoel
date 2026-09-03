@@ -257,7 +257,6 @@ fun MainScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(colors.bg)
-            .fabricTextureBold()
             .systemBarsPadding()
             // Tapping any empty area (list gaps, header, background — anywhere a descendant
             // doesn't already consume the tap for its own click) dismisses the keyboard and

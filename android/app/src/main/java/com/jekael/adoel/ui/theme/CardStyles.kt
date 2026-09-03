@@ -11,12 +11,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -30,32 +27,6 @@ private val CardShadowElevation = 3.dp
 private fun Modifier.softCardShadow(shape: RoundedCornerShape): Modifier =
     this.shadow(elevation = CardShadowElevation, shape = shape, clip = false)
 
-// Faint "light falling from above" finish — a vertical gradient lightening toward the top plus a
-// hairline highlight right at the top edge — layered on top of the flat tonal-elevation background
-// so cards read as a single premium material instead of a flat color fill. Both effects are subtle
-// on purpose (this rides on top of the existing tonal/border/shadow depth cues, not a replacement
-// for them) and work unmodified against any base color, including RadarCard's per-urgency tint.
-// Not private: ConfirmDialog uses its own smaller/rounder shape (20.dp, not RadiusFloating/
-// RadiusCard) so it can't go through floatingHeaderCard()/elevatedListCard() below, but should
-// still get the same premium finish as every other floating surface.
-@Composable
-fun Modifier.premiumSurface(base: Color): Modifier = this
-    .background(
-        Brush.verticalGradient(
-            0f to lerp(base, Color.White, 0.05f),
-            0.5f to base,
-        ),
-    )
-    .drawWithContent {
-        drawContent()
-        drawLine(
-            color = Color.White.copy(alpha = 0.12f),
-            start = Offset(0f, 0.5.dp.toPx()),
-            end = Offset(size.width, 0.5.dp.toPx()),
-            strokeWidth = 1.dp.toPx(),
-        )
-    }
-
 /**
  * Tonal elevation as the primary depth cue: depth/hierarchy is read from how much a surface's
  * background tone has lifted off [LocalAppColors.bg]. A thin border stands in for the extra
@@ -67,22 +38,16 @@ fun Modifier.premiumSurface(base: Color): Modifier = this
  * kept in one place so the look can't drift between them. Border/background always come from
  * [LocalAppColors] at every current call site, so they're read here directly rather than threaded
  * through as parameters.
- *
- * [textured] defaults on for the outer chrome (header/console/panel headers) but is switched off
- * for dense text-entry surfaces (FloatingEditDialog) — the twill texture sitting directly behind
- * a form's own text competed with fly-waste dust actually stuck to the screen on the factory
- * floor, undercutting legibility exactly where it matters most (Master Blueprint §2B).
  */
 @Composable
-fun Modifier.floatingHeaderCard(textured: Boolean = true): Modifier {
+fun Modifier.floatingHeaderCard(): Modifier {
     val colors = LocalAppColors.current
     val shape = RoundedCornerShape(Dimens.RadiusFloating)
     return this
         .softCardShadow(shape)
         .clip(shape)
         .border(1.dp, colors.border, shape)
-        .premiumSurface(colors.bgElevated)
-        .let { if (textured) it.fabricTextureSubtle() else it }
+        .background(colors.bgElevated)
 }
 
 /**
@@ -100,8 +65,7 @@ fun Modifier.elevatedListCard(backgroundColor: Color): Modifier {
         .softCardShadow(shape)
         .clip(shape)
         .border(1.dp, colors.border, shape)
-        .premiumSurface(backgroundColor)
-        .fabricTextureSubtle()
+        .background(backgroundColor)
 }
 
 /**

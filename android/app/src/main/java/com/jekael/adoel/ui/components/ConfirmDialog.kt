@@ -103,8 +103,7 @@ fun ConfirmDialog(
                         .padding(32.dp)
                         .clip(RoundedCornerShape(20.dp))
                         .border(1.dp, colors.border, RoundedCornerShape(20.dp))
-                        .premiumSurface(colors.bgElevated)
-                        .fabricTextureSubtle()
+                        .background(colors.bgElevated)
                         .padding(Dimens.Space20),
                 ) {
                     Text(

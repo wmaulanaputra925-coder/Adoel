@@ -158,28 +158,28 @@ private fun OperationalFlowGuide() {
             stepNumber = "1. Estimasi Waktu Doff",
             description = "Ketik nomor mesin di konsol bawah lalu ketuk tombol ⏱ Estimasi. Isi sisa menit (Tappet/Cam), yard berjalan (D405), atau jam counter (D408).",
         )
-        WovenDivider()
+        HorizontalDivider(color = colors.border)
         GuideRow(
             icon = Icons.Outlined.ContentCut,
             tint = Emerald500,
             stepNumber = "2. Potong Kain (Doffing)",
             description = "Ketik nomor mesin lalu tekan tombol ✂ Doffing. Atau gunakan cara kilat dengan menggeser kartu mesin di layar Radar.",
         )
-        WovenDivider()
+        HorizontalDivider(color = colors.border)
         GuideRow(
             icon = Icons.Outlined.Pause,
             tint = Amber500,
             stepNumber = "3. Jeda Mesin & Macet",
             description = "Jika mesin berhenti atau ada kendala putus lusi, tekan lama kartu mesin lalu pilih Jeda. Perhitungan waktu istirahat tetap akurat dan data rol kain dibekukan.",
         )
-        WovenDivider()
+        HorizontalDivider(color = colors.border)
         GuideRow(
             icon = Icons.Outlined.Undo,
             tint = Amber700,
             stepNumber = "4. Urungkan (Undo / Redo)",
             description = "Salah mencatat atau salah hapus? Tekan tombol panah ↩ Urungkan atau ↪ Ulangi di sisi kiri konsol bawah untuk mengembalikan data seketika.",
         )
-        WovenDivider()
+        HorizontalDivider(color = colors.border)
         GuideRow(
             icon = Icons.Outlined.Forward,
             tint = Sky500,

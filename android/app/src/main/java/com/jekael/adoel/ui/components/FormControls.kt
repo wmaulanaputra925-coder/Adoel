@@ -158,12 +158,9 @@ fun FloatingEditDialog(
                         // screen edge even though it's technically clear of the gesture bar.
                         .padding(start = Dimens.Space16, end = Dimens.Space16, top = Dimens.Space16, bottom = Dimens.Space24)
                         .heightIn(max = maxCardHeight)
-                        // Reuses the same clip/border/premium-gradient stack every other floating
-                        // surface uses (see CardStyles.kt) instead of a hand-rolled duplicate, but
-                        // opts out of the twill texture — this surface is dense text-entry (Master
-                        // Blueprint §2B), where the texture behind the fields it hosts undercuts
-                        // legibility more than it reinforces the woven identity.
-                        .floatingHeaderCard(textured = false)
+                        // Reuses the same clip/border/background stack every other floating
+                        // surface uses (see CardStyles.kt) instead of a hand-rolled duplicate.
+                        .floatingHeaderCard()
                         .padding(Dimens.Space20)
                         .verticalScroll(rememberScrollState()),
                     content = content,

@@ -126,7 +126,7 @@ internal fun DataTab(
         }
 
         Spacer(Modifier.height(Dimens.Space4))
-        WovenDivider()
+        HorizontalDivider(color = colors.border)
         Spacer(Modifier.height(Dimens.Space4))
 
         // 2. Shortcut Keterangan
@@ -246,7 +246,7 @@ internal fun DataTab(
         }
 
         Spacer(Modifier.height(Dimens.Space4))
-        WovenDivider()
+        HorizontalDivider(color = colors.border)
         Spacer(Modifier.height(Dimens.Space4))
 
         // 3. Shortcut Kode Corak
@@ -366,7 +366,7 @@ internal fun DataTab(
         }
 
         Spacer(Modifier.height(Dimens.Space4))
-        WovenDivider()
+        HorizontalDivider(color = colors.border)
         Spacer(Modifier.height(Dimens.Space4))
 
         // 4. Cadangan & Pemulihan
@@ -398,7 +398,7 @@ internal fun DataTab(
         }
 
         Spacer(Modifier.height(Dimens.Space4))
-        WovenDivider()
+        HorizontalDivider(color = colors.border)
         Spacer(Modifier.height(Dimens.Space4))
 
         // 5. Reset Data
@@ -421,7 +421,7 @@ internal fun DataTab(
         ) { Text("Reset Semua ke Default") }
 
         Spacer(Modifier.height(Dimens.Space4))
-        WovenDivider()
+        HorizontalDivider(color = colors.border)
         Spacer(Modifier.height(Dimens.Space4))
 
         // 6. Bantuan & Informasi

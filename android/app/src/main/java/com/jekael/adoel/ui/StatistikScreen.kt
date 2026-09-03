@@ -34,6 +34,7 @@ import androidx.compose.material.icons.outlined.Circle
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
@@ -94,9 +95,7 @@ import com.jekael.adoel.ui.theme.Red500
 import com.jekael.adoel.ui.theme.Dimens
 import com.jekael.adoel.ui.theme.LocalAppColors
 import com.jekael.adoel.ui.theme.Motion
-import com.jekael.adoel.ui.theme.WovenDivider
 import com.jekael.adoel.ui.theme.elevatedListCard
-import com.jekael.adoel.ui.theme.fabricTextureBold
 import com.jekael.adoel.ui.theme.floatingHeaderCard
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -137,7 +136,7 @@ fun StatistikScreen(
         // Same "floating header overlays a full-bleed scrollable list" concept as MainScreen —
         // the list is measured/laid out from the very top and scrolls behind the header, instead
         // of just sitting in a Column below it.
-        Box(modifier = Modifier.fillMaxSize().background(colors.bg).fabricTextureBold()) {
+        Box(modifier = Modifier.fillMaxSize().background(colors.bg)) {
             if (history.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     EmptyState(
@@ -532,7 +531,7 @@ private fun DoffCountChart(history: List<ShiftRecord>, selectedShiftId: Int?, on
                 }
             }
         }
-        WovenDivider()
+        HorizontalDivider(color = colors.border)
         Spacer(Modifier.height(Dimens.Space4))
         Row(
             modifier = Modifier.fillMaxWidth(),
