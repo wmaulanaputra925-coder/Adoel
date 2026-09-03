@@ -94,7 +94,7 @@ data class SyncEnvelope(
     val total: Int? = null,
 )
 
-data class SyncPayload(
+private data class SyncPayload(
     val cDb: List<List<Any?>>? = null,
     val db: Map<String, SerialMesin>? = null,
     val estimasi: Map<String, SerialEstimasi>? = null,

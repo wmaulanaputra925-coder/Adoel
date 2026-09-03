@@ -177,13 +177,13 @@ fun SyncDialog(onClose: () -> Unit) {
                 ) {
                     ChipBtn(
                         label = "Oper Shift",
-                        active = qrType == "HANDOVER",
+                        selected = qrType == "HANDOVER",
                         onClick = { qrType = "HANDOVER" },
                         modifier = Modifier.weight(1f),
                     )
                     ChipBtn(
                         label = "Daftar Mesin",
-                        active = qrType == "MASTER_DB",
+                        selected = qrType == "MASTER_DB",
                         onClick = { qrType = "MASTER_DB" },
                         modifier = Modifier.weight(1f),
                     )
@@ -199,19 +199,19 @@ fun SyncDialog(onClose: () -> Unit) {
                     ) {
                         ChipBtn(
                             label = "Mesin Terisi",
-                            active = dbScope == "CUSTOMIZED_ONLY",
+                            selected = dbScope == "CUSTOMIZED_ONLY",
                             onClick = { dbScope = "CUSTOMIZED_ONLY" },
                             modifier = Modifier.weight(1f),
                         )
                         ChipBtn(
                             label = "01–30 (P1)",
-                            active = dbScope == "RANGE_1_30",
+                            selected = dbScope == "RANGE_1_30",
                             onClick = { dbScope = "RANGE_1_30" },
                             modifier = Modifier.weight(1f),
                         )
                         ChipBtn(
                             label = "31–60 (P2)",
-                            active = dbScope == "RANGE_31_60",
+                            selected = dbScope == "RANGE_31_60",
                             onClick = { dbScope = "RANGE_31_60" },
                             modifier = Modifier.weight(1f),
                         )

@@ -30,7 +30,9 @@ object Dimens {
     // Apply to components as they're touched during redesign; not retrofitted across the whole
     // app in one go (a follow-up consistency pass does that once the redesign is stable).
     val Space4 = 4.dp
+    val Space6 = 6.dp
     val Space8 = 8.dp
+    val Space10 = 10.dp
     val Space12 = 12.dp
     val Space16 = 16.dp
     val Space20 = 20.dp

@@ -53,7 +53,12 @@ val Fuchsia500 = Color(0xFFD946EF)
 // (see mesinTipeColor in Icons.kt), or a D408 badge next to a Matching action reads as related
 // when they're unconnected.
 val Sky500 = Color(0xFF0EA5E9)
+val Sky400 = Color(0xFF38BDF8)
 val Emerald500 = Color(0xFF10B981)
+val Emerald400 = Color(0xFF34D399)
+// Used only by OnboardingDialog's "Ketuk Nomor/Corak" gesture badge — no Purple500 counterpart
+// exists because nothing else in the app currently needs one.
+val Purple400 = Color(0xFFC084FC)
 
 // True dark-gray neutrals for dark mode surfaces — the brief calls for "abu-abu gelap" (dark
 // gray), not near-black. Zinc950/900/800/700 above sit much closer to black (luminance ~0.4%)

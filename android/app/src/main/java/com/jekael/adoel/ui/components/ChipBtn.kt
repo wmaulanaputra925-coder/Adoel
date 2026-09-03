@@ -16,11 +16,11 @@ import androidx.compose.ui.unit.dp
 import com.jekael.adoel.ui.theme.*
 
 @Composable
-internal fun ChipBtn(label: String, selected: Boolean, onClick: () -> Unit) {
+internal fun ChipBtn(label: String, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val colors = LocalAppColors.current
     val shape = RoundedCornerShape(Dimens.RadiusControl)
     Box(
-        modifier = Modifier
+        modifier = modifier
             .heightIn(min = 48.dp)
             .clip(shape)
             .background(if (selected) Cyan600 else Color.Transparent)
