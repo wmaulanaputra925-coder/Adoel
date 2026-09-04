@@ -79,11 +79,6 @@ internal fun ConsoleBar(
                 .navigationBarsPadding()
                 .padding(bottom = 10.dp),
         ) {
-            Text(
-                text = "Ketik nomor mesin, lalu ketuk jam (estimasi) atau gunting (doffing)",
-                style = AppType.Caption.copy(color = colors.textFaint),
-                modifier = Modifier.padding(start = Dimens.Space4, bottom = 6.dp),
-            )
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 // Centered as a group (not spread with weight()) — a bare Undo/Redo/field/
@@ -117,8 +112,7 @@ internal fun ConsoleBar(
                     onValueChange = { mcNoInput = it.filter(Char::isDigit).take(3) },
                     modifier = Modifier.width(96.dp),
                     // Shortened from "Nomor mesin" — doesn't fit this field's new, deliberately
-                    // compact width (the caption above the row already spells out the full
-                    // instruction), and singleLine would otherwise just clip it mid-word.
+                    // compact width, and singleLine would otherwise just clip it mid-word.
                     placeholder = { Text("No. Mc", color = colors.textFaint, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) },
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = Amber500,
