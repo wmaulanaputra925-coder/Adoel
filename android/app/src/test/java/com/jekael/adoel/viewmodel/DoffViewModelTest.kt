@@ -124,16 +124,30 @@ class DoffViewModelTest {
     }
 
     @Test
-    fun finishShiftArchivesThenClearsCurrentShift() {
+    fun finishShiftArchivesAktualButLeavesEstimasiRunning() {
+        // Mc 61's estimasi (D405) is unrelated to mc 29's doff below — it represents a machine
+        // still mid-run when the operator taps "Selesai Shift", and should keep counting down
+        // for the next operator instead of being wiped along with the archived doffing log.
+        viewModel.prosesBarisKondisiMesin("61 280y", 1_000L)
         viewModel.prosesBarisUmum("29 HB")
         assertEquals(1, viewModel.state.value.aktual.size)
 
         viewModel.finishShift()
 
         assertTrue(viewModel.state.value.aktual.isEmpty())
-        assertTrue(viewModel.state.value.estimasi.isEmpty())
+        assertNotNull(viewModel.state.value.estimasi["61"])
         assertEquals(1, viewModel.state.value.history.size)
         assertEquals(1, viewModel.state.value.history.first().aktual.size)
+    }
+
+    @Test
+    fun finishShiftNoOpsWhenNoAktualToArchive() {
+        viewModel.prosesBarisKondisiMesin("61 280y", 1_000L)
+
+        viewModel.finishShift()
+
+        assertNotNull(viewModel.state.value.estimasi["61"])
+        assertTrue(viewModel.state.value.history.isEmpty())
     }
 
     @Test

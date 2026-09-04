@@ -77,4 +77,12 @@ internal class UndoRedoState {
         action.redo()
         undoStack.add(action)
     }
+
+    /** Called on "Selesai Shift" — once the console log is archived, undoing past it would
+     * resurrect an aktual entry that no longer lives in [DoffState.aktual] but inside a
+     * just-created [ShiftRecord] instead, so the whole history is invalidated at once. */
+    fun clear() {
+        undoStack.clear()
+        redoStack.clear()
+    }
 }

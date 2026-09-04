@@ -138,18 +138,12 @@ export function useConsoleHandlers() {
 
   function handleFinishShift(onFinished?: () => void) {
     const doffCount = state.aktual.length;
-    const estCount = Object.keys(state.estimasi).length;
-    if (doffCount === 0 && estCount === 0) {
-      showToast("Tidak ada data untuk diarsipkan");
+    if (doffCount === 0) {
+      showToast("Tidak ada riwayat doffing untuk diarsipkan");
       return;
     }
 
-    const confirmMsg =
-      doffCount > 0
-        ? estCount > 0
-          ? `Akhiri shift? ${doffCount} riwayat doffing akan diarsipkan ke Statistik, dan ${estCount} estimasi aktif akan dihapus.`
-          : `Akhiri shift? ${doffCount} riwayat doffing akan diarsipkan ke Statistik.`
-        : `Akhiri shift? Tidak ada riwayat doffing untuk diarsipkan, ${estCount} estimasi aktif akan dihapus.`;
+    const confirmMsg = `Akhiri shift? ${doffCount} riwayat doffing akan diarsipkan ke Statistik.`;
 
     showConfirm(confirmMsg, () => {
       finishShift();
