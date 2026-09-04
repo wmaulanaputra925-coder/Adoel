@@ -121,6 +121,7 @@ fun MainScreen(
 
     var activeOverlay by rememberSaveable(stateSaver = ActiveOverlaySaver) { mutableStateOf<ActiveOverlay>(ActiveOverlay.None) }
     var syncOpen by rememberSaveable { mutableStateOf(false) }
+    var autoQrDismissed by rememberSaveable { mutableStateOf(false) }
     var showRemaining by rememberSaveable { mutableStateOf(false) }
 
     var consoleBarHeight by remember { mutableStateOf(0.dp) }
@@ -652,11 +653,25 @@ fun MainScreen(
         )
     }
 
-    if (!state.onboardingSeen) {
+    // Fresh install with nothing set up yet: offer to import a coworker's QR data before falling
+    // back to the plain onboarding walkthrough, same as web (App.tsx's shouldShowAutoQr) — an
+    // empty Daftar Mesin is a much bigger blocker on first launch than not knowing the UI yet.
+    val isDbEmpty = remember(state.db) { isMachineDataEmpty(state.db) }
+    val shouldShowAutoQr = !state.onboardingSeen && isDbEmpty && !autoQrDismissed
+
+    if (shouldShowAutoQr) {
+        SyncDialog(
+            isFirstTimeEmpty = true,
+            onClose = {
+                autoQrDismissed = true
+                doffVm.setOnboardingSeen()
+            },
+        )
+    } else if (!state.onboardingSeen) {
         OnboardingDialog(onClose = { doffVm.setOnboardingSeen() })
     }
 
-    if (syncOpen) {
+    if (syncOpen && !shouldShowAutoQr) {
         SyncDialog(onClose = { syncOpen = false })
     }
 

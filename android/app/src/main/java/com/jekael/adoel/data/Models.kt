@@ -15,6 +15,15 @@ data class MesinData(
     val isActive: Boolean = true,
 )
 
+/** True when [db] has nothing an operator has actually set up yet — every entry (or no entries
+ * at all) still has its untouched defaults. Gates the first-launch auto-QR-sync prompt (MainScreen)
+ * so a fresh install offers to import a coworker's data before falling back to the plain onboarding
+ * walkthrough. Port 1:1 of isMachineDataEmpty (web/src/domain/sync.ts). */
+fun isMachineDataEmpty(db: Map<String, MesinData>): Boolean {
+    if (db.isEmpty()) return true
+    return db.values.all { m -> (m.corak.isBlank() || m.corak == "-") && m.targetYard == null && m.speed == null }
+}
+
 data class Estimasi(
     val mcNo: String,
     val estAbsMin: Long,

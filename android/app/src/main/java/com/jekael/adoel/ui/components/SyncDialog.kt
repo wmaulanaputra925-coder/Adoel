@@ -31,6 +31,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.zxing.BarcodeFormat
@@ -54,7 +55,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @Composable
-fun SyncDialog(onClose: () -> Unit) {
+fun SyncDialog(onClose: () -> Unit, isFirstTimeEmpty: Boolean = false) {
     val context = LocalContext.current
     val colors = LocalAppColors.current
     val clipboardManager = LocalClipboardManager.current
@@ -189,6 +190,27 @@ fun SyncDialog(onClose: () -> Unit) {
                         imageVector = Icons.Default.Close,
                         contentDescription = "Tutup",
                         tint = colors.textSecondary,
+                    )
+                }
+            }
+
+            if (isFirstTimeEmpty) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(Cyan500.copy(alpha = 0.12f))
+                        .border(1.dp, Cyan500.copy(alpha = 0.28f), RoundedCornerShape(10.dp))
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    Text(
+                        text = "👋 Selamat Datang di Adoel!",
+                        style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Cyan400),
+                    )
+                    Text(
+                        text = "Data mesin Anda masih kosong. Pindai kode QR dari rekan kerja/shift lain atau tempel teks data QR untuk sinkronisasi otomatis.",
+                        style = TextStyle(fontSize = 12.sp, lineHeight = 17.sp, color = colors.textPrimary),
                     )
                 }
             }
@@ -483,18 +505,27 @@ fun SyncDialog(onClose: () -> Unit) {
 
                 Spacer(Modifier.height(Dimens.Space8))
 
-                Button(
-                    onClick = onClose,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(44.dp),
-                    shape = RoundedCornerShape(Dimens.RadiusControl),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = colors.bgElevated2,
-                        contentColor = colors.textSecondary,
-                    ),
-                ) {
-                    Text("Batal")
+                if (isFirstTimeEmpty) {
+                    TextButton(onClick = onClose, modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = "Lewati & Masuk ke Aplikasi (Atur Manual Nanti)",
+                            style = TextStyle(fontSize = 12.sp, color = colors.textFaint, textDecoration = TextDecoration.Underline),
+                        )
+                    }
+                } else {
+                    Button(
+                        onClick = onClose,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(44.dp),
+                        shape = RoundedCornerShape(Dimens.RadiusControl),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = colors.bgElevated2,
+                            contentColor = colors.textSecondary,
+                        ),
+                    ) {
+                        Text("Batal")
+                    }
                 }
             }
         }
