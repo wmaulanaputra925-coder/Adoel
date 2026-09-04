@@ -3,8 +3,9 @@ package com.jekael.adoel.viewmodel
 import android.app.Application
 import com.jekael.adoel.data.DoffState
 import com.jekael.adoel.data.DoffStateStore
+import com.jekael.adoel.data.MesinData
+import com.jekael.adoel.data.MesinTipe
 import com.jekael.adoel.data.ProsesResult
-import com.jekael.adoel.data.buildDefaultDb
 import com.jekael.adoel.data.nowAbsMin
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -33,7 +34,7 @@ class DoffViewModelTest {
     /** Pengganti in-memory untuk DoffRepository — update menerapkan transform ke MutableStateFlow
      * sehingga jalur "tulis → emisi → rekonsiliasi" berjalan nyata tanpa DataStore/Android. */
     private class FakeStore : DoffStateStore {
-        val persisted = MutableStateFlow(DoffState(db = buildDefaultDb()))
+        val persisted = MutableStateFlow(DoffState())
         override fun observeState(): Flow<DoffState> = persisted
         override suspend fun update(
             debounceWidgetRefresh: Boolean,
@@ -66,7 +67,7 @@ class DoffViewModelTest {
 
     @Test
     fun tappetEstimasiUsesRemainingMinutes() {
-        // Mc 29 is TAPPET/34758 in the default machine DB (see buildDefaultDb).
+        viewModel.setMesin("29", MesinData(MesinTipe.TAPPET, "34758", targetYard = 303.0))
         val now = 1_000L
         val result = viewModel.prosesBarisKondisiMesin("29 45", now)
 
@@ -184,7 +185,7 @@ class DoffViewModelTest {
 
     @Test
     fun resetDbShowsOnboardingAgain() {
-        store.persisted.value = DoffState(db = buildDefaultDb(), onboardingSeen = true)
+        store.persisted.value = DoffState(onboardingSeen = true)
 
         viewModel.resetDb()
 
