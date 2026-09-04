@@ -201,15 +201,27 @@ internal class MainScreenHandlers(
 
     fun handleFinishShift() {
         val state = doffVm.state.value
-        // finishShift() itself already no-ops on an empty aktual log — mirror that here so an
+        // finishShift() itself already no-ops on an empty console — mirror that here so an
         // accidental/duplicate tap doesn't show a confirm dialog and checkmark celebration for
-        // archiving nothing. Active estimasi are left running (see finishShift's own doc), so
-        // their count no longer matters here and their notifications are not touched.
-        if (state.aktual.isEmpty()) {
-            uiVm.showToast("Tidak ada riwayat doffing untuk diarsipkan")
+        // archiving "0 doff & 0 estimasi".
+        if (state.aktual.isEmpty() && state.estimasi.isEmpty()) {
+            uiVm.showToast("Tidak ada yang perlu diarsipkan")
             return
         }
-        uiVm.showConfirm("Akhiri shift? ${state.aktual.size} doff akan diarsipkan ke Riwayat.") {
+        // Doffing history is archived; active estimasi are deleted outright (not archived — see
+        // finishShift's own doc), so the message says "diarsipkan" for one and "dihapus" for the
+        // other rather than implying both survive into Riwayat.
+        val confirmMsg = if (state.aktual.isNotEmpty()) {
+            if (state.estimasi.isNotEmpty()) {
+                "Akhiri shift? ${state.aktual.size} riwayat doffing akan diarsipkan ke Riwayat, dan ${state.estimasi.size} estimasi aktif akan dihapus."
+            } else {
+                "Akhiri shift? ${state.aktual.size} riwayat doffing akan diarsipkan ke Riwayat."
+            }
+        } else {
+            "Akhiri shift? Tidak ada riwayat doffing untuk diarsipkan, ${state.estimasi.size} estimasi aktif akan dihapus."
+        }
+        uiVm.showConfirm(confirmMsg) {
+            NotificationHelper.cancelAll(context, state.estimasi.keys.toList())
             doffVm.finishShift()
             undoRedo.clear()
             haptic.performHapticFeedback(HapticFeedbackType.LongPress)

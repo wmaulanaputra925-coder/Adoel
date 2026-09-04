@@ -279,27 +279,35 @@ class DoffViewModel @JvmOverloads constructor(
         )
     }
 
-    /** Archives the current shift's doffing history before clearing the console log for the next
-     * operator. Active estimasi (radar cards still counting down) are left running untouched —
-     * finishing a shift closes the *record*, it isn't a signal that the physical machines have
-     * stopped, so the next operator picks up exactly where the estimates already were. */
+    /** Archives the current shift's doffing history (aktual) before clearing the console for the
+     * next operator, then deletes any active estimasi outright — same as web's finishShift, they
+     * are dropped, not archived, so [ShiftRecord.estimasiRemaining] is always left empty here
+     * rather than carrying a copy of [DoffState.estimasi] into history. */
     fun finishShift() = updateState { s ->
-        if (s.aktual.isEmpty()) return@updateState s
+        if (s.aktual.isEmpty() && s.estimasi.isEmpty()) return@updateState s
         val now = nowAbsMin()
-        val started = s.aktual.mapNotNull { it.tsEpochMin }.minOrNull() ?: now
-        val record = ShiftRecord(
-            id = s.nextShiftId,
-            startedAtEpochMin = started,
-            endedAtEpochMin = now,
-            aktual = s.aktual,
-            estimasiRemaining = emptyMap(),
-        )
         val cutoff = now - HISTORY_RETENTION_MIN
-        s.copy(
-            aktual = emptyList(),
-            history = (listOf(record) + s.history).filter { it.endedAtEpochMin >= cutoff },
-            nextShiftId = s.nextShiftId + 1,
-        )
+
+        // Only archive a shift record when there's doffing history to archive.
+        if (s.aktual.isNotEmpty()) {
+            val started = s.aktual.mapNotNull { it.tsEpochMin }.minOrNull() ?: now
+            val record = ShiftRecord(
+                id = s.nextShiftId,
+                startedAtEpochMin = started,
+                endedAtEpochMin = now,
+                aktual = s.aktual,
+                estimasiRemaining = emptyMap(),
+            )
+            return@updateState s.copy(
+                estimasi = emptyMap(),
+                aktual = emptyList(),
+                history = (listOf(record) + s.history).filter { it.endedAtEpochMin >= cutoff },
+                nextShiftId = s.nextShiftId + 1,
+            )
+        }
+
+        // Only active estimasi, no doffing history — just clear them, nothing to archive.
+        s.copy(estimasi = emptyMap())
     }
 
     fun setThemeMode(mode: String) = updateState { s ->

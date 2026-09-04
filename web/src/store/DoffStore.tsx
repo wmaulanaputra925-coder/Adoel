@@ -294,31 +294,40 @@ export function DoffStoreProvider({ children }: { children: ReactNode }) {
     return { success, message: resultMessage };
   }, [clearUndo]);
 
-  // "Selesai Shift": arsipkan entri riwayat berjalan (aktual) ke history. Baris estimasi aktif
-  // TIDAK disentuh — mesin yang masih berjalan tidak berhenti hanya karena operator menutup
-  // shift-nya, jadi radar tetap menghitung mundur untuk operator berikutnya. Riwayat lebih tua
-  // dari 30 hari otomatis dibuang di sini.
+  // "Selesai Shift": arsipkan entri riwayat berjalan (aktual) ke history, lalu hapus
+  // baris estimasi aktif (tanpa diarsipkan). Riwayat lebih tua dari 30 hari otomatis dibuang di sini.
   const finishShift = useCallback(() => {
     clearUndo();
     setState((s) => {
-      if (s.aktual.length === 0) return s;
+      if (s.aktual.length === 0 && Object.keys(s.estimasi).length === 0) return s;
       const now = nowAbsMin();
       const cutoff = now - HISTORY_RETENTION_MIN;
 
-      const tsList = s.aktual.map((a) => a.tsEpochMin).filter((t): t is number => t !== null);
-      const started = Math.min(...(tsList.length > 0 ? tsList : [now]));
-      const record: ShiftRecord = {
-        id: s.nextShiftId,
-        startedAtEpochMin: started,
-        endedAtEpochMin: now,
-        aktual: s.aktual,
-        estimasiRemaining: {},
-      };
+      // Hanya buat arsip shift baru jika terdapat entri di halaman riwayat
+      if (s.aktual.length > 0) {
+        const tsList = s.aktual.map((a) => a.tsEpochMin).filter((t): t is number => t !== null);
+        const started = Math.min(...(tsList.length > 0 ? tsList : [now]));
+        const record: ShiftRecord = {
+          id: s.nextShiftId,
+          startedAtEpochMin: started,
+          endedAtEpochMin: now,
+          aktual: s.aktual,
+          estimasiRemaining: {},
+        };
+        return {
+          ...s,
+          estimasi: {},
+          aktual: [],
+          history: [record, ...s.history].filter((h) => h.endedAtEpochMin >= cutoff),
+          nextShiftId: s.nextShiftId + 1,
+        };
+      }
+
+      // Jika hanya ada baris estimasi tanpa riwayat doffing, cukup hapus estimasi
       return {
         ...s,
+        estimasi: {},
         aktual: [],
-        history: [record, ...s.history].filter((h) => h.endedAtEpochMin >= cutoff),
-        nextShiftId: s.nextShiftId + 1,
       };
     });
   }, [clearUndo]);

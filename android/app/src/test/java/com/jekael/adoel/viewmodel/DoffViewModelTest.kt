@@ -124,10 +124,11 @@ class DoffViewModelTest {
     }
 
     @Test
-    fun finishShiftArchivesAktualButLeavesEstimasiRunning() {
+    fun finishShiftArchivesAktualAndDeletesEstimasiWithoutArchivingIt() {
         // Mc 61's estimasi (D405) is unrelated to mc 29's doff below — it represents a machine
-        // still mid-run when the operator taps "Selesai Shift", and should keep counting down
-        // for the next operator instead of being wiped along with the archived doffing log.
+        // still mid-run when the operator taps "Selesai Shift". It should be deleted like the
+        // rest of the shift log, but never show up inside the archived record itself — the
+        // record is doffing history only, estimasiRemaining stays empty.
         viewModel.prosesBarisKondisiMesin("61 280y", 1_000L)
         viewModel.prosesBarisUmum("29 HB")
         assertEquals(1, viewModel.state.value.aktual.size)
@@ -135,18 +136,21 @@ class DoffViewModelTest {
         viewModel.finishShift()
 
         assertTrue(viewModel.state.value.aktual.isEmpty())
-        assertNotNull(viewModel.state.value.estimasi["61"])
+        assertTrue(viewModel.state.value.estimasi.isEmpty())
         assertEquals(1, viewModel.state.value.history.size)
         assertEquals(1, viewModel.state.value.history.first().aktual.size)
+        assertTrue(viewModel.state.value.history.first().estimasiRemaining.isEmpty())
     }
 
     @Test
-    fun finishShiftNoOpsWhenNoAktualToArchive() {
+    fun finishShiftDeletesEstimasiWithoutArchivingWhenNoAktual() {
+        // No doffing history at all — nothing to archive, so finishShift should just clear the
+        // active estimasi without creating an empty-aktual shift record for it.
         viewModel.prosesBarisKondisiMesin("61 280y", 1_000L)
 
         viewModel.finishShift()
 
-        assertNotNull(viewModel.state.value.estimasi["61"])
+        assertTrue(viewModel.state.value.estimasi.isEmpty())
         assertTrue(viewModel.state.value.history.isEmpty())
     }
 
