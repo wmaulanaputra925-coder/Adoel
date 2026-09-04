@@ -67,6 +67,7 @@ private fun MetaTag(text: String) {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun MesinTab(
     state: DoffState,
@@ -277,9 +278,9 @@ internal fun MesinTab(
                                                 style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = colors.textMuted),
                                             )
                                         }
-                                        Row(
-                                            modifier = Modifier.horizontalScroll(rememberScrollState()),
+                                        FlowRow(
                                             horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                            verticalArrangement = Arrangement.spacedBy(4.dp),
                                         ) {
                                             item.machines.forEach { m ->
                                                 Surface(
@@ -468,6 +469,12 @@ internal fun MesinTab(
                                 style = AppType.FieldText.copy(color = colors.textPrimary),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
+                                // Unweighted, this Text would claim the row's whole width before the
+                                // STOP badge below gets a turn to be measured, squeezing/hiding the
+                                // badge instead of the corak text shrinking to make room for it (the
+                                // way web's flexbox does automatically). weight(fill = false) makes
+                                // Compose measure the badge first and gives corak only what's left.
+                                modifier = Modifier.weight(1f, fill = false),
                             )
                             if (!isRunning) {
                                 Surface(
