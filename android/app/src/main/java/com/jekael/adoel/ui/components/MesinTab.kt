@@ -2,6 +2,7 @@ package com.jekael.adoel.ui.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -32,6 +33,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -395,13 +397,30 @@ internal fun MesinTab(
 
             if (groupedEntries.isEmpty()) {
                 item(key = "empty") {
-                    Box(Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) {
+                    val isFiltered = search.isNotBlank() || selectedCorak != null || statusFilter != MesinStatusFilter.ALL
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = Dimens.Space12)
+                            .clip(RoundedCornerShape(Dimens.RadiusCard))
+                            .border(1.dp, colors.border, RoundedCornerShape(Dimens.RadiusCard))
+                            .padding(horizontal = Dimens.Space20, vertical = Dimens.Space24),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
                         Text(
-                            if (search.isNotBlank() || selectedCorak != null || statusFilter != MesinStatusFilter.ALL)
-                                "Tidak ada mesin yang cocok dengan filter"
-                            else "Belum ada mesin terkonfigurasi",
-                            color = colors.textFaint,
-                            style = AppType.FieldText,
+                            text = if (isFiltered) "Mesin Tidak Ditemukan" else "Belum Ada Mesin Terkonfigurasi",
+                            style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary),
+                            textAlign = TextAlign.Center,
+                        )
+                        Text(
+                            text = if (isFiltered) {
+                                "Coba sesuaikan kata kunci pencarian atau bersihkan filter status"
+                            } else {
+                                "Masukkan nomor mesin pada kolom di bawah untuk mulai mengatur corak & tipe"
+                            },
+                            style = AppType.Caption.copy(color = colors.textMuted, lineHeight = 18.sp),
+                            textAlign = TextAlign.Center,
                         )
                     }
                 }
