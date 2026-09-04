@@ -213,7 +213,15 @@ export function BarisMesinScreen({ onClose }: { onClose: () => void }) {
                     </div>
                     <div className="corak-mc-pills-row">
                       {item.machines.map((m) => (
-                        <span key={m} className="corak-mc-pill">
+                        <span
+                          key={m}
+                          className="corak-mc-pill"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            loadFrom(m, state.db[m] ?? defaultMesinData());
+                          }}
+                          title={`Akses cepat: edit Mc ${m}`}
+                        >
                           {m}
                         </span>
                       ))}

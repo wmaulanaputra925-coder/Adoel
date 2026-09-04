@@ -284,6 +284,11 @@ internal fun MesinTab(
                                         ) {
                                             item.machines.forEach { m ->
                                                 Surface(
+                                                    // A nested clickable consumes its own tap in Compose, so this
+                                                    // doesn't also trigger the parent Surface's corak-filter click —
+                                                    // tapping a pill is quick access straight to that one machine's
+                                                    // edit dialog instead of just filtering the list down to it.
+                                                    modifier = Modifier.clickable { loadFrom(m, state.db[m] ?: MesinData()) },
                                                     shape = RoundedCornerShape(4.dp),
                                                     color = colors.bgElevated,
                                                 ) {

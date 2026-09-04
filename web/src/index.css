@@ -2402,6 +2402,13 @@ textarea.json-box {
   padding: 1.5px 5.5px;
   border-radius: 4px;
   border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.corak-mc-pill:hover {
+  background: color-mix(in srgb, var(--cyan-500) 18%, var(--bg-elevated));
+  border-color: var(--cyan-500);
+  color: var(--cyan-400);
 }
 
 /* Status Filter Tabs */
