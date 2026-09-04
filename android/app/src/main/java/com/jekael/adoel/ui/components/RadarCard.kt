@@ -529,11 +529,17 @@ fun RadarCard(
                                 modifier = Modifier.padding(bottom = Dimens.Space4),
                             )
                             if (clr.icon != null) {
+                                // 15dp, not the 12dp everything else in this row uses — Material's
+                                // Schedule/Warning outlines carry more internal linework than web's
+                                // minimalist 2-stroke SVGs, so at 12dp they read as a smudge instead
+                                // of a recognizable glyph. Bumped up rather than swapped to a filled
+                                // variant, since Outlined vs Filled here is deliberately meaningful
+                                // (OVERDUE alone is filled — see the `urgency()` levels above).
                                 Icon(
                                     imageVector = clr.icon,
                                     contentDescription = null,
                                     tint = clr.labelColor,
-                                    modifier = Modifier.size(12.dp).padding(bottom = Dimens.Space4),
+                                    modifier = Modifier.size(15.dp).padding(bottom = Dimens.Space4),
                                 )
                             }
                         }
