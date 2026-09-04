@@ -69,12 +69,9 @@ import kotlinx.coroutines.launch
 private enum class DoffCompletionKind { NORMAL, MATCHING }
 
 /** Which side of the card is showing. FRONT is the normal live card; long-press flips to ACTIONS
- * (Jeda/Hapus); tapping Jeda there flips straight through to PAUSED (no extra flip — both ACTIONS
- * and PAUSED sit on the "back" of the card, just different content on it) until Lanjutkan flips
- * the card back to FRONT. Driven by [Estimasi.pausedAtAbsMin] + a local "is the back revealed"
- * flag rather than 3 independent booleans, so it's structurally impossible to end up in a
- * combination that doesn't make sense (e.g. showing ACTIONS on an estimate that's actually paused). */
-private enum class CardFace { FRONT, ACTIONS, PAUSED }
+ * (Jeda/Hapus). A paused estimate never reaches either of these — RadarCard returns early into
+ * [PausedRadarCardFront] before this state is even consulted, so there's no PAUSED face here. */
+private enum class CardFace { FRONT, ACTIONS }
 
 private data class UrgencyStyle(
     val accent: Color,
@@ -220,12 +217,11 @@ fun RadarCard(
     // or the app restarts), not just right after Jeda is tapped in the same session.
     val isPaused = est.pausedAtAbsMin != null
     var showActionsFace by remember(est.mcNo) { mutableStateOf(false) }
+    // Still resets on pause even though the paused branch below returns before `face` is ever
+    // read — so that when Lanjutkan later resumes it, the card doesn't come back showing a stale
+    // revealed-actions face from whatever state it was in right before Jeda was tapped.
     LaunchedEffect(isPaused) { if (isPaused) showActionsFace = false }
-    val face = when {
-        isPaused -> CardFace.PAUSED
-        showActionsFace -> CardFace.ACTIONS
-        else -> CardFace.FRONT
-    }
+    val face = if (showActionsFace) CardFace.ACTIONS else CardFace.FRONT
     val flipRotation = remember(est.mcNo) { Animatable(0f) }
     LaunchedEffect(face) {
         flipRotation.animateTo(if (face == CardFace.FRONT) 0f else 180f, tween(420, easing = FastOutSlowInEasing))
@@ -338,6 +334,28 @@ fun RadarCard(
         }
     }
 
+    // Paused cards get their own simpler front-card treatment instead of ever entering the
+    // swipe/flip machinery below — no swipe-to-doff (a paused machine isn't running, doffing it
+    // makes no sense), no flip either: Lanjutkan/Hapus sit right on the front. Mirrors web's own
+    // early `if (isPaused) return <front-with-inline-actions>` in RadarCard.tsx exactly, rather
+    // than the flip-to-a-back-face this used to do (CardPausedFace, now removed).
+    if (isPaused) {
+        PausedRadarCardFront(
+            est = est,
+            mesin = mesin,
+            remaining = remaining,
+            corakLine = corakLine,
+            tipe = tipe,
+            onQuickEdit = onQuickEdit,
+            onLanjutkan = onLanjutkan,
+            onHapus = onHapus,
+            entranceAlpha = entranceAlpha.value,
+            entranceOffsetY = entranceOffsetY.value,
+            modifier = modifier,
+        )
+        return
+    }
+
     Box(modifier = modifier.fillMaxWidth()) {
         SwipeActionBackground(
             offsetX = offsetX.value,
@@ -390,13 +408,11 @@ fun RadarCard(
                                 },
                             )
                         }
-                        if (isPaused) {
-                            add(CustomAccessibilityAction("Lanjutkan mesin ${est.mcNo}") { onLanjutkan(); true })
-                            add(CustomAccessibilityAction("Hapus estimasi Mc ${est.mcNo}") { onHapus(); true })
-                        } else {
-                            add(CustomAccessibilityAction("Jeda mesin ${est.mcNo}") { onJeda(); true })
-                            add(CustomAccessibilityAction("Hapus estimasi Mc ${est.mcNo}") { onHapus(); true })
-                        }
+                        // No isPaused branch here — a paused estimate returns from this composable
+                        // entirely before this Box is ever reached (see above), so Jeda/Hapus is
+                        // always the right pair of actions by the time TalkBack sees this list.
+                        add(CustomAccessibilityAction("Jeda mesin ${est.mcNo}") { onJeda(); true })
+                        add(CustomAccessibilityAction("Hapus estimasi Mc ${est.mcNo}") { onHapus(); true })
                     }
                 }
                 .pointerInput(completing, swipeEnabled, face) {
@@ -661,13 +677,6 @@ fun RadarCard(
                         onHapus = onHapus,
                         onDismiss = { showActionsFace = false },
                     )
-                    CardFace.PAUSED -> CardPausedFace(
-                        mcNo = est.mcNo,
-                        mesin = mesin,
-                        frozenRemaining = remaining,
-                        onLanjutkan = onLanjutkan,
-                        onHapus = onHapus,
-                    )
                     CardFace.FRONT -> Unit // unreachable — flipRotation only passes 90° once face != FRONT
                 }
             }
@@ -764,52 +773,114 @@ private fun CardActionsFace(
     }
 }
 
-/** Back-of-card face while Mc [mcNo] is Jeda'd — reachable either by tapping Jeda on
- * [CardActionsFace] or (after a scroll recycle / app restart) directly, since [Estimasi.
- * pausedAtAbsMin] being non-null always wins over the local "actions revealed" flag. Lanjutkan
- * shifts the estimate forward by however long it sat paused (DoffViewModel.resumeEstimasi) and
- * flips the card back to its normal front. */
+/** Front-and-only card for an Mc that's Jeda'd — no swipe, no flip, Lanjutkan/Hapus sit right on
+ * the card. Direct port of web's early `if (isPaused) return <front with inline actions>` in
+ * RadarCard.tsx (`.radar-card-front.radar-card-paused`), replacing the flip-to-back-face this
+ * used to do (the old CardPausedFace, reachable only via long-press, is gone). */
 @Composable
-private fun CardPausedFace(
-    mcNo: String,
+private fun PausedRadarCardFront(
+    est: Estimasi,
     mesin: MesinData?,
-    frozenRemaining: Long,
+    remaining: Long,
+    corakLine: String,
+    tipe: String,
+    onQuickEdit: () -> Unit,
     onLanjutkan: () -> Unit,
     onHapus: () -> Unit,
+    entranceAlpha: Float,
+    entranceOffsetY: Float,
+    modifier: Modifier = Modifier,
 ) {
     val colors = LocalAppColors.current
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .graphicsLayer {
+                alpha = entranceAlpha
+                translationY = entranceOffsetY
+            }
+            .elevatedListCard(
+                backgroundColor = lerp(colors.bgElevated, Amber500, 0.08f),
+                borderColor = Amber500.copy(alpha = 0.30f),
+            )
             .drawBehind {
-                val stripe = colors.textFaint.copy(alpha = 0.08f)
+                // Faint diagonal stripe wash, same idea as the old CardPausedFace's — much
+                // subtler here (0.035 vs 0.08) since it now sits behind live text/badges instead
+                // of an otherwise-empty back face.
+                val stripe = Amber500.copy(alpha = 0.035f)
                 for (x in -size.height.toInt()..size.width.toInt() step 18) {
                     drawLine(stripe, Offset(x.toFloat(), 0f), Offset(x + size.height, size.height), strokeWidth = 2f)
                 }
-            }
-            .padding(horizontal = Dimens.Space16),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(Dimens.Space8),
+            },
     ) {
-        Text(
-            text = "Mc $mcNo sedang dijeda",
-            style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = colors.textMuted),
+        Box(
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .fillMaxHeight()
+                .width(6.dp)
+                .background(Amber500),
         )
-        val yard = mesin?.targetYard?.let { " · ${formatYard(it)}y" } ?: ""
-        Text("${mesin?.corak ?: "—"}$yard", style = AppType.Caption.copy(color = colors.textFaint))
-        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("Dibekukan pada sisa:", style = AppType.Caption.copy(color = colors.textMuted))
-            Text(
-                formatDeltaMin(frozenRemaining),
-                style = AppType.Caption.copy(color = Amber400, fontWeight = FontWeight.Bold),
-            )
-        }
         Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = Dimens.Space16 + 6.dp, end = Dimens.Space16, top = Dimens.Space12, bottom = Dimens.Space12),
+            horizontalArrangement = Arrangement.spacedBy(Dimens.Space12),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            ResumeChip(onClick = onLanjutkan)
-            DeleteIconButton(onClick = onHapus)
+            Column(
+                modifier = Modifier
+                    .weight(1f, fill = false)
+                    .clickable(onClickLabel = "Ubah corak dan target yard Mc ${est.mcNo}", onClick = onQuickEdit),
+                verticalArrangement = Arrangement.spacedBy(3.dp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Dimens.Space6)) {
+                    Text(
+                        text = est.mcNo,
+                        style = TextStyle(
+                            fontSize = if (est.mcNo.length >= 3) 23.sp else 27.sp,
+                            fontWeight = FontWeight.Black,
+                            color = colors.textPrimary,
+                        ),
+                        maxLines = 1,
+                        softWrap = false,
+                    )
+                    if (mesin != null) {
+                        MesinTipeIcon(tipe = mesin.tipe, tint = mesinTipeColor(mesin.tipe), modifier = Modifier.size(12.dp))
+                    }
+                    Text(
+                        text = tipe,
+                        style = TextStyle(
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 2.sp,
+                            color = mesin?.tipe?.let { mesinTipeColor(it) } ?: colors.textFaint,
+                        ),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    RadarCardBadge(icon = Icons.Outlined.Pause, text = "DIJEDA", accent = Amber400)
+                }
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Dimens.Space4)) {
+                    Icon(imageVector = Icons.Outlined.Texture, contentDescription = null, tint = colors.textFaint, modifier = Modifier.size(11.dp))
+                    Text(
+                        text = corakLine,
+                        style = AppType.Caption.copy(color = colors.textMuted),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("Dibekukan pada sisa:", style = AppType.Caption.copy(color = colors.textMuted))
+                    Text(
+                        formatDeltaMin(remaining),
+                        style = AppType.Caption.copy(color = Amber400, fontWeight = FontWeight.Bold),
+                    )
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                ResumeChip(onClick = onLanjutkan)
+                DeleteIconButton(onClick = onHapus)
+            }
         }
     }
 }
@@ -861,7 +932,7 @@ private fun CardActionChip(icon: ImageVector, label: String, accent: Color, onCl
     }
 }
 
-/** Wide primary "Lanjutkan" pill on [CardPausedFace] — Android equivalent of web's
+/** Wide primary "Lanjutkan" pill on [PausedRadarCardFront] — Android equivalent of web's
  * .radar-resume-btn. */
 @Composable
 private fun ResumeChip(onClick: () -> Unit) {
