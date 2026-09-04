@@ -35,6 +35,9 @@ import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
 import com.jekael.adoel.BarcodeScanActivity
 import com.jekael.adoel.data.DoffRepository
+import com.jekael.adoel.data.DoffState
+import com.jekael.adoel.data.currentShiftStartAbsMin
+import com.jekael.adoel.data.nowAbsMin
 import com.jekael.adoel.ui.theme.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -47,6 +50,7 @@ fun SyncDialog(onClose: () -> Unit) {
     val clipboardManager = LocalClipboardManager.current
     val repository = remember(context) { DoffRepository.getInstance(context) }
     val scope = rememberCoroutineScope()
+    val doffState by repository.observeState().collectAsState(initial = DoffState())
 
     // 0 = Terima / Scan, 1 = Kirim
     var tabIndex by remember { mutableStateOf(0) }
@@ -57,6 +61,25 @@ fun SyncDialog(onClose: () -> Unit) {
     var rawQrString by remember { mutableStateOf("") }
     var pastedText by remember { mutableStateOf("") }
     var isCopied by remember { mutableStateOf(false) }
+
+    // Same "customized" test prepareMasterDbData() uses to decide what CUSTOMIZED_ONLY includes,
+    // mirrored here purely for the chip-label counts (web shows these same counts on its chips).
+    val customizedCount = remember(doffState.db) {
+        doffState.db.values.count { m ->
+            (m.corak.trim().isNotEmpty() && m.corak != "-") ||
+                m.targetYard != null || m.speed != null || (m.koreksi != null && m.koreksi != 0.0)
+        }
+    }
+    val nextShiftCount = remember(doffState.estimasi) {
+        val shiftEndAbs = currentShiftStartAbsMin(nowAbsMin()) + 480L
+        doffState.estimasi.values.count { it.estAbsMin > shiftEndAbs }
+    }
+    LaunchedEffect(isCopied) {
+        if (isCopied) {
+            kotlinx.coroutines.delay(2000)
+            isCopied = false
+        }
+    }
 
     // Update QR Bitmap whenever Kirim tab, qrType, or dbScope changes
     LaunchedEffect(tabIndex, qrType, dbScope) {
@@ -176,13 +199,13 @@ fun SyncDialog(onClose: () -> Unit) {
                     horizontalArrangement = Arrangement.spacedBy(Dimens.Space8),
                 ) {
                     ChipBtn(
-                        label = "Oper Shift",
+                        label = "Oper Shift ($nextShiftCount Mc)",
                         selected = qrType == "HANDOVER",
                         onClick = { qrType = "HANDOVER" },
                         modifier = Modifier.weight(1f),
                     )
                     ChipBtn(
-                        label = "Daftar Mesin",
+                        label = "Daftar Mesin (${if (customizedCount > 0) "$customizedCount Terisi" else "60 Mc"})",
                         selected = qrType == "MASTER_DB",
                         onClick = { qrType = "MASTER_DB" },
                         modifier = Modifier.weight(1f),
@@ -198,19 +221,19 @@ fun SyncDialog(onClose: () -> Unit) {
                         horizontalArrangement = Arrangement.spacedBy(Dimens.Space4),
                     ) {
                         ChipBtn(
-                            label = "Mesin Terisi",
+                            label = "Mesin Terisi (${if (customizedCount > 0) customizedCount else 30})",
                             selected = dbScope == "CUSTOMIZED_ONLY",
                             onClick = { dbScope = "CUSTOMIZED_ONLY" },
                             modifier = Modifier.weight(1f),
                         )
                         ChipBtn(
-                            label = "01–30 (P1)",
+                            label = "Mc 01–30 (P1)",
                             selected = dbScope == "RANGE_1_30",
                             onClick = { dbScope = "RANGE_1_30" },
                             modifier = Modifier.weight(1f),
                         )
                         ChipBtn(
-                            label = "31–60 (P2)",
+                            label = "Mc 31–60 (P2)",
                             selected = dbScope == "RANGE_31_60",
                             onClick = { dbScope = "RANGE_31_60" },
                             modifier = Modifier.weight(1f),
@@ -228,7 +251,7 @@ fun SyncDialog(onClose: () -> Unit) {
                         text = if (qrType == "HANDOVER") {
                             "💡 Oper Shift Berikutnya: Hanya membagikan data estimasi untuk shift berikutnya dalam format super ringkas."
                         } else {
-                            "💡 QR Ringkas & Renggang: Kode QR dioptimalkan agar modul titik besar dan mudah di-scan kamera ponsel."
+                            "💡 QR Ringkas & Renggang: Kode QR dioptimalkan agar modul titik besar dan mudah di-scan kamera ponsel. Gunakan P1 / P2 jika ingin membagi data mesin menjadi 2 bagian."
                         },
                         style = TextStyle(fontSize = 11.sp, color = colors.textSecondary, lineHeight = 15.sp),
                     )
