@@ -2880,6 +2880,14 @@ textarea.json-box {
   line-height: 1;
 }
 
+.radar-live-dot {
+  width: 7px;
+  height: 7px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--emerald-500);
+}
+
 .radar-status-nearest {
   display: inline-flex;
   align-items: center;

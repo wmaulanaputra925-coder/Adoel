@@ -20,7 +20,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -317,25 +316,6 @@ private fun RadarStatusBar(
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalAppColors.current
-    val infiniteTransition = rememberInfiniteTransition(label = "radar_blip")
-    val blipScale by infiniteTransition.animateFloat(
-        initialValue = 0.8f,
-        targetValue = 1.65f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1200, easing = EaseOutQuad),
-            repeatMode = RepeatMode.Restart,
-        ),
-        label = "blip_scale",
-    )
-    val blipAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.75f,
-        targetValue = 0f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1200, easing = EaseOutQuad),
-            repeatMode = RepeatMode.Restart,
-        ),
-        label = "blip_alpha",
-    )
 
     Row(
         modifier = modifier
@@ -350,27 +330,11 @@ private fun RadarStatusBar(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Box(
-                modifier = Modifier.size(14.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(14.dp)
-                        .graphicsLayer {
-                            scaleX = blipScale
-                            scaleY = blipScale
-                            alpha = blipAlpha
-                        }
-                        .clip(CircleShape)
-                        .background(Emerald500),
-                )
-                Box(
-                    modifier = Modifier
-                        .size(7.dp)
-                        .clip(CircleShape)
-                        .background(Emerald500),
-                )
-            }
+                modifier = Modifier
+                    .size(7.dp)
+                    .clip(CircleShape)
+                    .background(Emerald500),
+            )
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp),

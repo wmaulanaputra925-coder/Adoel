@@ -97,10 +97,7 @@ export function RadarScreen({ onEditWaktu }: { onEditWaktu: (mcNo: string) => vo
       {/* Live Monitoring Status Header */}
       <div className="radar-status-bar">
         <div className="radar-status-left">
-          <div className="radar-live-blip">
-            <span className="blip-ring" />
-            <span className="blip-core" />
-          </div>
+          <span className="radar-live-dot" />
           <span className="radar-status-text">
             Radar Aktif: <strong>{all.length}</strong> Mesin
           </span>
