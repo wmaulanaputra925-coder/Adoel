@@ -638,7 +638,7 @@ fun MainScreen(
             onAddCorakShortcut = { doffVm.addCorakShortcut(it) },
             onAddKeteranganShortcut = { doffVm.addKeteranganShortcut(it) },
             corakPotonganAwal = state.corakPotonganAwal,
-            showConfirm = { msg, onConfirm -> uiVm.showConfirm(msg, onConfirm) },
+            showConfirm = { msg, onConfirm -> uiVm.showConfirm(msg, onConfirm = onConfirm) },
         )
     }
 

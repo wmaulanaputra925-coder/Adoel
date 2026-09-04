@@ -38,6 +38,7 @@ function fullState(): DoffState {
     onboardingSeen: false,
     keteranganShortcuts: ["HB", "P.LP", "P.SN", "P.OH", "P.EL", "P.Sel"],
     corakShortcuts: ["4500", "5000"],
+    corakPotonganAwal: ["80125", "21242", "66335"],
   };
 }
 
@@ -57,6 +58,9 @@ describe("parseBackupJson", () => {
     expect(p.db["29"].targetYard).toBe(303);
     expect(p.keteranganShortcuts).toEqual([]);
     expect(p.corakShortcuts).toEqual([]);
+    // Beda dari corakShortcuts (default []): backup lama tanpa field ini masih dapat aturan
+    // kualitas 3-corak standar, bukan daftar kosong yang mematikan pengingatnya diam-diam.
+    expect(p.corakPotonganAwal).toEqual(["80125", "21242", "66335"]);
   });
 
   it("id aktual duplikat di-reassign, bukan dibuang", () => {
