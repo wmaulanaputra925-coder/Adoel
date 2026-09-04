@@ -37,6 +37,7 @@ import com.jekael.adoel.ui.theme.*
  * covers the overall total). */
 internal fun LazyListScope.estimasiSection(
     radarList: List<Estimasi>,
+    dijedaList: List<Estimasi>,
     segeraList: List<Estimasi>,
     menungguList: List<Estimasi>,
     menungguRows: List<MenungguRow>,
@@ -91,7 +92,7 @@ internal fun LazyListScope.estimasiSection(
             )
         }
     }
-    if (segeraList.isEmpty() && menungguList.isEmpty()) {
+    if (segeraList.isEmpty() && menungguList.isEmpty() && dijedaList.isEmpty()) {
         item(key = "est_filter_empty") {
             EmptyState(
                 modifier = Modifier.fillMaxWidth().padding(vertical = Dimens.Space24),
@@ -102,6 +103,30 @@ internal fun LazyListScope.estimasiSection(
         return
     }
     val shiftBoundary = currentShiftStartAbsMin(nowAbs) + 480
+    if (dijedaList.isNotEmpty()) {
+        item(key = "dijeda_head") {
+            UrgencyBandHeader(label = "Dijeda", count = dijedaList.size, color = Amber400, modifier = Modifier.animateItem())
+        }
+        itemsIndexed(dijedaList, key = { _, est -> "dijeda_${est.mcNo}" }) { index, est ->
+            RadarCard(
+                est = est,
+                mesin = db[est.mcNo],
+                nowAbs = nowAbs,
+                clashingMcNos = emptyList(),
+                shiftHandover = est.estAbsMin > shiftBoundary,
+                onDoff = { onDoff(est.mcNo) },
+                onDoffMatching = { onDoffMatching(est.mcNo) },
+                guardDoffMatching = { proceed -> guardDoffMatching(est.mcNo, proceed) },
+                onHapus = { onHapus(est.mcNo) },
+                onJeda = { onJeda(est.mcNo) },
+                onLanjutkan = { onLanjutkan(est.mcNo) },
+                onQuickEdit = { onQuickEdit(est.mcNo) },
+                onEditWaktu = { onEditWaktu(est.mcNo) },
+                modifier = Modifier.animateItem(),
+                entranceDelayMs = (index * Motion.LIST_STAGGER_STEP_MS).coerceAtMost(Motion.LIST_STAGGER_MAX_MS),
+            )
+        }
+    }
     if (segeraList.isNotEmpty()) {
         item(key = "segera_head") {
             UrgencyBandHeader(label = "Segera", count = segeraList.size, color = Red400, modifier = Modifier.animateItem())

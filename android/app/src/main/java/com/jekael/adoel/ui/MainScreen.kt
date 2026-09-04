@@ -178,11 +178,20 @@ fun MainScreen(
             radarList.filter { est -> est.mcNo.contains(radarFilter, ignoreCase = true) }
         }
     }
+    // Paused cards get their own "Dijeda" band (below) instead of flowing through Segera/Menunggu —
+    // otherwise a paused card's estAbsMin still counts toward the gap card computed against its
+    // neighbors, showing a break/countdown anchored to a machine that isn't actually running.
+    val dijedaList = remember(filteredRadarList) {
+        filteredRadarList.filter { it.pausedAtAbsMin != null }
+    }
+    val activeRadarList = remember(filteredRadarList) {
+        filteredRadarList.filter { it.pausedAtAbsMin == null }
+    }
     // Derived (not a plain remember(nowAbs, ...)) — partitioning only needs to actually re-propagate
     // to whatever reads segeraList/menungguList when a card crosses the Segera/Menunggu boundary,
     // not on every 5-second nowAbs tick that leaves the partition unchanged.
-    val (segeraList, menungguList) = remember(filteredRadarList) {
-        derivedStateOf { partitionSegeraMenunggu(filteredRadarList, nowAbs) }
+    val (segeraList, menungguList) = remember(activeRadarList) {
+        derivedStateOf { partitionSegeraMenunggu(activeRadarList, nowAbs) }
     }.value
     val hasPreviousShiftData = remember(state.aktual, state.estimasi, nowAbs) {
         val shiftStart = currentShiftStartAbsMin(nowAbs)
@@ -338,6 +347,7 @@ fun MainScreen(
                         Page.RADAR -> {
                             estimasiSection(
                                 radarList = radarList,
+                                dijedaList = dijedaList,
                                 segeraList = segeraList,
                                 menungguList = menungguList,
                                 menungguRows = menungguRows,
