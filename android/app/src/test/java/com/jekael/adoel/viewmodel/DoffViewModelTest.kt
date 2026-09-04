@@ -93,7 +93,11 @@ class DoffViewModelTest {
 
     @Test
     fun d405EstimasiComputedFromRemainingYardOverSpeed() {
-        // Mc 61 is D405/60357, targetYard 303.0, speed 0.158 in the default DB.
+        // Was "Mc 61 is D405/60357... in the default DB" back when FakeStore seeded
+        // buildDefaultDb() with real factory presets; now that the default DB is 174 blank
+        // slots (see buildDefaultDb's own doc comment) and FakeStore starts fully empty, this
+        // needs its own explicit setMesin like tappetEstimasiUsesRemainingMinutes does.
+        viewModel.setMesin("61", MesinData(MesinTipe.D405, "60357", targetYard = 303.0, speed = 0.158))
         val now = 1_000L
         val result = viewModel.prosesBarisKondisiMesin("61 280y", now)
 
@@ -105,7 +109,9 @@ class DoffViewModelTest {
     @Test
     fun d408EstimasiIsAccepted() {
         // Mc 79 is D408/60357, koreksi 18.0 — nilai numeriknya diuji di EstimasiUtilsTest
-        // (estAbsD408 dengan clock suntikan); di sini cukup jalur perintahnya.
+        // (estAbsD408 dengan clock suntikan); di sini cukup jalur perintahnya. Explicit setMesin
+        // needed now that FakeStore no longer seeds buildDefaultDb() (see d405Estimasi... above).
+        viewModel.setMesin("79", MesinData(MesinTipe.D408, "60357", koreksi = 18.0))
         val result = viewModel.prosesBarisKondisiMesin("79 12.30", nowAbsMin())
 
         assertTrue(result is ProsesResult.Ok)
@@ -113,6 +119,7 @@ class DoffViewModelTest {
 
     @Test
     fun prosesBarisUmumRecordsDoffAndClearsEstimasi() {
+        viewModel.setMesin("29", MesinData(MesinTipe.TAPPET, "34758", targetYard = 303.0))
         viewModel.prosesBarisKondisiMesin("29 45", 1_000L)
         assertNotNull(viewModel.state.value.estimasi["29"])
 
@@ -157,6 +164,7 @@ class DoffViewModelTest {
 
     @Test
     fun persistedWriteAppliesSameTransformAsOptimisticApply() {
+        viewModel.setMesin("29", MesinData(MesinTipe.TAPPET, "34758", targetYard = 303.0))
         viewModel.prosesBarisKondisiMesin("29 45", 1_000L)
         // Sebelum dipompa, tulis-persist belum berjalan sama sekali.
         assertNull(store.persisted.value.estimasi["29"])
