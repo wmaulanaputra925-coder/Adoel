@@ -527,7 +527,7 @@ export function SyncDialog({
                       textDecoration: "underline",
                     }}
                   >
-                    Lewati & Masuk ke Aplikasi (Atur Manual Nanti)
+                    Lewati (Atur Manual Nanti)
                   </button>
                 </div>
               )}

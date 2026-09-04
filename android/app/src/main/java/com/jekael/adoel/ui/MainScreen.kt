@@ -656,16 +656,15 @@ fun MainScreen(
     // Fresh install with nothing set up yet: offer to import a coworker's QR data before falling
     // back to the plain onboarding walkthrough, same as web (App.tsx's shouldShowAutoQr) — an
     // empty Daftar Mesin is a much bigger blocker on first launch than not knowing the UI yet.
+    // onboardingSeen is deliberately NOT set when the QR dialog closes — Panduan follows right
+    // after (the `else if` below), not skipped, so a brand-new operator still gets the walkthrough.
     val isDbEmpty = remember(state.db) { isMachineDataEmpty(state.db) }
     val shouldShowAutoQr = !state.onboardingSeen && isDbEmpty && !autoQrDismissed
 
     if (shouldShowAutoQr) {
         SyncDialog(
             isFirstTimeEmpty = true,
-            onClose = {
-                autoQrDismissed = true
-                doffVm.setOnboardingSeen()
-            },
+            onClose = { autoQrDismissed = true },
         )
     } else if (!state.onboardingSeen) {
         OnboardingDialog(onClose = { doffVm.setOnboardingSeen() })

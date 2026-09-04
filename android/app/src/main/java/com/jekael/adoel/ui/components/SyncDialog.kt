@@ -508,7 +508,7 @@ fun SyncDialog(onClose: () -> Unit, isFirstTimeEmpty: Boolean = false) {
                 if (isFirstTimeEmpty) {
                     TextButton(onClick = onClose, modifier = Modifier.fillMaxWidth()) {
                         Text(
-                            text = "Lewati & Masuk ke Aplikasi (Atur Manual Nanti)",
+                            text = "Lewati (Atur Manual Nanti)",
                             style = TextStyle(fontSize = 12.sp, color = colors.textFaint, textDecoration = TextDecoration.Underline),
                         )
                     }

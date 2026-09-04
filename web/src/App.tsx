@@ -385,14 +385,14 @@ function AppInner() {
       {screen === "statistik" && <StatistikScreen onClose={() => setScreen("main")} />}
       {screen === "settings" && <SettingsScreen onClose={() => setScreen("main")} onOpenHelp={() => setHelpOpen(true)} />}
 
-      {/* Jendela QR Otomatis untuk Pengguna Baru bila Data Mesin Masih Kosong */}
+      {/* Jendela QR Otomatis untuk Pengguna Baru bila Data Mesin Masih Kosong — Panduan menyusul
+          setelah ini ditutup (onboardingSeen sengaja TIDAK diset di sini), bukan dilewati. */}
       {shouldShowAutoQr && (
         <SyncDialog
           initialTab="terima"
           isFirstTimeEmpty={true}
           onClose={() => {
             setAutoQrDismissed(true);
-            setOnboardingSeen();
           }}
         />
       )}
