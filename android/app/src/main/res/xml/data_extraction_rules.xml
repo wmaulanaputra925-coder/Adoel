@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Excludes the app's DataStore (Daftar Mesin, estimasi, riwayat, onboardingSeen — see
+     DoffRepository.kt's "adoel_v5" preferencesDataStore) from Android's cloud backup and
+     device-to-device transfer (API 31+). Without this, a fresh install silently restores an
+     operator's old data from Google Drive, so "fresh install" never actually starts empty like
+     web does — QR sync between coworkers is meant to be the one deliberate way data moves
+     between devices, not an implicit OS-level restore. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="file" path="datastore/adoel_v5.preferences_pb" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="file" path="datastore/adoel_v5.preferences_pb" />
+    </device-transfer>
+</data-extraction-rules>
