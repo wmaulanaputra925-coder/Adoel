@@ -1,12 +1,16 @@
 package com.jekael.adoel.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
+import androidx.compose.material.icons.automirrored.outlined.Undo
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.*
@@ -57,7 +61,7 @@ fun OnboardingDialog(onClose: () -> Unit) {
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
-                            imageVector = Icons.Outlined.MenuBook,
+                            imageVector = Icons.AutoMirrored.Outlined.MenuBook,
                             contentDescription = null,
                             tint = Cyan400,
                             modifier = Modifier.size(20.dp),
@@ -101,6 +105,8 @@ fun OnboardingDialog(onClose: () -> Unit) {
                 inactiveTextColor = colors.textMuted,
                 modifier = Modifier.fillMaxWidth(),
                 accessibilityLabel = "Pilihan tab panduan Adoel",
+                iconLeft = Icons.AutoMirrored.Outlined.MenuBook,
+                iconRight = Icons.Outlined.Swipe,
             )
 
             // Body Content (Scrollable)
@@ -147,42 +153,42 @@ fun OnboardingDialog(onClose: () -> Unit) {
 
 @Composable
 private fun OperationalFlowGuide() {
-    val colors = LocalAppColors.current
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         GuideRow(
             icon = Icons.Outlined.Schedule,
-            tint = Cyan500,
+            iconBg = Cyan600,
+            titleColor = Cyan400,
             stepNumber = "1. Estimasi Waktu Doff",
             description = "Ketik nomor mesin di konsol bawah lalu ketuk tombol ⏱ Estimasi. Isi sisa menit (Tappet/Cam), yard berjalan (D405), atau jam counter (D408).",
         )
-        HorizontalDivider(color = colors.border)
         GuideRow(
             icon = Icons.Outlined.ContentCut,
-            tint = Emerald500,
+            iconBg = Emerald600,
+            titleColor = Emerald400,
             stepNumber = "2. Potong Kain (Doffing)",
             description = "Ketik nomor mesin lalu tekan tombol ✂ Doffing. Atau gunakan cara kilat dengan menggeser kartu mesin di layar Radar.",
         )
-        HorizontalDivider(color = colors.border)
         GuideRow(
             icon = Icons.Outlined.Pause,
-            tint = Amber500,
+            iconBg = Amber600,
+            titleColor = Amber400,
             stepNumber = "3. Jeda Mesin & Macet",
             description = "Jika mesin berhenti atau ada kendala putus lusi, tekan lama kartu mesin lalu pilih Jeda. Perhitungan waktu istirahat tetap akurat dan data rol kain dibekukan.",
         )
-        HorizontalDivider(color = colors.border)
         GuideRow(
-            icon = Icons.Outlined.Undo,
-            tint = Amber700,
+            icon = Icons.AutoMirrored.Outlined.Undo,
+            iconBg = Amber600,
+            titleColor = Amber400,
             stepNumber = "4. Urungkan (Undo / Redo)",
             description = "Salah mencatat atau salah hapus? Tekan tombol panah ↩ Urungkan atau ↪ Ulangi di sisi kiri konsol bawah untuk mengembalikan data seketika.",
         )
-        HorizontalDivider(color = colors.border)
         GuideRow(
             icon = Icons.Outlined.Forward,
-            tint = Sky500,
+            iconBg = Sky600,
+            titleColor = Sky400,
             stepNumber = "5. Operan Antar-Shift",
             description = "Mesin yang jadwal doffing-nya melebihi jam kerja shift saat ini (>8 jam) secara otomatis ditandai sebagai Operan agar grafik progres kerja tetap rapi.",
         )
@@ -192,32 +198,38 @@ private fun OperationalFlowGuide() {
 @Composable
 private fun GuideRow(
     icon: ImageVector,
-    tint: Color,
+    iconBg: Color,
+    titleColor: Color,
     stepNumber: String,
     description: String,
 ) {
     val colors = LocalAppColors.current
     Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(Dimens.RadiusControl))
+            .background(colors.bgElevated2)
+            .border(1.dp, colors.border, RoundedCornerShape(Dimens.RadiusControl))
+            .padding(Dimens.Space12),
+        horizontalArrangement = Arrangement.spacedBy(Dimens.Space12),
         verticalAlignment = Alignment.Top,
     ) {
         Box(
             modifier = Modifier
-                .size(32.dp)
-                .clip(CircleShape)
-                .background(tint.copy(alpha = 0.2f)),
+                .size(36.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(iconBg),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(icon, contentDescription = stepNumber, tint = tint, modifier = Modifier.size(17.dp))
+            Icon(icon, contentDescription = stepNumber, tint = Color.White, modifier = Modifier.size(18.dp))
         }
         Column(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Text(
                 stepNumber,
-                style = AppType.LabelBold.copy(color = tint, fontSize = 13.sp),
+                style = AppType.LabelBold.copy(color = titleColor, fontSize = 13.sp),
             )
             Text(
                 description,
@@ -299,7 +311,7 @@ private fun RadarGestureGuide() {
 
         // Gesture 1: Geser ke Kanan
         GestureItem(
-            icon = Icons.Outlined.ArrowForward,
+            icon = Icons.AutoMirrored.Outlined.ArrowForward,
             iconTint = Emerald400,
             actionLabel = "Geser ke Kanan",
             badgeText = "Doffing Normal",
@@ -309,7 +321,7 @@ private fun RadarGestureGuide() {
 
         // Gesture 2: Geser ke Kiri
         GestureItem(
-            icon = Icons.Outlined.ArrowBack,
+            icon = Icons.AutoMirrored.Outlined.ArrowBack,
             iconTint = Sky400,
             actionLabel = "Geser ke Kiri",
             badgeText = "Doffing Matching",

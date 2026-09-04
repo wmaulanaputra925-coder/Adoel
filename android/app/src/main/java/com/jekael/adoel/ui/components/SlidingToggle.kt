@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -30,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.platform.LocalDensity
@@ -70,6 +73,8 @@ fun SlidingToggle(
     // announces it alongside the Switch role and the current side's label (read via
     // stateDescription below), so a screen-reader user hears both what it is and what it's set to.
     accessibilityLabel: String? = null,
+    iconLeft: ImageVector? = null,
+    iconRight: ImageVector? = null,
 ) {
     val scope = rememberCoroutineScope()
     val density = LocalDensity.current
@@ -162,19 +167,25 @@ fun SlidingToggle(
                     modifier = Modifier.weight(1f).fillMaxHeight(),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text(
-                        labelLeft,
-                        style = AppType.TabLabel.copy(color = if (pos < 0.5f) activeTextColorLeft else inactiveTextColor),
-                    )
+                    val leftColor = if (pos < 0.5f) activeTextColorLeft else inactiveTextColor
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        if (iconLeft != null) {
+                            Icon(iconLeft, contentDescription = null, tint = leftColor, modifier = Modifier.size(15.dp))
+                        }
+                        Text(labelLeft, style = AppType.TabLabel.copy(color = leftColor))
+                    }
                 }
                 Box(
                     modifier = Modifier.weight(1f).fillMaxHeight(),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text(
-                        labelRight,
-                        style = AppType.TabLabel.copy(color = if (pos >= 0.5f) activeTextColorRight else inactiveTextColor),
-                    )
+                    val rightColor = if (pos >= 0.5f) activeTextColorRight else inactiveTextColor
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        if (iconRight != null) {
+                            Icon(iconRight, contentDescription = null, tint = rightColor, modifier = Modifier.size(15.dp))
+                        }
+                        Text(labelRight, style = AppType.TabLabel.copy(color = rightColor))
+                    }
                 }
             }
         }
