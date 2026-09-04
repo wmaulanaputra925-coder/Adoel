@@ -25,6 +25,7 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Pause
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material.icons.outlined.Texture
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.*
@@ -483,46 +484,79 @@ fun RadarCard(
                         ),
                 ) {
                     Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(Dimens.Space8)) {
-                        Text(
-                            text = est.mcNo,
-                            // A 3-digit mcNo at the 2-digit size wraps mid-number in a half-width
-                            // grid card (e.g. "104" breaking into "10"/"4") — shrink it instead of
-                            // letting it wrap, since maxLines=1 alone would just clip a digit.
-                            style = TextStyle(
-                                fontSize = if (est.mcNo.length >= 3) 30.sp else 40.sp,
-                                fontWeight = FontWeight.Black,
-                                letterSpacing = (-2).sp,
-                                color = colors.textPrimary,
-                            ),
-                            maxLines = 1,
-                            softWrap = false,
-                        )
-                        if (mesin != null) {
-                            MesinTipeIcon(
-                                tipe = mesin.tipe,
-                                tint = mesinTipeColor(mesin.tipe),
-                                modifier = Modifier.size(12.dp).padding(bottom = Dimens.Space4),
+                        Row(
+                            verticalAlignment = Alignment.Bottom,
+                            horizontalArrangement = Arrangement.spacedBy(Dimens.Space8),
+                            // Lets this cluster shrink instead of pushing the trailing badges (or
+                            // this whole row) wider than the card — see RadarStatusBar's own
+                            // weight(fill=false) fix for the same squeeze-vs-grow issue.
+                            modifier = Modifier.weight(1f, fill = false),
+                        ) {
+                            Text(
+                                text = est.mcNo,
+                                // A 3-digit mcNo at the 2-digit size wraps mid-number in a half-width
+                                // grid card (e.g. "104" breaking into "10"/"4") — shrink it instead of
+                                // letting it wrap, since maxLines=1 alone would just clip a digit.
+                                style = TextStyle(
+                                    fontSize = if (est.mcNo.length >= 3) 30.sp else 40.sp,
+                                    fontWeight = FontWeight.Black,
+                                    letterSpacing = (-2).sp,
+                                    color = colors.textPrimary,
+                                ),
+                                maxLines = 1,
+                                softWrap = false,
+                            )
+                            if (mesin != null) {
+                                MesinTipeIcon(
+                                    tipe = mesin.tipe,
+                                    tint = mesinTipeColor(mesin.tipe),
+                                    modifier = Modifier.size(12.dp).padding(bottom = Dimens.Space4),
+                                )
+                            }
+                            Text(
+                                text = tipe,
+                                style = TextStyle(
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 2.sp,
+                                    // Same per-type color as the icon right before it (Tappet/Cam/D405/
+                                    // D408 each have their own), not the urgency color — the machine
+                                    // type is its own identity, independent of how close the doff is.
+                                    color = mesin?.tipe?.let { mesinTipeColor(it) } ?: colors.textFaint,
+                                ),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.padding(bottom = Dimens.Space4),
+                            )
+                            if (clr.icon != null) {
+                                Icon(
+                                    imageVector = clr.icon,
+                                    contentDescription = null,
+                                    tint = clr.labelColor,
+                                    modifier = Modifier.size(12.dp).padding(bottom = Dimens.Space4),
+                                )
+                            }
+                        }
+                        // Bentrok/OPERAN SHIFT sit in this same title row (not their own stacked
+                        // rows below) so a card carrying either doesn't grow taller than one
+                        // without it — matches web's single nowrap .radar-card-title-row, where
+                        // the shift badge's margin-left:auto is mirrored here by the weight(1f)
+                        // spacer right before it.
+                        if (clashingMcNos.isNotEmpty()) {
+                            RadarCardBadge(
+                                icon = Icons.Filled.Warning,
+                                text = "Bentrok Mc ${clashingMcNos.joinToString(", ")}",
+                                accent = Amber400,
+                                modifier = Modifier.padding(bottom = Dimens.Space4),
                             )
                         }
-                        Text(
-                            text = tipe,
-                            style = TextStyle(
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 2.sp,
-                                // Same per-type color as the icon right before it (Tappet/Cam/D405/
-                                // D408 each have their own), not the urgency color — the machine
-                                // type is its own identity, independent of how close the doff is.
-                                color = mesin?.tipe?.let { mesinTipeColor(it) } ?: colors.textFaint,
-                            ),
-                            modifier = Modifier.padding(bottom = Dimens.Space4),
-                        )
-                        if (clr.icon != null) {
-                            Icon(
-                                imageVector = clr.icon,
-                                contentDescription = null,
-                                tint = clr.labelColor,
-                                modifier = Modifier.size(12.dp).padding(bottom = Dimens.Space4),
+                        if (shiftHandover) {
+                            Spacer(Modifier.weight(1f))
+                            RadarCardBadge(
+                                icon = Icons.Outlined.SwapHoriz,
+                                text = "OPERAN SHIFT",
+                                accent = Orange400,
+                                modifier = Modifier.padding(bottom = Dimens.Space4),
                             )
                         }
                     }
@@ -540,32 +574,6 @@ fun RadarCard(
                         Text(
                             text = corakLine,
                             style = AppType.LabelBold.copy(color = colors.textMuted),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                    if (clashingMcNos.isNotEmpty()) {
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            text = "⚡ Bentrok Mc ${clashingMcNos.joinToString(", ")}",
-                            style = AppType.Caption.copy(color = Amber700, fontWeight = FontWeight.Bold),
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(Amber500.copy(alpha = 0.16f))
-                                .padding(horizontal = 6.dp, vertical = 3.dp),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                    if (shiftHandover) {
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            text = "⏭️ OPERAN SHIFT",
-                            style = AppType.Caption.copy(color = Amber400, fontWeight = FontWeight.Bold),
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(Amber500.copy(alpha = 0.16f))
-                                .padding(horizontal = 6.dp, vertical = 3.dp),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -797,6 +805,30 @@ private fun CardPausedFace(
             ResumeChip(onClick = onLanjutkan)
             DeleteIconButton(onClick = onHapus)
         }
+    }
+}
+
+/** Small icon+label chip for a title-row badge (Bentrok/OPERAN SHIFT) — Android equivalent of
+ * web's .radar-clash-badge/.shift-badge (RadarCard.tsx), a real vector icon instead of a raw
+ * emoji glyph so it tints with [accent] and matches the rest of the icon system. */
+@Composable
+private fun RadarCardBadge(icon: ImageVector, text: String, accent: Color, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(6.dp))
+            .background(accent.copy(alpha = 0.16f))
+            .border(1.dp, accent.copy(alpha = 0.35f), RoundedCornerShape(6.dp))
+            .padding(horizontal = 7.dp, vertical = 2.dp),
+        horizontalArrangement = Arrangement.spacedBy(3.5.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(imageVector = icon, contentDescription = null, tint = accent, modifier = Modifier.size(10.dp))
+        Text(
+            text = text,
+            style = TextStyle(fontSize = 9.5.sp, fontWeight = FontWeight.Black, color = accent),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
