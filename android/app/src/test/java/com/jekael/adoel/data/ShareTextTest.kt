@@ -6,7 +6,7 @@ import java.util.Calendar
 import java.util.TimeZone
 
 /**
- * Golden-fixture test untuk teks Bagikan (WhatsApp) — nada "Bravo!!!", ditujukan ke rekan kerja di
+ * Golden-fixture test untuk teks Bagikan (WhatsApp) — format laporan, ditujukan ke rekan kerja di
  * lantai produksi. Fixture di bawah ditulis dari keluaran kode SEBELUM dipindah ke fungsi murni ini
  * (shareHistory di DoffingSection.kt lama, shareShift di StatistikScreen.kt lama) — supaya
  * pemindahan kode tidak diam-diam mengubah pesan yang dibaca orang lain.
@@ -14,6 +14,7 @@ import java.util.TimeZone
 class ShareTextTest {
 
     private val wib = TimeZone.getTimeZone("Asia/Jakarta")
+    private val divider = "─".repeat(16)
 
     private fun epochMin(year: Int, month: Int, day: Int, hour: Int, minute: Int): Long =
         Calendar.getInstance(wib).apply {
@@ -43,13 +44,14 @@ class ShareTextTest {
 
         val text = buildShareHistoryText(state, nowMillis, wib)
 
-        val expected = "Bravo!!!\n15/01/2026\n\n" +
-            "*Selesai (2 doff)*\n" +
-            "1. Mc29 · 34758 · 303y · 10.00\n" +
-            "2. Mc61 · 60357 · 120y · 11.00(HB)\n\n" +
-            "*Operan Shift Berikutnya (1)*\n" +
-            "• Mc76 · 21242 · 165y · est. 16.20\n\n" +
-            "Total: 2 selesai + 1 berjalan = 3 mc"
+        val expected = "*UPDATE DOFFING AKTIF*\n📅 15/01/2026\n$divider\n\n" +
+            "✅ *Selesai (2 doff)*\n" +
+            "1. *Mc 29* – 34758 (303y) · 10.00\n" +
+            "2. *Mc 61* – 60357 (120y) · 11.00 (HB)\n\n" +
+            "📤 *Operan Shift Berikutnya (1 mc)*\n" +
+            "• *Mc 76* – 21242 (165y) · Est. 16.20\n" +
+            "$divider\n" +
+            "📊 *Total: 2 selesai + 1 berjalan = 3 mc*"
         assertEquals(expected, text)
     }
 
@@ -64,7 +66,9 @@ class ShareTextTest {
 
         val text = buildShareHistoryText(state, nowMillis, wib)
 
-        val expected = "Bravo!!!\n15/01/2026\n\n*Selesai (1 doff)*\n1. Mc29 · 34758 · 10.00\n\nTotal: 1 doff"
+        val expected = "*UPDATE DOFFING AKTIF*\n📅 15/01/2026\n$divider\n\n" +
+            "✅ *Selesai (1 doff)*\n1. *Mc 29* – 34758 · 10.00\n" +
+            "$divider\n📊 *Total: 1 doff*"
         assertEquals(expected, text)
     }
 
@@ -75,7 +79,10 @@ class ShareTextTest {
 
         val text = buildShareHistoryText(state, nowMillis, wib)
 
-        assertEquals("Bravo!!!\n15/01/2026\n\n*Selesai (0 doff)*\n\n\nTotal: 0 doff", text)
+        val expected = "*UPDATE DOFFING AKTIF*\n📅 15/01/2026\n$divider\n\n" +
+            "✅ *Selesai (0 doff)*\n\n" +
+            "$divider\n📊 *Total: 0 doff*"
+        assertEquals(expected, text)
     }
 
     @Test
@@ -93,11 +100,11 @@ class ShareTextTest {
 
         val text = buildShareShiftText(shift, db, wib)
 
-        val expected = "Bravo!!!\nShift 1 · 15/01/2026\n\n" +
-            "*Selesai (2 doff)*\n" +
-            "1. Mc61 · 60357 · 303y · 07.00\n" +
-            "2. Mc61 · 60357 · 120y · 11.00(HB)\n\n" +
-            "Total: 2 doff"
+        val expected = "*LAPORAN SHIFT 1*\n📅 15/01/2026\n$divider\n\n" +
+            "✅ *Selesai (2 doff)*\n" +
+            "1. *Mc 61* – 60357 (303y) · 07.00\n" +
+            "2. *Mc 61* – 60357 (120y) · 11.00 (HB)\n" +
+            "$divider\n📊 *Total: 2 doff*"
         assertEquals(expected, text)
     }
 }

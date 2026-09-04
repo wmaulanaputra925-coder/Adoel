@@ -6,7 +6,7 @@ import { sortAktualChronological } from "../domain/aktualOrder";
 import { shareOrCopy, shareShiftText } from "../domain/share";
 import { TIPE_COLOR } from "../domain/mesinVisual";
 import type { AktualEntry, MesinData, MesinTipe, ShiftRecord } from "../domain/types";
-import { AddIcon, CircleIcon, CloseIcon, DeleteIcon, MesinTipeIcon, ShareIcon } from "./Icons";
+import { AddIcon, CircleIcon, CloseIcon, DeleteIcon, EditIcon, MesinTipeIcon, ShareIcon } from "./Icons";
 import { WaveProgressBar } from "./WaveProgressBar";
 import { EditAktualDialog } from "./EditAktualDialog";
 import { TambahAktualDialog } from "./TambahAktualDialog";
@@ -400,45 +400,53 @@ function ShiftRow({
               Tidak ada potongan dalam shift ini
             </div>
           ) : (
-            chronological.map((entry, index) => {
-              const mesin = db[entry.mcNo];
-              const tipe = mesin?.tipe;
-              const corak = entry.corakOverride ?? mesin?.corak ?? "—";
-              const yard = entry.customYard ?? mesin?.targetYard;
-              const corakLine = yard != null ? `${corak} · ${formatYard(yard)}y` : corak;
-              const ketCode = formatCleanKeterangan(entry.ket, entry.jam);
-              const line = ketCode.length > 0 ? `${corakLine} · ${ketCode}` : corakLine;
+            <>
+              <div className="shift-detail-header">
+                <span className="shift-detail-title">
+                  RINCIAN POTONGAN <span className="shift-detail-count">{chronological.length} DOFF</span>
+                </span>
+                <span className="shift-detail-hint">Ketuk baris untuk edit</span>
+              </div>
 
-              return (
-                <div
-                  className="row"
-                  key={entry.id}
-                  onClick={() => onEditEntry(entry)}
-                  role="button"
-                  title={`Edit riwayat Mc ${entry.mcNo}`}
-                  style={{ cursor: "pointer" }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    {tipe ? (
-                      <span style={{ color: TIPE_COLOR[tipe], display: "inline-flex", alignItems: "center" }}>
-                        <MesinTipeIcon tipe={tipe} size={12} />
-                      </span>
-                    ) : (
-                      <span style={{ color: "var(--text-faint)", display: "inline-flex", alignItems: "center" }}>
-                        <CircleIcon size={12} />
-                      </span>
-                    )}
-                    <span style={{ fontWeight: 700, color: "var(--text-secondary)" }}>
-                      {index + 1}.
-                    </span>
-                    <span style={{ color: "var(--text-secondary)" }}>
-                      Mc {entry.mcNo} · {line}
-                    </span>
+              {chronological.map((entry, index) => {
+                const mesin = db[entry.mcNo];
+                const tipe = mesin?.tipe;
+                const corak = entry.corakOverride ?? mesin?.corak ?? "—";
+                const yard = entry.customYard ?? mesin?.targetYard;
+                const ketCode = formatCleanKeterangan(entry.ket, entry.jam);
+
+                return (
+                  <div
+                    className="shift-detail-row"
+                    key={entry.id}
+                    onClick={() => onEditEntry(entry)}
+                    role="button"
+                    title={`Edit riwayat Mc ${entry.mcNo}`}
+                  >
+                    <div className="row-left">
+                      <span className="row-num">{index + 1}</span>
+                      {tipe ? (
+                        <span className="row-tipe-icon" style={{ color: TIPE_COLOR[tipe] }}>
+                          <MesinTipeIcon tipe={tipe} size={13} />
+                        </span>
+                      ) : (
+                        <span className="row-tipe-icon" style={{ color: "var(--text-faint)" }}>
+                          <CircleIcon size={13} />
+                        </span>
+                      )}
+                      <span className="row-mcno">Mc {entry.mcNo}</span>
+                      <span className="row-corak">{corak}</span>
+                      {yard != null && <span className="row-yard-badge">{formatYard(yard)}y</span>}
+                      {ketCode.length > 0 && <span className="row-ket-badge">{ketCode}</span>}
+                    </div>
+                    <div className="row-time-badge">
+                      <span>{entry.jam}</span>
+                      <EditIcon size={11} />
+                    </div>
                   </div>
-                  <span className="jam">{entry.jam}</span>
-                </div>
-              );
-            })
+                );
+              })}
+            </>
           )}
 
           <button className="add-entry-btn" onClick={onAddEntry}>

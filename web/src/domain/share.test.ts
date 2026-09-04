@@ -2,8 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { shareHistoryText, shareShiftText } from "./share";
 import type { DoffState, MesinData, ShiftRecord } from "./types";
 
-// Golden-fixture, port dari ShareTextTest.kt — pesan "Bravo!!!" dibaca rekan di lantai produksi,
+// Golden-fixture, port dari ShareTextTest.kt — pesan "Bagikan" dibaca rekan di lantai produksi,
 // jadi perubahan format apa pun harus disengaja. Zona lokal dipakai konsisten (lihat format.test).
+
+const DIVIDER = "─".repeat(16);
 
 function epochMin(y: number, mo: number, d: number, h: number, mi: number): number {
   return Math.floor(new Date(y, mo - 1, d, h, mi, 0, 0).getTime() / 60000);
@@ -38,13 +40,14 @@ describe("shareHistoryText", () => {
     };
 
     const expected =
-      "Bravo!!!\n15/01/2026\n\n" +
-      "*Selesai (2 doff)*\n" +
-      "1. Mc29 · 34758 · 303y · 10.00\n" +
-      "2. Mc61 · 60357 · 120y · 11.00(HB)\n\n" +
-      "*Operan Shift Berikutnya (1)*\n" +
-      "• Mc76 · est. 16.20\n\n" +
-      "Total: 2 doff";
+      `*UPDATE DOFFING AKTIF*\n📅 15/01/2026\n${DIVIDER}\n\n` +
+      "✅ *Selesai (2 doff)*\n" +
+      "1. *Mc 29* – 34758 (303y) · 10.00\n" +
+      "2. *Mc 61* – 60357 (120y) · 11.00 (HB)\n\n" +
+      "📤 *Operan Shift Berikutnya (1 mc)*\n" +
+      "• *Mc 76* – 21242 (165y) · Est. 16.20\n" +
+      `${DIVIDER}\n` +
+      "📊 *Total: 2 doff*";
     expect(shareHistoryText(state)).toBe(expected);
   });
 });
@@ -63,11 +66,12 @@ describe("shareShiftText", () => {
     };
 
     const expected =
-      "Bravo!!!\nShift 1 · 15/01/2026\n\n" +
-      "*Selesai (2 doff)*\n" +
-      "1. Mc61 · 60357 · 303y · 07.00\n" +
-      "2. Mc61 · 60357 · 120y · 11.00(HB)\n\n" +
-      "Total: 2 doff";
+      `*LAPORAN SHIFT 1*\n📅 15/01/2026\n${DIVIDER}\n\n` +
+      "✅ *Selesai (2 doff)*\n" +
+      "1. *Mc 61* – 60357 (303y) · 07.00\n" +
+      "2. *Mc 61* – 60357 (120y) · 11.00 (HB)\n" +
+      `${DIVIDER}\n` +
+      "📊 *Total: 2 doff*";
     expect(shareShiftText(shift, db)).toBe(expected);
   });
 });

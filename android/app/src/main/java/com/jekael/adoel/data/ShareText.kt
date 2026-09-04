@@ -13,6 +13,22 @@ import java.util.TimeZone
  * internally.
  */
 
+private val DIVIDER = "─".repeat(16)
+
+/** "10.00(HB)" → "10.00 (HB)" — ket selalu "$jam" atau "$jam($extra)" tanpa spasi, jadi ini aman
+ * dipakai apa adanya untuk kerapian tampilan di WhatsApp. */
+private fun formatKetDisplay(ket: String): String = ket.replace("(", " (")
+
+private fun formatAktualLine(index: Int, mcNo: String, corak: String, yard: Double?, ket: String): String {
+    val yardSuffix = if (yard != null) " (${formatYard(yard)}y)" else ""
+    return "${index + 1}. *Mc $mcNo* – $corak$yardSuffix · ${formatKetDisplay(ket)}"
+}
+
+private fun formatEstimasiLine(mcNo: String, corak: String, yard: Double?, estAbsMin: Long, zone: TimeZone): String {
+    val yardSuffix = if (yard != null) " (${formatYard(yard)}y)" else ""
+    return "• *Mc $mcNo* – $corak$yardSuffix · Est. ${absMinToTimeStr(estAbsMin, zone)}"
+}
+
 /** [nowMillis]/[zone] hanya untuk unit test — call site produksi memakai waktu & zona perangkat
  * saat ini, perilaku tidak berubah. */
 fun buildShareHistoryText(
@@ -33,8 +49,7 @@ fun buildShareHistoryText(
         val mesin = state.db[a.mcNo]
         val corak = a.corakOverride ?: mesin?.corak ?: "—"
         val yard = a.customYard ?: mesin?.targetYard
-        val suffix = if (yard != null) " · ${formatYard(yard)}y" else ""
-        "${i + 1}. Mc${a.mcNo} · $corak$suffix · ${a.ket}"
+        formatAktualLine(i, a.mcNo, corak, yard, a.ket)
     }
     // Doff selesai saja tidak cukup buat rekan yang baca pesan ini di lantai produksi — mereka
     // juga perlu tahu mesin mana yang masih ditimer sekarang dan kapan harus di-doff, jadi bagian
@@ -48,8 +63,7 @@ fun buildShareHistoryText(
         val mesin = state.db[est.mcNo]
         val corak = est.corakOverride ?: mesin?.corak ?: "—"
         val yard = est.yardOverride ?: mesin?.targetYard
-        val suffix = if (yard != null) " · ${formatYard(yard)}y" else ""
-        return "• Mc${est.mcNo} · $corak$suffix · est. ${absMinToTimeStr(est.estAbsMin, zone)}"
+        return formatEstimasiLine(est.mcNo, corak, yard, est.estAbsMin, zone)
     }
     val berjalan = sortedByNearest(estimasiBerjalan.associateBy { it.mcNo }).map(::formatEstimasi)
     val operan = estimasiOperan.sortedBy { it.estAbsMin }.map(::formatEstimasi)
@@ -61,21 +75,21 @@ fun buildShareHistoryText(
     // nyata: seseorang nanya "jadi total 23 mc?" padahal "Total" di pesan cuma menghitung selesai).
     val totalEstimasiCount = berjalanCount + operanCount
     val totalLine = if (totalEstimasiCount > 0) {
-        "Total: $selesaiCount selesai + $totalEstimasiCount berjalan = ${selesaiCount + totalEstimasiCount} mc"
+        "📊 *Total: $selesaiCount selesai + $totalEstimasiCount berjalan = ${selesaiCount + totalEstimasiCount} mc*"
     } else {
-        "Total: $selesaiCount doff"
+        "📊 *Total: $selesaiCount doff*"
     }
     val berjalanBlock = if (berjalan.isNotEmpty()) {
-        "\n\n*Sedang Berjalan ($berjalanCount)*\n${berjalan.joinToString("\n")}"
+        "\n\n⏳ *Sedang Berjalan ($berjalanCount mc)*\n${berjalan.joinToString("\n")}"
     } else {
         ""
     }
     val operanBlock = if (operan.isNotEmpty()) {
-        "\n\n*Operan Shift Berikutnya ($operanCount)*\n${operan.joinToString("\n")}"
+        "\n\n📤 *Operan Shift Berikutnya ($operanCount mc)*\n${operan.joinToString("\n")}"
     } else {
         ""
     }
-    return "Bravo!!!\n$dateStr\n\n*Selesai ($selesaiCount doff)*\n${lines.joinToString("\n")}$berjalanBlock$operanBlock\n\n$totalLine"
+    return "*UPDATE DOFFING AKTIF*\n📅 $dateStr\n$DIVIDER\n\n✅ *Selesai ($selesaiCount doff)*\n${lines.joinToString("\n")}$berjalanBlock$operanBlock\n$DIVIDER\n$totalLine"
 }
 
 /** Re-share a single archived shift — mirrors [buildShareHistoryText]'s format/tone exactly (same
@@ -93,10 +107,9 @@ fun buildShareShiftText(shift: ShiftRecord, db: Map<String, MesinData>, zone: Ti
         val mesin = db[a.mcNo]
         val corak = a.corakOverride ?: mesin?.corak ?: "—"
         val yard = a.customYard ?: mesin?.targetYard
-        val suffix = if (yard != null) " · ${formatYard(yard)}y" else ""
-        "${i + 1}. Mc${a.mcNo} · $corak$suffix · ${a.ket}"
+        formatAktualLine(i, a.mcNo, corak, yard, a.ket)
     }
-    return "Bravo!!!\nShift $shiftNo · $dateStr\n\n*Selesai (${shift.aktual.size} doff)*\n${lines.joinToString("\n")}\n\nTotal: ${shift.aktual.size} doff"
+    return "*LAPORAN SHIFT $shiftNo*\n📅 $dateStr\n$DIVIDER\n\n✅ *Selesai (${shift.aktual.size} doff)*\n${lines.joinToString("\n")}\n$DIVIDER\n📊 *Total: ${shift.aktual.size} doff*"
 }
 
 /** Launches the system share sheet with [text] — shared by both callers above so a failure to
