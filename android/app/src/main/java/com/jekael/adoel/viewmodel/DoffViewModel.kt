@@ -279,23 +279,23 @@ class DoffViewModel @JvmOverloads constructor(
         )
     }
 
-    /** Archives the current shift's doffs and estimates before clearing the console for the next
-     * operator. The next operator receives handover data through QR Sync instead of carry-over. */
+    /** Archives the current shift's doffing history before clearing the console log for the next
+     * operator. Active estimasi (radar cards still counting down) are left running untouched —
+     * finishing a shift closes the *record*, it isn't a signal that the physical machines have
+     * stopped, so the next operator picks up exactly where the estimates already were. */
     fun finishShift() = updateState { s ->
-        if (s.aktual.isEmpty() && s.estimasi.isEmpty()) return@updateState s
+        if (s.aktual.isEmpty()) return@updateState s
         val now = nowAbsMin()
-        val started = (s.aktual.mapNotNull { it.tsEpochMin } + s.estimasi.values.map { it.startAbsMin })
-            .minOrNull() ?: now
+        val started = s.aktual.mapNotNull { it.tsEpochMin }.minOrNull() ?: now
         val record = ShiftRecord(
             id = s.nextShiftId,
             startedAtEpochMin = started,
             endedAtEpochMin = now,
             aktual = s.aktual,
-            estimasiRemaining = s.estimasi,
+            estimasiRemaining = emptyMap(),
         )
         val cutoff = now - HISTORY_RETENTION_MIN
         s.copy(
-            estimasi = emptyMap(),
             aktual = emptyList(),
             history = (listOf(record) + s.history).filter { it.endedAtEpochMin >= cutoff },
             nextShiftId = s.nextShiftId + 1,

@@ -201,16 +201,17 @@ internal class MainScreenHandlers(
 
     fun handleFinishShift() {
         val state = doffVm.state.value
-        // finishShift() itself already no-ops on an empty console — mirror that here so an
+        // finishShift() itself already no-ops on an empty aktual log — mirror that here so an
         // accidental/duplicate tap doesn't show a confirm dialog and checkmark celebration for
-        // archiving "0 doff & 0 estimasi".
-        if (state.aktual.isEmpty() && state.estimasi.isEmpty()) {
-            uiVm.showToast("Tidak ada yang perlu diarsipkan")
+        // archiving nothing. Active estimasi are left running (see finishShift's own doc), so
+        // their count no longer matters here and their notifications are not touched.
+        if (state.aktual.isEmpty()) {
+            uiVm.showToast("Tidak ada riwayat doffing untuk diarsipkan")
             return
         }
-        uiVm.showConfirm("Akhiri shift? ${state.aktual.size} doff dan ${state.estimasi.size} estimasi akan diarsipkan ke Riwayat, lalu aplikasi disiapkan untuk shift berikutnya.") {
-            NotificationHelper.cancelAll(context, state.estimasi.keys.toList())
+        uiVm.showConfirm("Akhiri shift? ${state.aktual.size} doff akan diarsipkan ke Riwayat.") {
             doffVm.finishShift()
+            undoRedo.clear()
             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
             shiftFinished.key++
         }
