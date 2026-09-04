@@ -1,8 +1,13 @@
 package com.jekael.adoel.ui.components
 
+import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -12,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentPaste
+import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -28,7 +34,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.zxing.BarcodeFormat
+import com.google.zxing.BinaryBitmap
 import com.google.zxing.EncodeHintType
+import com.google.zxing.MultiFormatReader
+import com.google.zxing.RGBLuminanceSource
+import com.google.zxing.common.HybridBinarizer
 import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel
 import com.journeyapps.barcodescanner.BarcodeEncoder
 import com.journeyapps.barcodescanner.ScanContract
@@ -119,6 +129,18 @@ fun SyncDialog(onClose: () -> Unit) {
             Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
             if (imported != null) {
                 onClose()
+            }
+        }
+    }
+
+    val pickImageLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        scope.launch {
+            val decoded = withContext(Dispatchers.IO) { decodeQrFromUri(context, uri) }
+            if (decoded != null) {
+                handleProcessText(decoded)
+            } else {
+                Toast.makeText(context, "⚠ QR Code tidak terdeteksi pada gambar", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -377,6 +399,31 @@ fun SyncDialog(onClose: () -> Unit) {
                     )
                 }
 
+                // Pick a QR image from the gallery — no runtime permission needed, the
+                // system Photo Picker (or its pre-API-33 fallback) handles file access itself.
+                Button(
+                    onClick = {
+                        pickImageLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(44.dp)
+                        .border(1.dp, colors.border, RoundedCornerShape(Dimens.RadiusControl)),
+                    shape = RoundedCornerShape(Dimens.RadiusControl),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = colors.bgElevated2,
+                        contentColor = colors.textPrimary,
+                    ),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.FileUpload,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(Modifier.width(Dimens.Space8))
+                    Text("Pilih Gambar QR dari File")
+                }
+
                 // Text paste input
                 Column(verticalArrangement = Arrangement.spacedBy(Dimens.Space6)) {
                     Text(
@@ -460,4 +507,23 @@ private fun createQrBitmap(data: String): Bitmap? = runCatching {
         EncodeHintType.MARGIN to 2,
     )
     BarcodeEncoder().encodeBitmap(data, BarcodeFormat.QR_CODE, 600, 600, hints)
+}.getOrNull()
+
+/** Decodes a QR code out of a gallery-picked image, mirroring web's upload-a-QR-photo path
+ * (jsQR over a canvas there; ZXing's own MultiFormatReader here — no extra dependency needed,
+ * it already ships inside zxing-android-embedded, which the camera scanner above uses to encode). */
+private fun decodeQrFromUri(context: Context, uri: Uri): String? = runCatching {
+    val options = BitmapFactory.Options().apply { inSampleSize = 2 }
+    val bitmap = context.contentResolver.openInputStream(uri)?.use { stream ->
+        BitmapFactory.decodeStream(stream, null, options)
+    } ?: return null
+
+    val width = bitmap.width
+    val height = bitmap.height
+    val pixels = IntArray(width * height)
+    bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
+
+    val source = RGBLuminanceSource(width, height, pixels)
+    val binaryBitmap = BinaryBitmap(HybridBinarizer(source))
+    MultiFormatReader().decode(binaryBitmap).text
 }.getOrNull()
