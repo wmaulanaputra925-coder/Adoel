@@ -305,7 +305,11 @@ fun RadarCard(
                 }
             }
             scope.launch {
-                delay(420)
+                // 950ms, matching web's own triggerDoff (RadarCard.tsx) — the card needs to sit on
+                // the celebration text long enough to actually read it, not just flash it. Was
+                // 420ms, cut short with no text on the celebration at all (see below); that combo
+                // read as a glitch, especially for Matching.
+                delay(950)
                 when (kind) {
                     DoffCompletionKind.NORMAL -> onDoff()
                     DoffCompletionKind.MATCHING -> onDoffMatching()
@@ -691,7 +695,8 @@ fun RadarCard(
         // opacity for its own duration regardless of how the card underneath is fading/sliding away.
         // The card visibly "splits" as the tint sweeps in behind a clipped boundary (straight
         // diagonal for Normal, a jagged swatch-clip edge for Matching — Master Blueprint §3A/§3B),
-        // then the icon pops/spins in. Which shape, icon, and direction depends on completingKind.
+        // then an icon+title/subtitle pill pops in on top (web's .radar-card-celebrate-content).
+        // Which shape, icon, and copy depends on completingKind.
         if (checkScale > 0f) {
             val isMatching = completingKind == DoffCompletionKind.MATCHING
             Box(
@@ -725,19 +730,44 @@ fun RadarCard(
                             }
                         },
                 )
-                Icon(
-                    imageVector = completionIcon,
-                    contentDescription = null,
-                    tint = completionColor,
+                // Icon + title/subtitle pill — Android equivalent of web's .radar-card-celebrate-
+                // content, which was missing here entirely (a bare icon with no text is what read
+                // as "not displayed correctly" for Matching: nothing on screen actually said
+                // Matching, just an unlabeled icon indistinguishable at a glance from Normal's).
+                Row(
                     modifier = Modifier
-                        .size(56.dp)
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(Color.Black.copy(alpha = 0.38f))
+                        .border(1.dp, Color.White.copy(alpha = 0.22f), RoundedCornerShape(999.dp))
+                        .padding(horizontal = 18.dp, vertical = 10.dp)
                         .graphicsLayer {
                             scaleX = checkScale
                             scaleY = checkScale
-                            // Verified spins in (Matching); CheckCircle just grows in place.
-                            rotationZ = if (isMatching) (1f - checkScale) * -180f else 0f
+                            alpha = checkScale.coerceIn(0f, 1f)
                         },
-                )
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.26f)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(imageVector = completionIcon, contentDescription = null, tint = Color.White, modifier = Modifier.size(24.dp))
+                    }
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = if (isMatching) "Doffing Matching (Sampel)" else "Doffing Normal",
+                            style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Black, color = Color.White),
+                        )
+                        Text(
+                            text = if (isMatching) "Tercatat untuk cek kualitas beam" else "Tercatat selesai target yard",
+                            style = TextStyle(fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold, color = Color.White.copy(alpha = 0.94f)),
+                        )
+                    }
+                }
             }
         }
     }
