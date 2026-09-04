@@ -55,7 +55,7 @@ export function DoffingScreen() {
   return (
     <div className="scroll-area">
       {state.aktual.length === 0 ? (
-        <div className="empty-state-card animated-empty-card">
+        <div className="empty-state-card">
           <HistoryEmptyIllustration />
           <div className="empty-state-title">
             <HistoryIcon size={18} />

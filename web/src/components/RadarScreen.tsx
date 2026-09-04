@@ -72,7 +72,7 @@ export function RadarScreen({ onEditWaktu }: { onEditWaktu: (mcNo: string) => vo
   if (all.length === 0) {
     return (
       <div className="scroll-area">
-        <div className="empty-state-card animated-empty-card">
+        <div className="empty-state-card">
           <RadarEmptyIllustration />
           <div className="empty-state-title">
             <RadarIcon size={18} />

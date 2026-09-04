@@ -558,7 +558,7 @@ export function ShiftExchangeIcon({ size = 16 }: IconProps) {
   );
 }
 
-/** Animasi ilustrasi Radar Interaktif untuk Empty State Radar */
+/** Ilustrasi Radar untuk Empty State Radar */
 export function RadarEmptyIllustration() {
   return (
     <div className="radar-illustration-wrap" aria-hidden="true">
@@ -588,21 +588,21 @@ export function RadarEmptyIllustration() {
         <line x1="36" y1="144" x2="144" y2="36" stroke="var(--border)" strokeWidth="0.8" strokeOpacity="0.3" />
 
         {/* Sweeping Radar Beam */}
-        <g className="radar-sweep-beam">
+        <g>
           <path d="M90 90 L165 90 A75 75 0 0 0 143 37 Z" fill="url(#sweepBeamGrad)" />
           <line x1="90" y1="90" x2="165" y2="90" stroke="var(--cyan-300)" strokeWidth="2" strokeLinecap="round" />
         </g>
 
-        {/* Pulsing Beacon Targets */}
-        <g className="radar-target-dot-1">
+        {/* Beacon Targets */}
+        <g>
           <circle cx="125" cy="60" r="4" fill="var(--cyan-400)" />
           <circle cx="125" cy="60" r="9" stroke="var(--cyan-400)" strokeWidth="1" opacity="0.6" />
         </g>
-        <g className="radar-target-dot-2">
+        <g>
           <circle cx="62" cy="115" r="3.5" fill="var(--amber-400)" />
           <circle cx="62" cy="115" r="8" stroke="var(--amber-400)" strokeWidth="1" opacity="0.5" />
         </g>
-        <g className="radar-target-dot-3">
+        <g>
           <circle cx="130" cy="120" r="3" fill="var(--emerald-400)" />
         </g>
       </svg>
@@ -610,7 +610,7 @@ export function RadarEmptyIllustration() {
   );
 }
 
-/** Animasi ilustrasi Riwayat / Benang Tenun untuk Empty State Riwayat */
+/** Ilustrasi Riwayat / Benang Tenun untuk Empty State Riwayat */
 export function HistoryEmptyIllustration() {
   return (
     <div className="history-illustration-wrap" aria-hidden="true">
@@ -637,9 +637,8 @@ export function HistoryEmptyIllustration() {
         <line x1="52" y1="104" x2="122" y2="104" stroke="var(--text-faint)" strokeWidth="3" strokeLinecap="round" strokeOpacity="0.3" />
         <line x1="52" y1="120" x2="95" y2="120" stroke="var(--text-faint)" strokeWidth="3" strokeLinecap="round" strokeOpacity="0.2" />
 
-        {/* Dynamic Flying Thread Ribbon */}
+        {/* Flying Thread Ribbon */}
         <path
-          className="history-thread-wave"
           d="M20 140 C 40 100, 70 160, 100 125 C 130 90, 150 140, 170 105"
           stroke="url(#threadGrad)"
           strokeWidth="2.5"
@@ -647,8 +646,8 @@ export function HistoryEmptyIllustration() {
           fill="none"
         />
 
-        {/* Floating Weaving Shuttle */}
-        <g className="history-floating-spool">
+        {/* Weaving Shuttle */}
+        <g>
           <ellipse cx="145" cy="78" rx="14" ry="7" fill="var(--cyan-600)" stroke="var(--cyan-300)" strokeWidth="1.2" />
           <ellipse cx="145" cy="78" rx="6" ry="3" fill="var(--amber-400)" />
         </g>
