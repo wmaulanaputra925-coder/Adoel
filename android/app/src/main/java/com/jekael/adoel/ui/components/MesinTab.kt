@@ -50,6 +50,75 @@ private data class CorakSummaryItem(
     val tipes: Set<MesinTipe>,
 )
 
+/** One corak card inside the "Corak Sedang Produksi" 2-up grid — name + machine-count chip up
+ * top, mc-number quick-access pills below. Port 1:1 of web's .corak-summary-item/-count. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun CorakSummaryCard(
+    item: CorakSummaryItem,
+    isSelected: Boolean,
+    onToggleSelect: () -> Unit,
+    onPillClick: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = LocalAppColors.current
+    Surface(
+        modifier = modifier.clickable(onClick = onToggleSelect),
+        shape = RoundedCornerShape(8.dp),
+        color = if (isSelected) Cyan600.copy(alpha = 0.16f) else colors.bg,
+        border = BorderStroke(1.dp, if (isSelected) Cyan500 else colors.border),
+    ) {
+        Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    item.corak,
+                    style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = if (isSelected) Cyan400 else colors.textPrimary),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                Surface(
+                    shape = RoundedCornerShape(5.dp),
+                    color = Cyan500.copy(alpha = 0.14f),
+                    border = BorderStroke(1.dp, Cyan500.copy(alpha = 0.25f)),
+                ) {
+                    Text(
+                        "${item.machines.size} mc",
+                        style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Black, color = Cyan400),
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.5.dp),
+                    )
+                }
+            }
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                item.machines.forEach { m ->
+                    Surface(
+                        // A nested clickable consumes its own tap in Compose, so this doesn't
+                        // also trigger the parent Surface's corak-filter click — tapping a pill
+                        // is quick access straight to that one machine's edit dialog instead of
+                        // just filtering the list down to it.
+                        modifier = Modifier.clickable { onPillClick(m) },
+                        shape = RoundedCornerShape(4.dp),
+                        color = colors.bgElevated,
+                    ) {
+                        Text(
+                            m,
+                            style = TextStyle(fontSize = 11.sp, fontFamily = FontFamily.Monospace, color = colors.textSecondary),
+                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
 /** Small bordered pill for a row's secondary specs (target yard, D405 speed, D408 koreksi) —
  * kept as a distinct tag rather than plain inline text so several can sit side by side without
  * running into each other visually. */
@@ -188,58 +257,55 @@ internal fun MesinTab(
                     verticalArrangement = Arrangement.spacedBy(Dimens.Space10),
                 ) {
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Dimens.Space6),
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(Dimens.Space6),
+                        Icon(
+                            imageVector = Icons.Outlined.Texture,
+                            contentDescription = null,
+                            tint = Cyan500,
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Text(
+                            "Corak Sedang Produksi",
+                            style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary),
+                        )
+                    }
+                    // Badges sit on their own row below the title (not squeezed inline beside it)
+                    // so a long title never fights the badges for space — matches web's stacked
+                    // .corak-summary-badges layout.
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = Emerald500.copy(alpha = 0.15f),
                         ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Texture,
-                                contentDescription = null,
-                                tint = Cyan500,
-                                modifier = Modifier.size(16.dp),
-                            )
-                            Text(
-                                "Corak Sedang Produksi",
-                                style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary),
-                            )
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            ) {
+                                Box(Modifier.size(6.dp).clip(CircleShape).background(Emerald500))
+                                Text(
+                                    "${activeProduksiEntries.size} Mesin Aktif (${activeCorakSummary.size} Corak)",
+                                    style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Emerald500),
+                                )
+                            }
                         }
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        if (stoppedProduksiEntries.isNotEmpty()) {
                             Surface(
                                 shape = RoundedCornerShape(12.dp),
-                                color = Emerald500.copy(alpha = 0.15f),
+                                color = Amber500.copy(alpha = 0.15f),
                             ) {
                                 Row(
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                                 ) {
-                                    Box(Modifier.size(6.dp).clip(CircleShape).background(Emerald500))
+                                    Box(Modifier.size(6.dp).clip(CircleShape).background(Amber500))
                                     Text(
-                                        "${activeProduksiEntries.size} Aktif (${activeCorakSummary.size} Corak)",
-                                        style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Emerald500),
+                                        "${stoppedProduksiEntries.size} Stop Sementara",
+                                        style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Amber500),
                                     )
-                                }
-                            }
-                            if (stoppedProduksiEntries.isNotEmpty()) {
-                                Surface(
-                                    shape = RoundedCornerShape(12.dp),
-                                    color = Amber500.copy(alpha = 0.15f),
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                    ) {
-                                        Box(Modifier.size(6.dp).clip(CircleShape).background(Amber500))
-                                        Text(
-                                            "${stoppedProduksiEntries.size} Stop",
-                                            style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Amber500),
-                                        )
-                                    }
                                 }
                             }
                         }
@@ -251,57 +317,25 @@ internal fun MesinTab(
                             style = AppType.BodySmall.copy(color = colors.textFaint),
                         )
                     } else {
-                        // Grid summary corak
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            activeCorakSummary.forEach { item ->
-                                val isSelected = selectedCorak == item.corak
-                                Surface(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable {
-                                            selectedCorak = if (isSelected) null else item.corak
-                                        },
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = if (isSelected) Cyan600.copy(alpha = 0.16f) else colors.bg,
-                                    border = BorderStroke(1.dp, if (isSelected) Cyan500 else colors.border),
+                        // Two-up grid, matching web's .corak-summary-grid — a single full-width
+                        // column read as a much longer scroll for the same 11 corak.
+                        Column(verticalArrangement = Arrangement.spacedBy(Dimens.Space8)) {
+                            activeCorakSummary.chunked(2).forEach { rowItems ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(Dimens.Space8),
                                 ) {
-                                    Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically,
-                                        ) {
-                                            Text(
-                                                item.corak,
-                                                style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = if (isSelected) Cyan400 else colors.textPrimary),
-                                            )
-                                            Text(
-                                                "${item.machines.size} mc",
-                                                style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = colors.textMuted),
-                                            )
-                                        }
-                                        FlowRow(
-                                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                            verticalArrangement = Arrangement.spacedBy(4.dp),
-                                        ) {
-                                            item.machines.forEach { m ->
-                                                Surface(
-                                                    // A nested clickable consumes its own tap in Compose, so this
-                                                    // doesn't also trigger the parent Surface's corak-filter click —
-                                                    // tapping a pill is quick access straight to that one machine's
-                                                    // edit dialog instead of just filtering the list down to it.
-                                                    modifier = Modifier.clickable { loadFrom(m, state.db[m] ?: MesinData()) },
-                                                    shape = RoundedCornerShape(4.dp),
-                                                    color = colors.bgElevated,
-                                                ) {
-                                                    Text(
-                                                        m,
-                                                        style = TextStyle(fontSize = 11.sp, fontFamily = FontFamily.Monospace, color = colors.textSecondary),
-                                                        modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp),
-                                                    )
-                                                }
-                                            }
-                                        }
+                                    rowItems.forEach { item ->
+                                        CorakSummaryCard(
+                                            item = item,
+                                            isSelected = selectedCorak == item.corak,
+                                            onToggleSelect = { selectedCorak = if (selectedCorak == item.corak) null else item.corak },
+                                            onPillClick = { m -> loadFrom(m, state.db[m] ?: MesinData()) },
+                                            modifier = Modifier.weight(1f),
+                                        )
+                                    }
+                                    if (rowItems.size == 1) {
+                                        Spacer(Modifier.weight(1f))
                                     }
                                 }
                             }
