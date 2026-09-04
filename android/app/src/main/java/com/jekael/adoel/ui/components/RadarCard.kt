@@ -6,6 +6,7 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.PressGestureScope
@@ -733,17 +734,17 @@ private fun CardActionsFace(
 ) {
     val colors = LocalAppColors.current
     Box(modifier = Modifier.fillMaxSize().clickable(onClick = onDismiss), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(Dimens.Space16)) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(Dimens.Space12)) {
             Text(
                 "Opsi Mesin $mcNo",
                 style = AppType.LabelBold.copy(color = colors.textMuted),
             )
             Row(
-                horizontalArrangement = Arrangement.spacedBy(28.dp),
-                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(horizontal = Dimens.Space16),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                CardFaceButton(icon = Icons.Outlined.Pause, label = "Jeda", accent = Amber500, onClick = onJeda)
-                CardFaceButton(icon = Icons.Outlined.Delete, label = "Hapus", accent = Red500, onClick = onHapus)
+                CardActionChip(icon = Icons.Outlined.Pause, label = "Jeda Mesin", accent = Amber400, onClick = onJeda, modifier = Modifier.weight(1f))
+                CardActionChip(icon = Icons.Outlined.Delete, label = "Hapus Estimasi", accent = Red400, onClick = onHapus, modifier = Modifier.weight(1f))
             }
         }
     }
@@ -790,32 +791,71 @@ private fun CardPausedFace(
             )
         }
         Row(
-            horizontalArrangement = Arrangement.spacedBy(24.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            CardFaceButton(icon = Icons.Outlined.PlayArrow, label = "Lanjutkan", accent = Emerald500, onClick = onLanjutkan)
-            CardFaceButton(icon = Icons.Outlined.Delete, label = "Hapus", accent = Red500, onClick = onHapus)
+            ResumeChip(onClick = onLanjutkan)
+            DeleteIconButton(onClick = onHapus)
         }
     }
 }
 
+/** Wide icon+label pill for a Jeda/Hapus choice on [CardActionsFace] — Android equivalent of
+ * web's .radar-action-chip (RadarCard.tsx), so the "Opsi Mesin" quick menu reads the same on
+ * both platforms instead of Android's own smaller circle-with-label-below treatment. */
 @Composable
-private fun CardFaceButton(icon: ImageVector, label: String, accent: Color, onClick: () -> Unit) {
-    // No haptic here — [onClick] (onJeda/onHapus/onLanjutkan) already triggers it in
-    // MainScreenHandlers, the single source both this tap and RadarCard's TalkBack custom actions
-    // funnel through (see triggerDoff for the same pattern), so adding one here too would double-buzz.
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(Dimens.Space4)) {
-        Box(
-            modifier = Modifier
-                .size(48.dp)
-                .clip(CircleShape)
-                .background(accent)
-                .clickable(onClickLabel = label, onClick = onClick),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(imageVector = icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(22.dp))
-        }
-        Text(label, style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = accent))
+private fun CardActionChip(icon: ImageVector, label: String, accent: Color, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    // No haptic here — [onClick] (onJeda/onHapus) already triggers it in MainScreenHandlers, the
+    // single source both this tap and RadarCard's TalkBack custom actions funnel through (see
+    // triggerDoff for the same pattern), so adding one here too would double-buzz.
+    Row(
+        modifier = modifier
+            .height(38.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(accent.copy(alpha = 0.18f))
+            .border(1.dp, accent.copy(alpha = 0.35f), RoundedCornerShape(10.dp))
+            .clickable(onClickLabel = label, onClick = onClick),
+        horizontalArrangement = Arrangement.spacedBy(7.dp, Alignment.CenterHorizontally),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(imageVector = icon, contentDescription = null, tint = accent, modifier = Modifier.size(16.dp))
+        Text(label, style = TextStyle(fontSize = 12.5.sp, fontWeight = FontWeight.Black, color = accent))
+    }
+}
+
+/** Wide primary "Lanjutkan" pill on [CardPausedFace] — Android equivalent of web's
+ * .radar-resume-btn. */
+@Composable
+private fun ResumeChip(onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(10.dp))
+            .background(Emerald500)
+            .clickable(onClickLabel = "Lanjutkan", onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(imageVector = Icons.Outlined.PlayArrow, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+        Text("Lanjutkan", style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Black, color = Color.White))
+    }
+}
+
+/** Small icon-only delete button next to [ResumeChip] — Android equivalent of web's
+ * .radar-paused-delete-icon-btn, de-emphasized since resuming is the expected action here, not
+ * deleting. */
+@Composable
+private fun DeleteIconButton(onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(36.dp)
+            .clip(RoundedCornerShape(9.dp))
+            .background(Red500.copy(alpha = 0.12f))
+            .border(1.dp, Red500.copy(alpha = 0.25f), RoundedCornerShape(9.dp))
+            .clickable(onClickLabel = "Hapus", onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(imageVector = Icons.Outlined.Delete, contentDescription = null, tint = Red400, modifier = Modifier.size(16.dp))
     }
 }
 
