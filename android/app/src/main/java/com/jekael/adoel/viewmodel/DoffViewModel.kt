@@ -346,6 +346,24 @@ class DoffViewModel @JvmOverloads constructor(
         s.copy(corakShortcuts = emptyList())
     }
 
+    fun addCorakPotonganAwal(corak: String) = updateState { s ->
+        val trimmed = corak.trim().uppercase()
+        if (trimmed.isEmpty()) return@updateState s
+        val list = s.corakPotonganAwal ?: DEFAULT_CORAK_POTONGAN_AWAL
+        if (trimmed in list) s else s.copy(corakPotonganAwal = list + trimmed)
+    }
+
+    fun removeCorakPotonganAwal(corak: String) = updateState { s ->
+        val list = s.corakPotonganAwal ?: DEFAULT_CORAK_POTONGAN_AWAL
+        s.copy(corakPotonganAwal = list.filter { it != corak })
+    }
+
+    // Beda dari resetCorakShortcuts (yang kosongkan ke emptyList()): daftar ini adalah aturan
+    // kualitas aktif, jadi "reset" mengembalikan ke 3 corak standar pabrik, bukan mengosongkannya.
+    fun resetCorakPotonganAwal() = updateState { s ->
+        s.copy(corakPotonganAwal = DEFAULT_CORAK_POTONGAN_AWAL)
+    }
+
     /** Full-state backup JSON of the current state. */
     fun exportJson(): String = repo.exportJson(_state.value)
 

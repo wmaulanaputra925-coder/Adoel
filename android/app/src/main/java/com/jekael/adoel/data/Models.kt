@@ -54,6 +54,12 @@ data class ShiftRecord(
 val DEFAULT_KETERANGAN_SHORTCUTS = emptyList<String>()
 val DEFAULT_CORAK_SHORTCUTS = emptyList<String>()
 
+/** Corak dengan aturan "potongan awal 70 yard" — begitu beam lusi baru naik, kain di awal jalan
+ * sering masih banyak cacat (LTK, lusi putus) sampai mesin stabil, jadi sampel Doffing Matching
+ * (1 yard) untuk corak-corak ini baru boleh diambil setelah 70y, bukan langsung dari 0. Sama
+ * persis dengan DEFAULT_CORAK_POTONGAN_AWAL di types.ts (web) — jaga daftar & pesannya identik. */
+val DEFAULT_CORAK_POTONGAN_AWAL = listOf("80125", "21242", "66335")
+
 data class DoffState(
     val db: Map<String, MesinData> = emptyMap(),
     val estimasi: Map<String, Estimasi> = emptyMap(),
@@ -68,7 +74,24 @@ data class DoffState(
     val onboardingSeen: Boolean = true,
     val keteranganShortcuts: List<String>? = null,
     val corakShortcuts: List<String>? = null,
+    val corakPotonganAwal: List<String>? = null,
 )
+
+/** Cek apakah [corak] termasuk [corakPotonganAwal] (atau [DEFAULT_CORAK_POTONGAN_AWAL] kalau
+ * null — belum pernah diset) — dipakai untuk menampilkan pengingat sebelum Doffing Matching
+ * dicatat. Takes the bare list (not the whole DoffState) so composables that only have
+ * corakPotonganAwal threaded through as a param (same convention as corakShortcuts) can call it
+ * without needing the full state too. Sama persis (isi & pesan) dengan isPotonganAwalCorak di
+ * matchingRules.ts (web), yang mengambil `state.corakPotonganAwal` langsung dari store-nya. */
+fun isPotonganAwalCorak(corakPotonganAwal: List<String>?, corak: String?): Boolean {
+    if (corak.isNullOrBlank()) return false
+    val trimmed = corak.trim().uppercase()
+    val list = corakPotonganAwal ?: DEFAULT_CORAK_POTONGAN_AWAL
+    return list.any { it.trim().uppercase() == trimmed }
+}
+
+fun potonganAwalReminderMessage(corak: String): String =
+    "Corak $corak termasuk daftar potongan awal 70 yard. Pastikan beam sudah jalan minimal 70y sebelum ambil sampel Matching (1 yard), supaya sampel tidak kena LTK/lusi putus di awal jalan. Lanjutkan catat Doffing Matching sekarang?"
 
 fun getRepresentativeEpochMin(shift: ShiftRecord): Long {
     val timestamps = shift.aktual.mapNotNull { it.tsEpochMin }

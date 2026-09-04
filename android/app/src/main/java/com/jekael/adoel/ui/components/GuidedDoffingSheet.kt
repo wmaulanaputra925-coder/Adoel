@@ -19,6 +19,8 @@ import com.jekael.adoel.data.KETERANGAN_CODES
 import com.jekael.adoel.data.MesinData
 import com.jekael.adoel.data.MesinTipe
 import com.jekael.adoel.data.formatYard
+import com.jekael.adoel.data.isPotonganAwalCorak
+import com.jekael.adoel.data.potonganAwalReminderMessage
 import com.jekael.adoel.ui.theme.AppType
 import com.jekael.adoel.ui.theme.Cyan600
 import com.jekael.adoel.ui.theme.Dimens
@@ -55,12 +57,23 @@ fun GuidedDoffingSheet(
     keteranganShortcuts: List<String>? = null,
     onAddCorakShortcut: (String) -> Unit = {},
     onAddKeteranganShortcut: (String) -> Unit = {},
+    corakPotonganAwal: List<String>? = null,
+    showConfirm: (String, () -> Unit) -> Unit = { _, block -> block() },
 ) {
     val colors = LocalAppColors.current
     var activeMesin by remember(mcNo) { mutableStateOf(mesin) }
     val needsSetup = mesin == null || mesin.corak.isBlank() || mesin.corak.trim() == "-"
     var step by remember(mcNo) { mutableStateOf(if (needsSetup) GuidedDoffingStep.SETUP else GuidedDoffingStep.CHOOSE) }
     val standardYard = estimasi?.yardOverride ?: activeMesin?.targetYard
+
+    fun handlePickMatching() {
+        val corak = activeMesin?.corak
+        if (isPotonganAwalCorak(corakPotonganAwal, corak)) {
+            showConfirm(potonganAwalReminderMessage(corak!!)) { onSubmitDoffing("$mcNo MATCHING") }
+        } else {
+            onSubmitDoffing("$mcNo MATCHING")
+        }
+    }
 
     FloatingEditDialog(onDismissRequest = onDismiss) {
         Text(
@@ -84,7 +97,7 @@ fun GuidedDoffingSheet(
             )
             GuidedDoffingStep.CHOOSE -> ChooseStep(
                 onPickNormal = { step = GuidedDoffingStep.NORMAL },
-                onPickMatching = { onSubmitDoffing("$mcNo MATCHING") },
+                onPickMatching = { handlePickMatching() },
                 onPickKeterangan = { step = GuidedDoffingStep.KETERANGAN },
                 onCancel = onDismiss,
             )

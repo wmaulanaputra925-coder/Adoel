@@ -1,4 +1,5 @@
 import {
+  DEFAULT_CORAK_POTONGAN_AWAL,
   DEFAULT_CORAK_SHORTCUTS,
   DEFAULT_KETERANGAN_SHORTCUTS,
   type AktualEntry,
@@ -92,6 +93,10 @@ export function parseBackupJson(json: string): DoffState | null {
     ? (serial.corakShortcuts as string[]).map((s) => String(s).trim().toUpperCase()).filter((s) => s.length > 0)
     : [];
 
+  const rawCorakPotonganAwal = Array.isArray(serial.corakPotonganAwal)
+    ? (serial.corakPotonganAwal as string[]).map((s) => String(s).trim().toUpperCase()).filter((s) => s.length > 0)
+    : DEFAULT_CORAK_POTONGAN_AWAL;
+
   return {
     db,
     estimasi,
@@ -103,6 +108,7 @@ export function parseBackupJson(json: string): DoffState | null {
     onboardingSeen: typeof serial.onboardingSeen === "boolean" ? serial.onboardingSeen : true,
     keteranganShortcuts: rawShortcuts,
     corakShortcuts: rawCorakShortcuts,
+    corakPotonganAwal: rawCorakPotonganAwal,
   };
 }
 
@@ -154,6 +160,7 @@ export function loadState(): DoffState {
     onboardingSeen: false,
     keteranganShortcuts: DEFAULT_KETERANGAN_SHORTCUTS,
     corakShortcuts: DEFAULT_CORAK_SHORTCUTS,
+    corakPotonganAwal: DEFAULT_CORAK_POTONGAN_AWAL,
   };
 }
 

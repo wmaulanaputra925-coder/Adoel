@@ -48,6 +48,9 @@ internal fun LazyListScope.estimasiSection(
     onRadarFilterChange: (String) -> Unit,
     onDoff: (String) -> Unit,
     onDoffMatching: (String) -> Unit,
+    // See RadarCard's guardDoffMatching doc — runs before the swipe-left slide-out animation
+    // starts, not after, so a "potongan awal 70y" confirm dialog can still cancel it cleanly.
+    guardDoffMatching: (String, () -> Unit) -> Unit = { _, proceed -> proceed() },
     onHapus: (String) -> Unit,
     onJeda: (String) -> Unit,
     onLanjutkan: (String) -> Unit,
@@ -113,6 +116,7 @@ internal fun LazyListScope.estimasiSection(
                 shiftHandover = est.estAbsMin > shiftBoundary,
                 onDoff = { onDoff(est.mcNo) },
                 onDoffMatching = { onDoffMatching(est.mcNo) },
+                guardDoffMatching = { proceed -> guardDoffMatching(est.mcNo, proceed) },
                 onHapus = { onHapus(est.mcNo) },
                 onJeda = { onJeda(est.mcNo) },
                 onLanjutkan = { onLanjutkan(est.mcNo) },
@@ -151,6 +155,7 @@ internal fun LazyListScope.estimasiSection(
                         shiftHandover = row.est.estAbsMin > shiftBoundary,
                         onDoff = { onDoff(row.est.mcNo) },
                         onDoffMatching = { onDoffMatching(row.est.mcNo) },
+                        guardDoffMatching = { proceed -> guardDoffMatching(row.est.mcNo, proceed) },
                         onHapus = { onHapus(row.est.mcNo) },
                         onJeda = { onJeda(row.est.mcNo) },
                         onLanjutkan = { onLanjutkan(row.est.mcNo) },

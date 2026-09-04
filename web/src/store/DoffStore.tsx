@@ -6,7 +6,7 @@ import { parseJam } from "../domain/parse";
 import { loadState, parseBackupJson, saveState, serializeState } from "../domain/storage";
 import { processScannedQr } from "../domain/sync";
 import type { AktualEntry, DoffState, Estimasi, MesinData, ProsesResult, ShiftRecord, ThemeMode } from "../domain/types";
-import { DEFAULT_CORAK_SHORTCUTS, DEFAULT_KETERANGAN_SHORTCUTS } from "../domain/types";
+import { DEFAULT_CORAK_POTONGAN_AWAL, DEFAULT_CORAK_SHORTCUTS, DEFAULT_KETERANGAN_SHORTCUTS } from "../domain/types";
 
 // Retensi riwayat: 30 HARI KALENDER (bukan jumlah shift) — sama seperti
 // HISTORY_RETENTION_DAYS di DoffViewModel.kt.
@@ -49,6 +49,9 @@ interface DoffStore {
   removeCorakShortcut: (shortcut: string) => void;
   resetCorakShortcuts: () => void;
   setCorakShortcuts: (list: string[]) => void;
+  addCorakPotonganAwal: (corak: string) => void;
+  removeCorakPotonganAwal: (corak: string) => void;
+  resetCorakPotonganAwal: () => void;
   exportJson: () => string;
   importJson: (json: string) => DoffState | null;
   importQrSync: (qrData: string) => { success: boolean; message?: string };
@@ -428,6 +431,32 @@ export function DoffStoreProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
+  const addCorakPotonganAwal = useCallback((corak: string) => {
+    const trimmed = corak.trim().toUpperCase();
+    if (!trimmed) return;
+    setState((s) => {
+      const list = s.corakPotonganAwal ?? DEFAULT_CORAK_POTONGAN_AWAL;
+      if (list.includes(trimmed)) return s;
+      return { ...s, corakPotonganAwal: [...list, trimmed] };
+    });
+  }, []);
+
+  const removeCorakPotonganAwal = useCallback((corak: string) => {
+    setState((s) => {
+      const list = s.corakPotonganAwal ?? DEFAULT_CORAK_POTONGAN_AWAL;
+      return { ...s, corakPotonganAwal: list.filter((item) => item !== corak) };
+    });
+  }, []);
+
+  // Beda dari resetCorakShortcuts (yang kosongkan ke []): daftar ini adalah aturan kualitas
+  // aktif, jadi "reset" mengembalikan ke 3 corak standar pabrik, bukan mengosongkannya.
+  const resetCorakPotonganAwal = useCallback(() => {
+    setState((s) => ({
+      ...s,
+      corakPotonganAwal: DEFAULT_CORAK_POTONGAN_AWAL,
+    }));
+  }, []);
+
   const exportJson = useCallback(() => serializeState(state), [state]);
 
   const importJson = useCallback((json: string): DoffState | null => {
@@ -476,6 +505,9 @@ export function DoffStoreProvider({ children }: { children: ReactNode }) {
       removeCorakShortcut,
       resetCorakShortcuts,
       setCorakShortcuts,
+      addCorakPotonganAwal,
+      removeCorakPotonganAwal,
+      resetCorakPotonganAwal,
       exportJson,
       importJson,
       importQrSync,
@@ -515,6 +547,9 @@ export function DoffStoreProvider({ children }: { children: ReactNode }) {
       removeCorakShortcut,
       resetCorakShortcuts,
       setCorakShortcuts,
+      addCorakPotonganAwal,
+      removeCorakPotonganAwal,
+      resetCorakPotonganAwal,
       exportJson,
       importJson,
       importQrSync,

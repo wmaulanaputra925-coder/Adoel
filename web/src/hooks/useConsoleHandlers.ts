@@ -76,6 +76,10 @@ export function useConsoleHandlers() {
     }
   }
 
+  // "MATCHING" doffs are gated one layer up, in RadarCard's guardDoffMatching (wired from
+  // RadarScreen) — that has to run *before* the swipe's slide-out animation starts, not here
+  // after it's already played. GuidedDoffingSheet's Matching pick gates itself the same way, in
+  // its own component. This function's own keterangan is trusted as already-confirmed.
   function handleDoff(mcNo: string, keterangan?: string) {
     handleAktualSubmit(keterangan ? `${mcNo} ${keterangan}` : mcNo);
   }

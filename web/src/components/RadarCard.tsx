@@ -43,6 +43,7 @@ export function RadarCard({
   clashingMcNos = [],
   onDoff,
   onDoffMatching,
+  guardDoffMatching,
   onHapus,
   onJeda,
   onLanjutkan,
@@ -56,6 +57,11 @@ export function RadarCard({
   clashingMcNos?: string[];
   onDoff: () => void;
   onDoffMatching: () => void;
+  // Called instead of animating straight into onDoffMatching when set — lets the caller show a
+  // confirm dialog first (e.g. the "potongan awal 70y" reminder) and only invoke [proceed] to
+  // actually start the slide-out once the operator confirms. Swipe-right (Normal) has no such
+  // gate, only Matching does.
+  guardDoffMatching?: (proceed: () => void) => void;
   onHapus: () => void;
   onJeda: () => void;
   onLanjutkan: () => void;
@@ -204,12 +210,25 @@ export function RadarCard({
 
   function triggerDoff(kind: "NORMAL" | "MATCHING") {
     if (completing) return;
-    setCompleting(kind);
-    setOffsetX(kind === "NORMAL" ? 420 : -420);
-    window.setTimeout(() => {
-      if (kind === "NORMAL") onDoff();
-      else onDoffMatching();
-    }, 950);
+
+    function startAnim() {
+      setCompleting(kind);
+      setOffsetX(kind === "NORMAL" ? 420 : -420);
+      window.setTimeout(() => {
+        if (kind === "NORMAL") onDoff();
+        else onDoffMatching();
+      }, 950);
+    }
+
+    if (kind === "MATCHING" && guardDoffMatching) {
+      // Snap the card back to neutral right away instead of optimistically sliding it off —
+      // the guard may show a confirm dialog, and if the operator cancels there'd be nothing to
+      // undo the slide-out with. startAnim only runs if/when the guard calls proceed().
+      setOffsetX(0);
+      guardDoffMatching(startAnim);
+      return;
+    }
+    startAnim();
   }
 
   function handleZoneClick(action: () => void) {

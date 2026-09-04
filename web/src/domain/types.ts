@@ -45,6 +45,11 @@ export type ThemeMode = "SYSTEM" | "LIGHT" | "DARK";
 export const DEFAULT_KETERANGAN_SHORTCUTS: string[] = [];
 export const DEFAULT_CORAK_SHORTCUTS: string[] = [];
 
+/** Corak yang berlaku aturan "potongan awal 70 yard" — begitu beam lusi baru naik, kain di
+ * awal jalan sering masih banyak cacat (LTK, lusi putus) sampai mesin stabil, jadi sampel
+ * Matching (1 yard) untuk corak-corak ini baru diambil setelah 70y, bukan langsung dari 0. */
+export const DEFAULT_CORAK_POTONGAN_AWAL: string[] = ["80125", "21242", "66335"];
+
 export interface DoffState {
   db: Record<string, MesinData>;
   estimasi: Record<string, Estimasi>;
@@ -56,6 +61,7 @@ export interface DoffState {
   onboardingSeen: boolean;
   keteranganShortcuts?: string[];
   corakShortcuts?: string[];
+  corakPotonganAwal?: string[];
 }
 
 export type ProsesResult =

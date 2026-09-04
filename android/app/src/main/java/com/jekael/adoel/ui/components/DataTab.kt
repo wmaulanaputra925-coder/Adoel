@@ -17,6 +17,7 @@ import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.Computer
+import androidx.compose.material.icons.outlined.ContentCut
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Download
@@ -120,6 +121,9 @@ internal fun DataTab(
     onAddCorakShortcut: (String) -> Unit,
     onRemoveCorakShortcut: (String) -> Unit,
     onResetCorakShortcuts: () -> Unit,
+    onAddCorakPotonganAwal: (String) -> Unit,
+    onRemoveCorakPotonganAwal: (String) -> Unit,
+    onResetCorakPotonganAwal: () -> Unit,
     onOpenHelp: () -> Unit,
     onOpenAbout: () -> Unit,
     showToast: (String) -> Unit,
@@ -132,12 +136,16 @@ internal fun DataTab(
 
     var newKetInput by remember { mutableStateOf("") }
     var newCorakInput by remember { mutableStateOf("") }
+    var newPotonganAwalInput by remember { mutableStateOf("") }
 
     val ketShortcuts = remember(state.keteranganShortcuts) {
         state.keteranganShortcuts ?: DEFAULT_KETERANGAN_SHORTCUTS
     }
     val corakShortcuts = remember(state.corakShortcuts) {
         state.corakShortcuts ?: DEFAULT_CORAK_SHORTCUTS
+    }
+    val corakPotonganAwal = remember(state.corakPotonganAwal) {
+        state.corakPotonganAwal ?: DEFAULT_CORAK_POTONGAN_AWAL
     }
 
     val currentTheme = remember(state.themeMode) {
@@ -424,6 +432,127 @@ internal fun DataTab(
                         if (clean.isNotEmpty()) {
                             onAddCorakShortcut(clean)
                             newCorakInput = ""
+                        }
+                    },
+                    modifier = Modifier.height(52.dp),
+                    shape = RoundedCornerShape(Dimens.RadiusControl),
+                    colors = ButtonDefaults.buttonColors(containerColor = Cyan600),
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("Tambah")
+                }
+            }
+        }
+
+        // 3b. Corak Potongan Awal 70y
+        SectionCard {
+            SectionHeader(
+                icon = Icons.Outlined.ContentCut,
+                title = "Corak Potongan Awal 70y",
+                badgeColor = Amber500,
+                trailing = {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(colors.bgElevated2)
+                                .padding(horizontal = 6.dp, vertical = 2.dp),
+                        ) {
+                            Text(
+                                "${corakPotonganAwal.size} corak",
+                                style = AppType.Caption.copy(fontSize = 11.sp, color = colors.textMuted),
+                            )
+                        }
+                        if (corakPotonganAwal.isNotEmpty()) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(3.dp),
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .clickable {
+                                        showConfirm("Kembalikan daftar ke 3 corak standar (80125, 21242, 66335)?") {
+                                            onResetCorakPotonganAwal()
+                                            showToast("Daftar dikembalikan ke default ✓")
+                                        }
+                                    }
+                                    .padding(horizontal = 6.dp, vertical = 2.dp),
+                            ) {
+                                Icon(Icons.Outlined.RestartAlt, contentDescription = null, tint = colors.textFaint, modifier = Modifier.size(12.dp))
+                                Text(
+                                    "Setel ke Default",
+                                    style = AppType.Caption.copy(color = colors.textFaint, fontWeight = FontWeight.Medium),
+                                )
+                            }
+                        }
+                    }
+                },
+            )
+            Text(
+                "Untuk corak di daftar ini, sampel Doffing Matching (1 yard) baru diambil setelah beam jalan minimal 70 yard — bukan langsung dari 0 — supaya sampel tidak kena cacat LTK/lusi putus di awal jalan. Pengingat ini muncul saat memilih aksi Doffing Matching.",
+                style = AppType.Caption.copy(color = colors.textMuted),
+            )
+
+            if (corakPotonganAwal.isNotEmpty()) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    corakPotonganAwal.forEach { corak ->
+                        ShortcutTagChip(
+                            text = corak,
+                            onDelete = { onRemoveCorakPotonganAwal(corak) },
+                        )
+                    }
+                }
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(Dimens.RadiusControl))
+                        .background(colors.bgElevated2)
+                        .padding(12.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        "Belum ada corak dengan aturan potongan awal.",
+                        style = AppType.Caption.copy(color = colors.textFaint),
+                    )
+                }
+            }
+
+            // Add Corak Form
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Dimens.Space8),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                OutlinedTextField(
+                    value = newPotonganAwalInput,
+                    onValueChange = { newPotonganAwalInput = it },
+                    modifier = Modifier.weight(1f),
+                    placeholder = { Text("Tambah kode corak (cth: 80125)...", color = colors.textFaint) },
+                    colors = outlinedFieldColors(),
+                    shape = RoundedCornerShape(Dimens.RadiusControl),
+                    textStyle = AppType.FieldText.copy(color = colors.textPrimary),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = {
+                        val clean = newPotonganAwalInput.trim()
+                        if (clean.isNotEmpty()) {
+                            onAddCorakPotonganAwal(clean)
+                            newPotonganAwalInput = ""
+                        }
+                    }),
+                )
+                Button(
+                    onClick = {
+                        val clean = newPotonganAwalInput.trim()
+                        if (clean.isNotEmpty()) {
+                            onAddCorakPotonganAwal(clean)
+                            newPotonganAwalInput = ""
                         }
                     },
                     modifier = Modifier.height(52.dp),

@@ -1,7 +1,9 @@
 import { useState, type ReactNode } from "react";
 import { formatYard } from "../domain/format";
 import { DEFAULT_KETERANGAN_SHORTCUTS, type Estimasi, type MesinData, type MesinTipe } from "../domain/types";
+import { isPotonganAwalCorak, potonganAwalReminderMessage } from "../domain/matchingRules";
 import { useDoffStore } from "../store/DoffStore";
+import { useUiStore } from "../store/UiStore";
 import { MachineSetupForm } from "./MachineSetupForm";
 import { KeteranganShortcutPicker } from "./ShortcutPicker";
 import {
@@ -37,10 +39,21 @@ export function GuidedDoffingSheet({
   onSubmitDoffing: (value: string) => void;
   onQuickUpdate: (corak: string, targetYard: number | null, tipe: MesinTipe, koreksi: number | null, speed: number | null) => void;
 }) {
+  const { state } = useDoffStore();
+  const { showConfirm } = useUiStore();
   const [activeMesin, setActiveMesin] = useState<MesinData | null>(mesin);
   const needsSetup = !activeMesin || activeMesin.corak.trim() === "" || activeMesin.corak.trim() === "-";
   const [step, setStep] = useState<Step>(needsSetup ? "SETUP" : "CHOOSE");
   const standardYard = estimasi?.yardOverride ?? activeMesin?.targetYard ?? null;
+
+  function handlePickMatching() {
+    const corak = activeMesin?.corak;
+    if (isPotonganAwalCorak(state, corak)) {
+      showConfirm(potonganAwalReminderMessage(corak!), () => onSubmitDoffing(`${mcNo} MATCHING`));
+      return;
+    }
+    onSubmitDoffing(`${mcNo} MATCHING`);
+  }
 
   return (
     <div className="dialog-backdrop" onClick={onDismiss}>
@@ -65,7 +78,7 @@ export function GuidedDoffingSheet({
         {step === "CHOOSE" && (
           <ChooseStep
             onPickNormal={() => setStep("NORMAL")}
-            onPickMatching={() => onSubmitDoffing(`${mcNo} MATCHING`)}
+            onPickMatching={handlePickMatching}
             onPickKeterangan={() => setStep("KETERANGAN")}
             onCancel={onDismiss}
           />

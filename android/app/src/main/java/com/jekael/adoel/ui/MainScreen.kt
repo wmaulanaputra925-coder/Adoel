@@ -348,6 +348,14 @@ fun MainScreen(
                                 onRadarFilterChange = { radarFilter = it },
                                 onDoff = { mcNo -> handlers.handleDoff(mcNo) },
                                 onDoffMatching = { mcNo -> handlers.handleDoff(mcNo, "MATCHING") },
+                                guardDoffMatching = { mcNo, proceed ->
+                                    val corak = state.db[mcNo]?.corak
+                                    if (isPotonganAwalCorak(state.corakPotonganAwal, corak)) {
+                                        uiVm.showConfirm(potonganAwalReminderMessage(corak!!)) { proceed() }
+                                    } else {
+                                        proceed()
+                                    }
+                                },
                                 onHapus = { mcNo -> handlers.handleHapusEst(mcNo) },
                                 onJeda = { mcNo -> handlers.handleJeda(mcNo) },
                                 onLanjutkan = { mcNo -> handlers.handleLanjutkan(mcNo) },
@@ -483,6 +491,9 @@ fun MainScreen(
                 onAddCorakShortcut = { sc -> doffVm.addCorakShortcut(sc) },
                 onRemoveCorakShortcut = { sc -> doffVm.removeCorakShortcut(sc) },
                 onResetCorakShortcuts = { doffVm.resetCorakShortcuts() },
+                onAddCorakPotonganAwal = { sc -> doffVm.addCorakPotonganAwal(sc) },
+                onRemoveCorakPotonganAwal = { sc -> doffVm.removeCorakPotonganAwal(sc) },
+                onResetCorakPotonganAwal = { doffVm.resetCorakPotonganAwal() },
                 onImport = { json ->
                     uiVm.showConfirm("Pulihkan data dari file ini? Semua data saat ini akan diganti.") {
                         val oldKeys = state.estimasi.keys.toList()
@@ -626,6 +637,8 @@ fun MainScreen(
             keteranganShortcuts = state.keteranganShortcuts,
             onAddCorakShortcut = { doffVm.addCorakShortcut(it) },
             onAddKeteranganShortcut = { doffVm.addKeteranganShortcut(it) },
+            corakPotonganAwal = state.corakPotonganAwal,
+            showConfirm = { msg, onConfirm -> uiVm.showConfirm(msg, onConfirm) },
         )
     }
 

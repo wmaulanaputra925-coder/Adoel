@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { useDoffStore } from "../store/DoffStore";
 import { useUiStore } from "../store/UiStore";
-import { DEFAULT_CORAK_SHORTCUTS, DEFAULT_KETERANGAN_SHORTCUTS } from "../domain/types";
+import { DEFAULT_CORAK_POTONGAN_AWAL, DEFAULT_CORAK_SHORTCUTS, DEFAULT_KETERANGAN_SHORTCUTS } from "../domain/types";
 import {
   AddIcon,
   BookOpenIcon,
@@ -13,6 +13,7 @@ import {
   MonitorIcon,
   MoonIcon,
   ResetIcon,
+  ScissorsIcon,
   SunIcon,
   TagIcon,
   TextureIcon,
@@ -34,15 +35,20 @@ export function SettingsScreen({ onClose, onOpenHelp }: { onClose: () => void; o
     addCorakShortcut,
     removeCorakShortcut,
     resetCorakShortcuts,
+    addCorakPotonganAwal,
+    removeCorakPotonganAwal,
+    resetCorakPotonganAwal,
   } = useDoffStore();
   const { showToast, showConfirm } = useUiStore();
   const [aboutOpen, setAboutOpen] = useState(false);
   const [newShortcut, setNewShortcut] = useState("");
   const [newCorakShortcut, setNewCorakShortcut] = useState("");
+  const [newPotonganAwal, setNewPotonganAwal] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const shortcuts = state.keteranganShortcuts ?? DEFAULT_KETERANGAN_SHORTCUTS;
   const corakShortcuts = state.corakShortcuts ?? DEFAULT_CORAK_SHORTCUTS;
+  const corakPotonganAwal = state.corakPotonganAwal ?? DEFAULT_CORAK_POTONGAN_AWAL;
 
   function handleAddShortcut() {
     const trimmed = newShortcut.trim().toUpperCase();
@@ -66,6 +72,18 @@ export function SettingsScreen({ onClose, onOpenHelp }: { onClose: () => void; o
     addCorakShortcut(trimmed);
     setNewCorakShortcut("");
     showToast(`Shortcut corak "${trimmed}" ditambahkan ✓`);
+  }
+
+  function handleAddCorakPotonganAwal() {
+    const trimmed = newPotonganAwal.trim().toUpperCase();
+    if (!trimmed) return;
+    if (corakPotonganAwal.includes(trimmed)) {
+      showToast(`Corak "${trimmed}" sudah ada di daftar`);
+      return;
+    }
+    addCorakPotonganAwal(trimmed);
+    setNewPotonganAwal("");
+    showToast(`Corak "${trimmed}" ditambahkan ke daftar potongan awal 70y ✓`);
   }
 
   function handleExport() {
@@ -403,6 +421,141 @@ export function SettingsScreen({ onClose, onOpenHelp }: { onClose: () => void; o
                 style={{ padding: "8px 16px", fontSize: 13, display: "inline-flex", alignItems: "center", gap: 4 }}
                 disabled={!newCorakShortcut.trim()}
                 onClick={handleAddCorakShortcut}
+              >
+                <AddIcon size={14} />
+                <span>Tambah</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Card: Corak Potongan Awal 70y */}
+          <div className="settings-section-card">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div className="settings-section-header" style={{ margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ padding: 6, borderRadius: 6, background: "rgba(245, 158, 11, 0.15)", color: "var(--amber-400)", display: "flex" }}>
+                  <ScissorsIcon size={16} />
+                </div>
+                <span>Corak Potongan Awal 70y</span>
+                <span className="meta-tag" style={{ marginLeft: 4 }}>
+                  {corakPotonganAwal.length} corak
+                </span>
+              </div>
+              {corakPotonganAwal.length > 0 && (
+                <button
+                  type="button"
+                  className="btn-link"
+                  style={{ fontSize: 12, color: "var(--text-faint)", display: "inline-flex", alignItems: "center", gap: 3 }}
+                  onClick={() => {
+                    showConfirm("Kembalikan daftar ke 3 corak standar (80125, 21242, 66335)?", () => {
+                      resetCorakPotonganAwal();
+                      showToast("Daftar dikembalikan ke default ✓");
+                    });
+                  }}
+                >
+                  <ResetIcon size={12} />
+                  <span>Setel ke Default</span>
+                </button>
+              )}
+            </div>
+            <div className="settings-section-desc" style={{ marginTop: 8 }}>
+              Untuk corak di daftar ini, sampel Doffing Matching (1 yard) baru diambil setelah beam
+              jalan minimal 70 yard — bukan langsung dari 0 — supaya sampel tidak kena cacat LTK/lusi
+              putus di awal jalan. Pengingat ini muncul saat memilih aksi Doffing Matching.
+            </div>
+
+            {corakPotonganAwal.length === 0 ? (
+              <div
+                style={{
+                  border: "1px dashed var(--border-subtle)",
+                  borderRadius: 8,
+                  padding: "12px 14px",
+                  margin: "8px 0",
+                  textAlign: "center",
+                  fontSize: 12,
+                  color: "var(--text-faint)",
+                  background: "var(--bg-elevated)",
+                }}
+              >
+                Belum ada corak dengan aturan potongan awal. Tambahkan kode corak di bawah.
+              </div>
+            ) : (
+              <div className="chip-row-wrap" style={{ marginTop: 8, marginBottom: 4 }}>
+                {corakPotonganAwal.map((code) => (
+                  <div
+                    key={code}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      background: "var(--bg-elevated-2)",
+                      border: "1px solid var(--border-subtle)",
+                      borderRadius: 6,
+                      padding: "3px 6px 3px 10px",
+                      gap: 6,
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: "var(--text-primary)",
+                    }}
+                  >
+                    <span>{code}</span>
+                    <button
+                      type="button"
+                      aria-label={`Hapus corak ${code} dari daftar potongan awal`}
+                      title={`Hapus corak ${code} dari daftar potongan awal`}
+                      onClick={() => {
+                        removeCorakPotonganAwal(code);
+                        showToast(`Corak "${code}" dihapus dari daftar potongan awal`);
+                      }}
+                      style={{
+                        background: "transparent",
+                        color: "var(--text-faint)",
+                        border: "none",
+                        borderRadius: "50%",
+                        width: 18,
+                        height: 18,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        cursor: "pointer",
+                        padding: 0,
+                        fontSize: 12,
+                        lineHeight: 1,
+                        transition: "color 0.15s, background 0.15s",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.color = "#ef4444";
+                        e.currentTarget.style.background = "rgba(239, 68, 68, 0.15)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.color = "var(--text-faint)";
+                        e.currentTarget.style.background = "transparent";
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
+              <input
+                className="field-input"
+                style={{ flex: 1, padding: "8px 12px", fontSize: 13 }}
+                placeholder="Tambah kode corak (cth: 80125)"
+                value={newPotonganAwal}
+                onChange={(e) => setNewPotonganAwal(e.target.value.toUpperCase())}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleAddCorakPotonganAwal();
+                  }
+                }}
+              />
+              <button
+                className="btn primary"
+                style={{ padding: "8px 16px", fontSize: 13, display: "inline-flex", alignItems: "center", gap: 4 }}
+                disabled={!newPotonganAwal.trim()}
+                onClick={handleAddCorakPotonganAwal}
               >
                 <AddIcon size={14} />
                 <span>Tambah</span>

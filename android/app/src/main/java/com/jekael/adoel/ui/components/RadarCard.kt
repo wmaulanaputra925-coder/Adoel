@@ -112,6 +112,11 @@ fun RadarCard(
     // full Ada-keterangan/kendala flow is only reached from the Doffing console's own entry point).
     onDoff: () -> Unit,
     onDoffMatching: () -> Unit,
+    // Called instead of animating straight into onDoffMatching when non-null — lets the caller
+    // show a confirm dialog first (the "potongan awal 70y" reminder) and only invoke the passed
+    // lambda to actually start the slide-out once the operator confirms. Swipe-right (Normal) has
+    // no such gate, only Matching does.
+    guardDoffMatching: ((() -> Unit) -> Unit)? = null,
     // Hapus moved off the swipe gesture (which now means Matching, not delete) onto long-press —
     // long-press now flips the card to reveal Jeda/Hapus as two explicit buttons instead of
     // hapus firing directly, so an accidental long-press can no longer delete an estimate outright.
@@ -277,29 +282,6 @@ fun RadarCard(
         entranceOffsetY.animateTo(0f, tween(220, easing = FastOutSlowInEasing))
     }
 
-    fun triggerDoff(kind: DoffCompletionKind) {
-        if (completing) return
-        completingKind = kind
-        // Distinct haptic per kind (Master Blueprint §3A/§3B): Normal gets one deep tap — the
-        // cutter closing on a taut roll of finished cloth; Matching gets two sharp ones — a
-        // scissor snipping a quick quality-check sample.
-        when (kind) {
-            DoffCompletionKind.NORMAL -> haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-            DoffCompletionKind.MATCHING -> scope.launch {
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                delay(90)
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-            }
-        }
-        scope.launch {
-            delay(420)
-            when (kind) {
-                DoffCompletionKind.NORMAL -> onDoff()
-                DoffCompletionKind.MATCHING -> onDoffMatching()
-            }
-        }
-    }
-
     // Swipe right = doffing normal, swipe left = doffing dengan keterangan Matching, long-press =
     // hapus — the only ways to act on a card now that the always-visible buttons are gone (see
     // SwipeActionBackground for the swipe reveal panel).
@@ -307,6 +289,43 @@ fun RadarCard(
     val swipeThresholdPx = with(density) { Dimens.SwipeThreshold.toPx() }
     val maxSwipePx = with(density) { Dimens.SwipeMax.toPx() }
     val offsetX = remember(est.mcNo) { Animatable(0f) }
+
+    fun triggerDoff(kind: DoffCompletionKind) {
+        if (completing) return
+
+        fun startAnim() {
+            completingKind = kind
+            // Distinct haptic per kind (Master Blueprint §3A/§3B): Normal gets one deep tap — the
+            // cutter closing on a taut roll of finished cloth; Matching gets two sharp ones — a
+            // scissor snipping a quick quality-check sample.
+            when (kind) {
+                DoffCompletionKind.NORMAL -> haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                DoffCompletionKind.MATCHING -> scope.launch {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    delay(90)
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                }
+            }
+            scope.launch {
+                delay(420)
+                when (kind) {
+                    DoffCompletionKind.NORMAL -> onDoff()
+                    DoffCompletionKind.MATCHING -> onDoffMatching()
+                }
+            }
+        }
+
+        if (kind == DoffCompletionKind.MATCHING && guardDoffMatching != null) {
+            // Snap the card back to neutral right away instead of optimistically sliding it off —
+            // guardDoffMatching may show a confirm dialog, and if the operator cancels there'd be
+            // nothing left to undo the slide-out with. startAnim only runs if/when the guard calls
+            // proceed(), same pattern as web's RadarCard.tsx.
+            scope.launch { offsetX.animateTo(0f, spring(dampingRatio = Spring.DampingRatioMediumBouncy)) }
+            guardDoffMatching { startAnim() }
+            return
+        }
+        startAnim()
+    }
 
     fun settleSwipe() {
         val value = offsetX.value
