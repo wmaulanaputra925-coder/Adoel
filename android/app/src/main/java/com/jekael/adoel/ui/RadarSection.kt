@@ -11,6 +11,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.HourglassEmpty
+import androidx.compose.material.icons.outlined.LocalFireDepartment
+import androidx.compose.material.icons.outlined.Pause
 import androidx.compose.material.icons.outlined.Radar
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Search
@@ -24,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -118,7 +121,7 @@ internal fun LazyListScope.estimasiSection(
     val shiftBoundary = currentShiftStartAbsMin(nowAbs) + 480
     if (dijedaList.isNotEmpty()) {
         item(key = "dijeda_head") {
-            UrgencyBandHeader(label = "Dijeda", count = dijedaList.size, color = Amber400, modifier = Modifier.animateItem())
+            UrgencyBandHeader(label = "Dijeda", count = dijedaList.size, color = Amber400, icon = Icons.Outlined.Pause, modifier = Modifier.animateItem())
         }
         itemsIndexed(dijedaList, key = { _, est -> "dijeda_${est.mcNo}" }) { index, est ->
             RadarCard(
@@ -142,7 +145,7 @@ internal fun LazyListScope.estimasiSection(
     }
     if (segeraList.isNotEmpty()) {
         item(key = "segera_head") {
-            UrgencyBandHeader(label = "Segera", count = segeraList.size, color = Red400, modifier = Modifier.animateItem())
+            UrgencyBandHeader(label = "Segera", count = segeraList.size, color = Red400, icon = Icons.Outlined.LocalFireDepartment, modifier = Modifier.animateItem())
         }
         itemsIndexed(segeraList, key = { _, est -> est.mcNo }) { index, est ->
             RadarCard(
@@ -166,7 +169,7 @@ internal fun LazyListScope.estimasiSection(
     }
     if (menungguList.isNotEmpty()) {
         item(key = "menunggu_head") {
-            UrgencyBandHeader(label = "Menunggu", count = menungguList.size, color = menungguAccent, modifier = Modifier.animateItem())
+            UrgencyBandHeader(label = "Menunggu", count = menungguList.size, color = menungguAccent, icon = Icons.Outlined.Schedule, modifier = Modifier.animateItem())
         }
         // Every row full-width, in order — the 2-column grid pairing this band used to do for
         // calm/distant cards was an experiment; real floor use showed operators prefer scanning
@@ -235,7 +238,7 @@ private fun rowKey(row: MenungguRow): String = when (row) {
 // mode toggle already says which list this is, and the header's own shift-progress bar already
 // covers the overall total, so a second standalone count row was just repeating the same number.
 @Composable
-private fun UrgencyBandHeader(label: String, count: Int, color: Color, modifier: Modifier = Modifier) {
+private fun UrgencyBandHeader(label: String, count: Int, color: Color, icon: ImageVector, modifier: Modifier = Modifier) {
     val animatedColor by animateColorAsState(color, animationSpec = tween(250), label = "urgencyBandColor")
     Row(
         modifier = modifier
@@ -246,15 +249,20 @@ private fun UrgencyBandHeader(label: String, count: Int, color: Color, modifier:
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Box(
-                modifier = Modifier
-                    .size(6.dp)
-                    .clip(CircleShape)
-                    .background(animatedColor),
-            )
+            Icon(imageVector = icon, contentDescription = null, tint = animatedColor, modifier = Modifier.size(15.dp))
             Text(
-                text = "$label · $count",
-                style = AppType.LabelBold.copy(color = animatedColor),
+                text = label.uppercase(),
+                style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Black, letterSpacing = 0.4.sp, color = animatedColor),
+            )
+        }
+        Surface(
+            shape = RoundedCornerShape(50.dp),
+            color = animatedColor.copy(alpha = 0.18f),
+        ) {
+            Text(
+                text = "$count Mesin",
+                style = TextStyle(fontSize = 11.5.sp, fontWeight = FontWeight.Black, color = animatedColor),
+                modifier = Modifier.padding(horizontal = 9.dp, vertical = 2.5.dp),
             )
         }
     }

@@ -402,6 +402,7 @@ fun MainScreen(
             nowAbs = nowAbs,
             totalMc = totalMc,
             doffCount = doffCount,
+            estimasiCount = state.estimasi.size,
             showRemaining = showRemaining,
             onToggleShowRemaining = { showRemaining = !showRemaining },
             onDaftarMesin = { activeOverlay = ActiveOverlay.Mesin },

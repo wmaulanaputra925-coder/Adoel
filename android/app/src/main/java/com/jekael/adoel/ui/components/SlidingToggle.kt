@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -76,6 +77,10 @@ fun SlidingToggle(
     accessibilityLabel: String? = null,
     iconLeft: ImageVector? = null,
     iconRight: ImageVector? = null,
+    // Machine/doff counts on Radar/Riwayat (web's .toggle-badge) — null/omitted hides the pill
+    // entirely, matching web's `count > 0 &&` guard at the call site rather than showing "0".
+    badgeLeft: Int? = null,
+    badgeRight: Int? = null,
 ) {
     val scope = rememberCoroutineScope()
     val density = LocalDensity.current
@@ -174,6 +179,19 @@ fun SlidingToggle(
                             Icon(iconLeft, contentDescription = null, tint = leftColor, modifier = Modifier.size(15.dp))
                         }
                         Text(labelLeft, style = AppType.TabLabel.copy(color = leftColor))
+                        if (badgeLeft != null) {
+                            val isThisSideActive = pos < 0.5f
+                            Surface(
+                                shape = RoundedCornerShape(50.dp),
+                                color = if (isThisSideActive) Color.White.copy(alpha = 0.22f) else leftColor.copy(alpha = 0.15f),
+                            ) {
+                                Text(
+                                    "$badgeLeft",
+                                    style = TextStyle(fontSize = 10.5.sp, fontWeight = FontWeight.Black, color = if (isThisSideActive) Color.White else leftColor),
+                                    modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp),
+                                )
+                            }
+                        }
                     }
                 }
                 Box(
@@ -186,6 +204,19 @@ fun SlidingToggle(
                             Icon(iconRight, contentDescription = null, tint = rightColor, modifier = Modifier.size(15.dp))
                         }
                         Text(labelRight, style = AppType.TabLabel.copy(color = rightColor))
+                        if (badgeRight != null) {
+                            val isThisSideActive = pos >= 0.5f
+                            Surface(
+                                shape = RoundedCornerShape(50.dp),
+                                color = if (isThisSideActive) Color.White.copy(alpha = 0.22f) else rightColor.copy(alpha = 0.15f),
+                            ) {
+                                Text(
+                                    "$badgeRight",
+                                    style = TextStyle(fontSize = 10.5.sp, fontWeight = FontWeight.Black, color = if (isThisSideActive) Color.White else rightColor),
+                                    modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp),
+                                )
+                            }
+                        }
                     }
                 }
             }

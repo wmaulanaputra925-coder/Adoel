@@ -7,8 +7,10 @@ import androidx.compose.ui.unit.dp
  * identity (every floating bar, every list card) or physics that must feel identical everywhere
  * (swipe gestures on Estimasi/Doffing/Statistik cards). */
 object Dimens {
-    /** Corner radius of the floating bars: header, console, panel headers. */
-    val RadiusFloating = 28.dp
+    /** Corner radius of the floating bars: header, console, panel headers. Matches web's shared
+     * .floating-card (border-radius: 18px) — was 28dp, which read as a much more rounded "pill"
+     * than web's more moderate corner on the same header/console-bar/panel-header elements. */
+    val RadiusFloating = 18.dp
 
     /** Corner radius of list cards: radar, doffing rows, shift cards, settings machine rows. */
     val RadiusCard = 14.dp
