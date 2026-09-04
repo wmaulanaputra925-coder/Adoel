@@ -95,9 +95,11 @@ private fun urgency(remaining: Long): UrgencyStyle = when (urgencyLevel(remainin
     // tintFraction kept modest — Amber600 already drives both this background wash AND the
     // progress bar fill below; stacking a strong wash on top of that read as too dominant/orange
     // for a card that isn't overdue yet (see clr.barColor/clr.accent usage further down).
-    UrgencyLevel.SOON -> UrgencyStyle(Amber500, Amber400, Amber400, Amber700, false, Icons.Outlined.Schedule, 0.06f)
-    UrgencyLevel.IMMINENT -> UrgencyStyle(Amber600, Amber600, Amber500, Amber700, false, Icons.Outlined.Warning, 0.10f)
-    UrgencyLevel.OVERDUE -> UrgencyStyle(Red500, Red500, Red400, Red700, true, Icons.Filled.Warning, 0f)
+    UrgencyLevel.SOON -> UrgencyStyle(Amber500, Amber400, Amber400, Amber400, false, Icons.Outlined.Schedule, 0.06f)
+    // textColor is Orange400, not Amber — the last-10-minutes countdown needs to read as visibly
+    // hotter than Segera's amber at a glance, not just a slightly darker shade of the same color.
+    UrgencyLevel.IMMINENT -> UrgencyStyle(Amber600, Amber600, Orange400, Amber500, false, Icons.Outlined.Warning, 0.10f)
+    UrgencyLevel.OVERDUE -> UrgencyStyle(Red500, Red500, Red400, Red400, true, Icons.Filled.Warning, 0f)
 }
 
 @Composable
@@ -705,13 +707,20 @@ private fun CardActionsFace(
     onHapus: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val colors = LocalAppColors.current
     Box(modifier = Modifier.fillMaxSize().clickable(onClick = onDismiss), contentAlignment = Alignment.Center) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(28.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            CardFaceButton(icon = Icons.Outlined.Pause, label = "Jeda", accent = Amber500, onClick = onJeda)
-            CardFaceButton(icon = Icons.Outlined.Delete, label = "Hapus", accent = Red500, onClick = onHapus)
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(Dimens.Space16)) {
+            Text(
+                "Opsi Mesin $mcNo",
+                style = AppType.LabelBold.copy(color = colors.textMuted),
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(28.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                CardFaceButton(icon = Icons.Outlined.Pause, label = "Jeda", accent = Amber500, onClick = onJeda)
+                CardFaceButton(icon = Icons.Outlined.Delete, label = "Hapus", accent = Red500, onClick = onHapus)
+            }
         }
     }
 }
@@ -749,7 +758,13 @@ private fun CardPausedFace(
         )
         val yard = mesin?.targetYard?.let { " · ${formatYard(it)}y" } ?: ""
         Text("${mesin?.corak ?: "—"}$yard", style = AppType.Caption.copy(color = colors.textFaint))
-        Text("Sisa ${formatDeltaMin(frozenRemaining)}", style = AppType.LabelBold.copy(color = colors.textMuted))
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text("Dibekukan pada sisa:", style = AppType.Caption.copy(color = colors.textMuted))
+            Text(
+                formatDeltaMin(frozenRemaining),
+                style = AppType.Caption.copy(color = Amber400, fontWeight = FontWeight.Bold),
+            )
+        }
         Row(
             horizontalArrangement = Arrangement.spacedBy(24.dp),
             verticalAlignment = Alignment.CenterVertically,

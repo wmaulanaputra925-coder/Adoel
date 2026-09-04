@@ -195,7 +195,7 @@ fun MainScreen(
     val menungguAccent by remember(menungguList) {
         derivedStateOf {
             when (menungguList.maxOfOrNull { urgencyLevel(it.effectiveRemaining(nowAbs)) }) {
-                UrgencyLevel.IMMINENT -> Amber600
+                UrgencyLevel.IMMINENT -> Orange400
                 UrgencyLevel.SOON -> Amber400
                 else -> Cyan400
             }

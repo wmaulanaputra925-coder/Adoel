@@ -40,6 +40,11 @@ val Amber500 = Color(0xFFF59E0B)
 val Amber600 = Color(0xFFD97706)
 val Amber700 = Color(0xFFB45309)
 
+// IMMINENT's own accent (distinct from Amber, on purpose) — the web app's card text/section-header
+// color at this urgency level, so a card counting down its last 10 minutes reads as a full step
+// hotter than "Segera" amber, not a slightly-darker amber that risks blending in.
+val Orange400 = Color(0xFFFB923C)
+
 val Red400 = Color(0xFFF87171)
 val Red500 = Color(0xFFEF4444)
 val Red700 = Color(0xFFB91C1C)
