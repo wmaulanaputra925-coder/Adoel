@@ -4,16 +4,26 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.ContentCut
+import androidx.compose.material.icons.outlined.Sell
+import androidx.compose.material.icons.outlined.Straighten
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.jekael.adoel.data.DEFAULT_KETERANGAN_SHORTCUTS
 import com.jekael.adoel.data.Estimasi
 import com.jekael.adoel.data.KETERANGAN_CODES
 import com.jekael.adoel.data.MesinData
@@ -76,10 +86,13 @@ fun GuidedDoffingSheet(
     }
 
     FloatingEditDialog(onDismissRequest = onDismiss) {
-        Text(
-            text = "Catat Doffing — Mc $mcNo",
-            style = AppType.DialogTitle.copy(color = colors.textPrimary),
-        )
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Dimens.Space8)) {
+            Icon(imageVector = Icons.Outlined.ContentCut, contentDescription = null, tint = colors.textPrimary, modifier = Modifier.size(18.dp))
+            Text(
+                text = "Catat Doffing — Mc $mcNo",
+                style = AppType.DialogTitle.copy(color = colors.textPrimary),
+            )
+        }
         Spacer(Modifier.height(Dimens.Space16))
 
         when (step) {
@@ -100,6 +113,7 @@ fun GuidedDoffingSheet(
                 onPickMatching = { handlePickMatching() },
                 onPickKeterangan = { step = GuidedDoffingStep.KETERANGAN },
                 onCancel = onDismiss,
+                keteranganShortcuts = keteranganShortcuts,
             )
             GuidedDoffingStep.NORMAL -> NormalYardStep(
                 standardYard = standardYard,
@@ -143,12 +157,29 @@ private fun ChooseStep(
     onPickMatching: () -> Unit,
     onPickKeterangan: () -> Unit,
     onCancel: () -> Unit,
+    keteranganShortcuts: List<String>?,
 ) {
     val colors = LocalAppColors.current
+    // Same preview shortcuts (state.keteranganShortcuts, whatever the user has actually
+    // configured) as web's ChooseStep — matches DEFAULT_KETERANGAN_SHORTCUTS being empty on
+    // both platforms rather than showing a fixed example list that's never what's really there.
+    val shortcuts = keteranganShortcuts ?: DEFAULT_KETERANGAN_SHORTCUTS
+    val shortcutsPreview = shortcuts.take(5).joinToString(", ") + (if (shortcuts.size > 5) ", ..." else "")
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        BigChoiceButton(label = "Doffing normal", subtitle = "Selesai sesuai target yard", onClick = onPickNormal)
-        BigChoiceButton(label = "Doffing matching", subtitle = "Potong sampel / cek kualitas beam baru", onClick = onPickMatching, accent = Color(0xFFF59E0B))
-        BigChoiceButton(label = "Ada keterangan", subtitle = "HB, P.LP, P.SN, P.OH, P.EL, P.Sel, atau lainnya", onClick = onPickKeterangan)
+        BigChoiceButton(icon = Icons.Outlined.ContentCut, label = "Doffing normal", subtitle = "Selesai sesuai target yard", onClick = onPickNormal)
+        BigChoiceButton(
+            icon = Icons.Outlined.AutoAwesome,
+            label = "Doffing matching",
+            subtitle = "Potong sampel / cek kualitas beam baru",
+            onClick = onPickMatching,
+            accent = Color(0xFFF59E0B),
+        )
+        BigChoiceButton(
+            icon = Icons.Outlined.Sell,
+            label = "Ada keterangan",
+            subtitle = shortcutsPreview.ifEmpty { "HB, P.LP, P.SN, P.OH, P.EL, P.Sel..." },
+            onClick = onPickKeterangan,
+        )
         Spacer(Modifier.height(6.dp))
         OutlinedButton(
             onClick = onCancel,
@@ -156,12 +187,17 @@ private fun ChooseStep(
             shape = RoundedCornerShape(Dimens.RadiusControl),
             colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.textSecondary),
             border = BorderStroke(1.dp, colors.border),
-        ) { Text("Batal") }
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                Icon(imageVector = Icons.Outlined.Close, contentDescription = null, modifier = Modifier.size(14.dp))
+                Text("Batal")
+            }
+        }
     }
 }
 
 @Composable
-private fun BigChoiceButton(label: String, subtitle: String, onClick: () -> Unit, accent: Color = Cyan600) {
+private fun BigChoiceButton(icon: ImageVector, label: String, subtitle: String, onClick: () -> Unit, accent: Color = Cyan600) {
     val colors = LocalAppColors.current
     Button(
         onClick = onClick,
@@ -170,7 +206,10 @@ private fun BigChoiceButton(label: String, subtitle: String, onClick: () -> Unit
         colors = ButtonDefaults.buttonColors(containerColor = colors.bgElevated2),
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
-            Text(label, style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = accent))
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Icon(imageVector = icon, contentDescription = null, tint = accent, modifier = Modifier.size(18.dp))
+                Text(label, style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = accent))
+            }
             Text(subtitle, style = AppType.Caption.copy(color = colors.textFaint))
         }
     }
@@ -192,14 +231,24 @@ private fun NormalYardStep(standardYard: Double?, onBack: () -> Unit, onConfirm:
             shape = RoundedCornerShape(Dimens.RadiusControl),
             colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.textSecondary),
             border = BorderStroke(1.dp, colors.border),
-        ) { Text("Kembali") }
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                Icon(imageVector = Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = null, modifier = Modifier.size(14.dp))
+                Text("Kembali")
+            }
+        }
         Button(
             onClick = { if (yardInput.isNotBlank()) onConfirm(yardInput.trim()) },
             enabled = yardInput.isNotBlank(),
             modifier = Modifier.weight(1f).height(48.dp),
             shape = RoundedCornerShape(Dimens.RadiusControl),
             colors = ButtonDefaults.buttonColors(containerColor = Cyan600),
-        ) { Text("Simpan", fontWeight = FontWeight.SemiBold) }
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                Icon(imageVector = Icons.Outlined.Check, contentDescription = null, modifier = Modifier.size(14.dp))
+                Text("Simpan", fontWeight = FontWeight.SemiBold)
+            }
+        }
     }
 }
 
@@ -214,7 +263,7 @@ private fun YardDeltaField(standardYard: Double?, yardInput: String, onYardInput
         onYardInputChange(formatYard(current + delta))
     }
 
-    FieldLabel("Yard aktual")
+    FieldLabelWithIcon(icon = Icons.Outlined.Straighten, text = "Yard aktual")
     OutlinedTextField(
         value = yardInput,
         onValueChange = onYardInputChange,
@@ -270,7 +319,7 @@ private fun KeteranganStep(
         yardInput = if (yardInput.startsWith("+")) yardInput.removePrefix("+") else "+" + yardInput.removePrefix("-")
     }
 
-    FieldLabel("Keterangan")
+    FieldLabelWithIcon(icon = Icons.Outlined.Sell, text = "Keterangan Doffing")
     OutlinedTextField(
         value = ket,
         onValueChange = { ket = it.uppercase() },
@@ -290,7 +339,7 @@ private fun KeteranganStep(
     )
 
     Spacer(Modifier.height(14.dp))
-    FieldLabel("Yard aktual (opsional)")
+    FieldLabelWithIcon(icon = Icons.Outlined.Straighten, text = "Yard aktual (opsional)")
     Row(horizontalArrangement = Arrangement.spacedBy(Dimens.Space8), verticalAlignment = Alignment.CenterVertically) {
         OutlinedTextField(
             value = yardInput,
@@ -329,7 +378,12 @@ private fun KeteranganStep(
             shape = RoundedCornerShape(Dimens.RadiusControl),
             colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.textSecondary),
             border = BorderStroke(1.dp, colors.border),
-        ) { Text("Kembali") }
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                Icon(imageVector = Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = null, modifier = Modifier.size(14.dp))
+                Text("Kembali")
+            }
+        }
         Button(
             onClick = {
                 val cmd = listOf(ket.trim(), yardInput.trim()).filter { it.isNotEmpty() }.joinToString(" ")
@@ -339,7 +393,32 @@ private fun KeteranganStep(
             modifier = Modifier.weight(1f).height(48.dp),
             shape = RoundedCornerShape(Dimens.RadiusControl),
             colors = ButtonDefaults.buttonColors(containerColor = Cyan600),
-        ) { Text("Simpan", fontWeight = FontWeight.SemiBold) }
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                Icon(imageVector = Icons.Outlined.Check, contentDescription = null, modifier = Modifier.size(14.dp))
+                Text("Simpan", fontWeight = FontWeight.SemiBold)
+            }
+        }
+    }
+}
+
+/** Local [FieldLabel] variant carrying a leading icon — mirrors web's own per-callsite pattern
+ * (each field-label div in GuidedDoffingSheet.tsx wraps its icon manually rather than going
+ * through a shared icon-aware component), so only this sheet's labels gain icons rather than
+ * every dialog that reuses the plain [FieldLabel]. */
+@Composable
+private fun FieldLabelWithIcon(icon: ImageVector, text: String) {
+    val colors = LocalAppColors.current
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        modifier = Modifier.padding(bottom = 6.dp),
+    ) {
+        Icon(imageVector = icon, contentDescription = null, tint = colors.textMuted, modifier = Modifier.size(13.dp))
+        Text(
+            text = text.uppercase(),
+            style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.sp, color = colors.textMuted),
+        )
     }
 }
 
