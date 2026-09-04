@@ -11,9 +11,15 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.InlineTextContent
+import androidx.compose.foundation.text.appendInlineContent
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -28,7 +34,12 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.Placeholder
+import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -46,6 +57,13 @@ fun EmptyState(
     modifier: Modifier = Modifier,
     title: String = "Belum Ada Pantauan",
     subtitle: String = "Gunakan konsol bawah untuk memulai tindakan.",
+    // Web's equivalent (empty-state-title) always pairs the title with a small icon (RadarIcon,
+    // HistoryIcon, ...) — optional here since a few call sites (search/filter "not found") don't.
+    titleIcon: ImageVector? = null,
+    // Overrides the plain [subtitle] Text when set — lets a call site build its own richer copy,
+    // e.g. web's inline icon+word pill mid-sentence (see InlineActionPill) that a plain String
+    // can't express.
+    subtitleContent: (@Composable () -> Unit)? = null,
 ) {
     val colors = LocalAppColors.current
 
@@ -150,24 +168,87 @@ fun EmptyState(
             verticalArrangement = Arrangement.spacedBy(6.dp),
             modifier = Modifier.padding(horizontal = Dimens.Space24),
         ) {
-            Text(
-                text = title,
-                style = TextStyle(
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = colors.textPrimary,
-                    letterSpacing = (-0.2).sp,
-                ),
-                textAlign = TextAlign.Center,
-            )
-            Text(
-                text = subtitle,
-                style = AppType.Caption.copy(
-                    color = colors.textMuted,
-                    lineHeight = 18.sp,
-                ),
-                textAlign = TextAlign.Center,
-            )
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (titleIcon != null) {
+                    Icon(imageVector = titleIcon, contentDescription = null, tint = colors.textPrimary, modifier = Modifier.size(16.dp))
+                }
+                Text(
+                    text = title,
+                    style = TextStyle(
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.textPrimary,
+                        letterSpacing = (-0.2).sp,
+                    ),
+                    textAlign = TextAlign.Center,
+                )
+            }
+            if (subtitleContent != null) {
+                subtitleContent()
+            } else {
+                Text(
+                    text = subtitle,
+                    style = AppType.Caption.copy(
+                        color = colors.textMuted,
+                        lineHeight = 18.sp,
+                    ),
+                    textAlign = TextAlign.Center,
+                )
+            }
         }
     }
+}
+
+/** Web's `.inline-icon-pill` — a small icon+word chip embedded mid-sentence in an empty-state
+ * subtitle (see RadarSection/DoffingSection's "Estimasi"/"Doffing" pills), naming the exact
+ * console action the copy just described so it reads as pointing at that button, not just a
+ * plain word. Built with [InlineTextContent] since Compose Text has no direct equivalent of a
+ * CSS inline-block span mixed into wrapped text. */
+@Composable
+fun InlineActionPillSubtitle(
+    before: String,
+    pillIcon: ImageVector,
+    pillLabel: String,
+    pillAccent: Color,
+    after: String,
+    modifier: Modifier = Modifier,
+) {
+    val colors = LocalAppColors.current
+    val density = LocalDensity.current
+    val pillId = "action_pill"
+    val annotated = buildAnnotatedString {
+        append(before)
+        appendInlineContent(pillId, "[$pillLabel]")
+        append(after)
+    }
+    // Sized generously (icon + label at their natural size rarely exceed ~70dp) rather than
+    // measured exactly — a little extra breathing room in the reserved box reads better than a
+    // clipped pill if the estimate runs short.
+    val pillWidth = with(density) { (pillLabel.length * 6 + 34).dp.toSp() }
+    val pillHeight = with(density) { 19.dp.toSp() }
+    val inlineContent = mapOf(
+        pillId to InlineTextContent(
+            placeholder = Placeholder(width = pillWidth, height = pillHeight, placeholderVerticalAlign = PlaceholderVerticalAlign.TextCenter),
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(pillAccent.copy(alpha = 0.16f))
+                    .padding(horizontal = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(3.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(imageVector = pillIcon, contentDescription = null, tint = pillAccent, modifier = Modifier.size(11.dp))
+                Text(pillLabel, style = TextStyle(fontSize = 10.sp, fontWeight = FontWeight.Black, color = pillAccent))
+            }
+        },
+    )
+    Text(
+        text = annotated,
+        inlineContent = inlineContent,
+        style = AppType.Caption.copy(color = colors.textMuted, lineHeight = 18.sp),
+        textAlign = TextAlign.Center,
+        modifier = modifier,
+    )
 }

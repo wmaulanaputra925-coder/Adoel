@@ -9,9 +9,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Circle
+import androidx.compose.material.icons.outlined.ContentCut
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Texture
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -29,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jekael.adoel.data.*
 import com.jekael.adoel.ui.components.EmptyState
+import com.jekael.adoel.ui.components.InlineActionPillSubtitle
 import com.jekael.adoel.ui.components.SwipeableCard
 import com.jekael.adoel.ui.components.MesinTipeIcon
 import com.jekael.adoel.ui.components.mesinTipeColor
@@ -49,7 +52,16 @@ fun LazyListScope.doffingSection(
             EmptyState(
                 modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
                 title = "Belum Ada Riwayat Doffing",
-                subtitle = "Geser kartu mesin di layar Radar untuk mencatat doff, atau ketuk ikon gunting di konsol bawah untuk mencatat doff langsung.",
+                titleIcon = Icons.Outlined.History,
+                subtitleContent = {
+                    InlineActionPillSubtitle(
+                        before = "Geser kartu mesin di layar Radar untuk mencatat doff, atau ketuk ikon gunting ",
+                        pillIcon = Icons.Outlined.ContentCut,
+                        pillLabel = "Doffing",
+                        pillAccent = Emerald400,
+                        after = " di konsol bawah untuk mencatat doff langsung.",
+                    )
+                },
             )
         }
         return
@@ -145,8 +157,9 @@ fun LazyListScope.doffingSection(
         item(key = "doff_filter_empty") {
             EmptyState(
                 modifier = Modifier.fillMaxWidth().padding(vertical = Dimens.Space24),
-                title = "Tidak ditemukan",
-                subtitle = "Coba kata kunci lain — cari berdasarkan nomor mesin, corak, atau keterangan",
+                title = "Riwayat Tidak Ditemukan",
+                titleIcon = Icons.Outlined.Search,
+                subtitle = "Coba cari dengan nomor mesin lainnya",
             )
         }
         return

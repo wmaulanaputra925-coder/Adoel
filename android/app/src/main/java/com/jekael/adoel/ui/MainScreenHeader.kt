@@ -16,8 +16,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.Flag
+import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.QrCodeScanner
+import androidx.compose.material.icons.outlined.Radar
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.Icon
@@ -278,6 +280,8 @@ internal fun MainScreenHeader(
         SlidingToggle(
             labelLeft = "Radar",
             labelRight = "Riwayat",
+            iconLeft = Icons.Outlined.Radar,
+            iconRight = Icons.Outlined.History,
             accessibilityLabel = "Halaman: Radar/Riwayat",
             selectedIndex = if (page == Page.RADAR) 0 else 1,
             onSelect = { onPageSelect(if (it == 0) Page.RADAR else Page.RIWAYAT) },

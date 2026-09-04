@@ -11,7 +11,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.HourglassEmpty
+import androidx.compose.material.icons.outlined.Radar
 import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -62,8 +64,17 @@ internal fun LazyListScope.estimasiSection(
         item(key = "est_empty") {
             EmptyState(
                 modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
-                title = "Belum Ada Pantauan Estimasi",
-                subtitle = "Ketik nomor mesin di konsol bawah, lalu ketuk ikon jam untuk menjadwalkan estimasi doffing.",
+                title = "Radar Siap Memantau",
+                titleIcon = Icons.Outlined.Radar,
+                subtitleContent = {
+                    InlineActionPillSubtitle(
+                        before = "Belum ada estimasi aktif. Ketik nomor mesin di konsol bawah, lalu ketuk ikon jam ",
+                        pillIcon = Icons.Outlined.Schedule,
+                        pillLabel = "Estimasi",
+                        pillAccent = Cyan400,
+                        after = " untuk mulai memantau waktu doffing.",
+                    )
+                },
             )
         }
         return
@@ -97,8 +108,9 @@ internal fun LazyListScope.estimasiSection(
         item(key = "est_filter_empty") {
             EmptyState(
                 modifier = Modifier.fillMaxWidth().padding(vertical = Dimens.Space24),
-                title = "Tidak ditemukan",
-                subtitle = "Coba kata kunci lain — cari berdasarkan nomor mesin",
+                title = "Mesin Tidak Ditemukan",
+                titleIcon = Icons.Outlined.Search,
+                subtitle = "Coba kata kunci lain — masukkan nomor mesin yang terdaftar",
             )
         }
         return
