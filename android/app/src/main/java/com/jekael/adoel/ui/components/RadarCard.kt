@@ -17,10 +17,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.ContentCut
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Pause
 import androidx.compose.material.icons.outlined.PlayArrow
@@ -197,7 +196,9 @@ fun RadarCard(
         label = "weaveSweep",
     )
     val completionColor = if (completingKind == DoffCompletionKind.MATCHING) Sky500 else Emerald500
-    val completionIcon = if (completingKind == DoffCompletionKind.MATCHING) Icons.Filled.Verified else Icons.Filled.CheckCircle
+    // Same icon pair as the swipe-in-progress reveal above — one consistent "cut"/"matching" icon
+    // vocabulary from the first drag pixel through to the completion pop, not a switch mid-gesture.
+    val completionIcon = if (completingKind == DoffCompletionKind.MATCHING) Icons.Outlined.AutoAwesome else Icons.Outlined.ContentCut
     val exitDirection = if (completingKind == DoffCompletionKind.MATCHING) -1f else 1f
 
     // Long-press to reveal Jeda/Hapus: a "charge up" red tint/scale while held (distinct from the
@@ -320,12 +321,16 @@ fun RadarCard(
         SwipeActionBackground(
             offsetX = offsetX.value,
             thresholdPx = swipeThresholdPx,
-            rightIcon = Icons.Outlined.Check,
-            leftIcon = Icons.Filled.Verified,
+            // Same scissors/sparkle icon pair as ConsoleBar's Doffing button and the completion
+            // celebration below — one consistent "cut" vs "matching" icon vocabulary app-wide.
+            rightIcon = Icons.Outlined.ContentCut,
+            leftIcon = Icons.Outlined.AutoAwesome,
             rightColor = Emerald500,
             leftColor = Sky500,
-            rightLabel = "Normal",
-            leftLabel = "Matching",
+            rightLabel = "Doffing Normal",
+            leftLabel = "Doffing Matching",
+            rightDescription = "Target yard selesai",
+            leftDescription = "Sampel beam baru · Uji kualitas",
         )
         Box(
             modifier = Modifier
