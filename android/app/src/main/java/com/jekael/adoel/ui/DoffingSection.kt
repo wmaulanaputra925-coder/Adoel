@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jekael.adoel.data.*
 import com.jekael.adoel.ui.components.EmptyState
+import com.jekael.adoel.ui.components.EmptyStateArt
 import com.jekael.adoel.ui.components.InlineActionPillSubtitle
 import com.jekael.adoel.ui.components.SwipeableCard
 import com.jekael.adoel.ui.components.MesinTipeIcon
@@ -53,6 +54,7 @@ fun LazyListScope.doffingSection(
                 modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
                 title = "Belum Ada Riwayat Doffing",
                 titleIcon = Icons.Outlined.History,
+                art = EmptyStateArt.WEAVING,
                 subtitleContent = {
                     InlineActionPillSubtitle(
                         before = "Geser kartu mesin di layar Radar untuk mencatat doff, atau ketuk ikon gunting ",

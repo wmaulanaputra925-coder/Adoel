@@ -69,6 +69,7 @@ internal fun LazyListScope.estimasiSection(
                 modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
                 title = "Radar Siap Memantau",
                 titleIcon = Icons.Outlined.Radar,
+                art = EmptyStateArt.RADAR,
                 subtitleContent = {
                     InlineActionPillSubtitle(
                         before = "Belum ada estimasi aktif. Ketik nomor mesin di konsol bawah, lalu ketuk ikon jam ",
