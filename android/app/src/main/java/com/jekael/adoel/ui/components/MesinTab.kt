@@ -256,56 +256,73 @@ internal fun MesinTab(
                         .padding(Dimens.Space12),
                     verticalArrangement = Arrangement.spacedBy(Dimens.Space10),
                 ) {
+                    // One row, title left / badges right — matches web's .corak-summary-header
+                    // (display:flex, justify-content:space-between) exactly, rather than the
+                    // stacked title-then-badges layout this used to force unconditionally: that
+                    // spent an extra row's worth of height even when everything comfortably fits
+                    // on one line, which is exactly what web does when it fits. Badges wrap onto
+                    // their own second line via FlowRow only if the title leaves too little room
+                    // (mirrors .corak-summary-badges' own flex-wrap: wrap), not the title.
                     Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(Dimens.Space6),
                     ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Texture,
-                            contentDescription = null,
-                            tint = Cyan500,
-                            modifier = Modifier.size(16.dp),
-                        )
-                        Text(
-                            "Corak Sedang Produksi",
-                            style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary),
-                        )
-                    }
-                    // Badges sit on their own row below the title (not squeezed inline beside it)
-                    // so a long title never fights the badges for space — matches web's stacked
-                    // .corak-summary-badges layout.
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = Emerald500.copy(alpha = 0.15f),
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(Dimens.Space6),
+                            modifier = Modifier.weight(1f, fill = false),
                         ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            ) {
-                                Box(Modifier.size(6.dp).clip(CircleShape).background(Emerald500))
-                                Text(
-                                    "${activeProduksiEntries.size} Mesin Aktif (${activeCorakSummary.size} Corak)",
-                                    style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Emerald500),
-                                )
-                            }
+                            Icon(
+                                imageVector = Icons.Outlined.Texture,
+                                contentDescription = null,
+                                tint = Cyan500,
+                                modifier = Modifier.size(16.dp),
+                            )
+                            Text(
+                                "Corak Sedang Produksi",
+                                style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
                         }
-                        if (stoppedProduksiEntries.isNotEmpty()) {
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.End),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier.padding(start = Dimens.Space8),
+                        ) {
                             Surface(
                                 shape = RoundedCornerShape(12.dp),
-                                color = Amber500.copy(alpha = 0.15f),
+                                color = Emerald500.copy(alpha = 0.15f),
                             ) {
                                 Row(
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                                 ) {
-                                    Box(Modifier.size(6.dp).clip(CircleShape).background(Amber500))
+                                    Box(Modifier.size(6.dp).clip(CircleShape).background(Emerald500))
                                     Text(
-                                        "${stoppedProduksiEntries.size} Stop Sementara",
-                                        style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Amber500),
+                                        "${activeProduksiEntries.size} Mesin Aktif (${activeCorakSummary.size} Corak)",
+                                        style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Emerald500),
                                     )
+                                }
+                            }
+                            if (stoppedProduksiEntries.isNotEmpty()) {
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = Amber500.copy(alpha = 0.15f),
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    ) {
+                                        Box(Modifier.size(6.dp).clip(CircleShape).background(Amber500))
+                                        Text(
+                                            "${stoppedProduksiEntries.size} Stop Sementara",
+                                            style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Amber500),
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -630,7 +647,13 @@ internal fun MesinTab(
                     value = search,
                     onValueChange = { search = it },
                     modifier = Modifier.weight(1f),
-                    placeholder = { Text("Cari nomor mesin / corak", color = colors.textFaint) },
+                    // maxLines = 1 matters here: this placeholder Text doesn't inherit the field's
+                    // own singleLine=true (that only governs the editable value, not this slot), so
+                    // without it "Cari mesin / corak" was wrapping to 2 lines and inflating the
+                    // whole console's height well past web's compact single-line search pill.
+                    placeholder = {
+                        Text("Cari mesin / corak", color = colors.textFaint, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    },
                     leadingIcon = {
                         Icon(Icons.Outlined.Search, contentDescription = null, tint = colors.textFaint, modifier = Modifier.size(18.dp))
                     },
