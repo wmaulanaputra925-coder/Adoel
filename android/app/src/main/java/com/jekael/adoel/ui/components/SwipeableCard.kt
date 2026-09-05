@@ -31,11 +31,14 @@ import kotlin.math.abs
 
 /** Shared swipe-to-act gesture + reveal background for list cards outside RadarCard (which has
  * its own richer "doff" completion celebration — slide-out, checkmark pop — since that swipe
- * actually removes the card immediately). Everywhere else (Doffing rows, archived Statistik
- * shifts) a swipe just triggers a callback and settles back: hapus goes through a confirm dialog
- * the caller supplies, and edit/bagikan don't remove anything from the list. Uses the exact same
- * drag threshold/max-distance/spring physics as RadarCard so every swipeable card in the app
- * feels identical even though the implementations are separate. */
+ * actually removes the card immediately). Everywhere else (Doffing rows) a swipe just triggers a
+ * callback and settles back: hapus goes through a confirm dialog the caller supplies, and
+ * edit/bagikan don't remove anything from the list. Uses the exact same drag threshold/
+ * max-distance/spring physics as RadarCard so every swipeable card in the app feels identical
+ * even though the implementations are separate.
+ *
+ * Statistik's archived shift cards deliberately do *not* use this: they carry visible Bagikan/
+ * Hapus buttons, and the horizontal drag over them closes the page instead (swipeRightToClose). */
 @Composable
 fun SwipeableCard(
     modifier: Modifier = Modifier,

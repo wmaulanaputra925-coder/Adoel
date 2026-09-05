@@ -1,26 +1,17 @@
 package com.jekael.adoel.ui.components
 
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.jekael.adoel.data.*
 import com.jekael.adoel.ui.theme.*
-import kotlinx.coroutines.launch
-import kotlin.math.roundToInt
 
 /**
  * Shared slide-in-from-right shell for [MesinDrawer] and [PengaturanDrawer] — a floating header
@@ -36,14 +27,6 @@ private fun SlideOverPanel(
     content: @Composable (headerHeight: Dp) -> Unit,
 ) {
     val colors = LocalAppColors.current
-    val scope = rememberCoroutineScope()
-
-    // Manual drag offset for swipe-right-to-dismiss; separate from SlidePanel's own enter/exit
-    // transition so the two animation systems never fight over the same value. On a drag past
-    // threshold this calls onClose directly (bypassing SlidePanel's requestClose/exit-animation
-    // dance below) since the drag itself already provides the visual exit.
-    val dragOffset = remember { Animatable(0f) }
-    var panelWidthPx by remember { mutableStateOf(0f) }
 
     var headerHeight by remember { mutableStateOf(0.dp) }
     val density = LocalDensity.current
@@ -56,32 +39,11 @@ private fun SlideOverPanel(
             modifier = Modifier
                 .fillMaxSize()
                 .background(colors.bg)
-                .onGloballyPositioned { panelWidthPx = it.size.width.toFloat() }
-                .offset { IntOffset(dragOffset.value.roundToInt(), 0) }
-                .pointerInput(Unit) {
-                    detectHorizontalDragGestures(
-                        onDragEnd = {
-                            val width = if (panelWidthPx > 0f) panelWidthPx else 1f
-                            if (dragOffset.value > width * 0.3f) {
-                                scope.launch {
-                                    dragOffset.animateTo(width, animationSpec = tween(200))
-                                    onClose()
-                                }
-                            } else {
-                                scope.launch {
-                                    dragOffset.animateTo(0f, animationSpec = spring(stiffness = Spring.StiffnessMediumLow))
-                                }
-                            }
-                        },
-                        onDragCancel = {
-                            scope.launch { dragOffset.animateTo(0f, animationSpec = spring(stiffness = Spring.StiffnessMediumLow)) }
-                        },
-                    ) { change, dragAmount ->
-                        change.consume()
-                        val newVal = (dragOffset.value + dragAmount).coerceAtLeast(0f)
-                        scope.launch { dragOffset.snapTo(newVal) }
-                    }
-                },
+                // Swipe-right-to-dismiss, shared with Statistik so all three full-screen pages
+                // close with the same motion (see swipeRightToClose). Separate from SlidePanel's
+                // own enter/exit transition so the two animation systems never fight over the
+                // same value.
+                .swipeRightToClose(onClose),
             // No systemBarsPadding() here — this panel now lives inside MainScreen's own root
             // Box, which already insets its children from the system bars once.
         ) {
