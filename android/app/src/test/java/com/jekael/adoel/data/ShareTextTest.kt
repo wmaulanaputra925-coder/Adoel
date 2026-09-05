@@ -109,7 +109,7 @@ class ShareTextTest {
             operatorGrup = "B",
         )
 
-        val text = buildShareShiftText(shift, db, wib)
+        val text = buildShareShiftText(shift, db, zone = wib)
 
         val expected = "*LAPORAN SHIFT 1*\n15/01/2026\nOperator: Wahyu · Grup B\n$divider\n\n" +
             "*Selesai (2 doff)*\n" +
@@ -131,7 +131,7 @@ class ShareTextTest {
             aktual = listOf(AktualEntry(id = 1, mcNo = "61", jam = "07.00", ket = "07.00")),
         )
 
-        val text = buildShareShiftText(shift, db, "Wahyu", "B", wib)
+        val text = buildShareShiftText(shift, db, "Wahyu", "B", zone = wib)
 
         assertTrue(text.contains("Operator: Wahyu · Grup B"))
     }
