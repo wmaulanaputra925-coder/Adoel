@@ -416,7 +416,7 @@ function ShiftRow({
                   title={`Edit riwayat Mc ${entry.mcNo}`}
                 >
                   {/* Shared with the Riwayat list so both read identically — see DoffEntryRow.tsx. */}
-                  <DoffEntryRowContent num={index + 1} entry={entry} mesin={db[entry.mcNo]} showEditHint />
+                  <DoffEntryRowContent num={index + 1} entry={entry} mesin={db[entry.mcNo]} />
                 </div>
               ))}
             </>

@@ -116,7 +116,7 @@ export function DoffingScreen() {
               return (
                 <div className="doff-row doff-entry-row" key={entry.id}>
                   {/* Shared with Statistik's shift detail so both read identically — see DoffEntryRow.tsx. */}
-                  <DoffEntryRowContent num={num} entry={entry} mesin={mesin} showEditHint={false} />
+                  <DoffEntryRowContent num={num} entry={entry} mesin={mesin} />
                   <div className="actions">
                     <button
                       className="icon-btn"

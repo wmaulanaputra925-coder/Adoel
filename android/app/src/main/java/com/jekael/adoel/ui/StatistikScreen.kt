@@ -732,7 +732,11 @@ private fun ShiftRow(
                     Spacer(Modifier.height(6.dp))
                 }
                 chronological.forEachIndexed { index, entry ->
-                    Row(
+                    // Shared with the Riwayat list so both read identically — see DoffEntryRow.kt.
+                    DoffEntryRowContent(
+                        num = index + 1,
+                        entry = entry,
+                        mesin = db[entry.mcNo],
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 2.dp)
@@ -743,17 +747,7 @@ private fun ShiftRow(
                             // edit for just that record instead of collapsing the whole shift.
                             .clickable(onClickLabel = "Edit riwayat Mc ${entry.mcNo}") { onEditEntry(entry.id) }
                             .padding(horizontal = 10.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        // Shared with the Riwayat list so both read identically — see DoffEntryRow.kt.
-                        DoffEntryRowContent(
-                            num = index + 1,
-                            entry = entry,
-                            mesin = db[entry.mcNo],
-                            showEditHint = true,
-                        )
-                    }
+                    )
                 }
                 Spacer(Modifier.height(6.dp))
                 TextButton(

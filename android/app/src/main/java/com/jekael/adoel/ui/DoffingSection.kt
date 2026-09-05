@@ -195,7 +195,11 @@ private fun DoffingRow(
         rightIcon = Icons.Outlined.Edit,
         leftIcon = Icons.Outlined.Delete,
     ) {
-        Row(
+        // Shared with Statistik's shift detail so both read identically — see DoffEntryRow.kt.
+        DoffEntryRowContent(
+            num = num,
+            entry = entry,
+            mesin = mesin,
             modifier = Modifier
                 .fillMaxWidth()
                 .elevatedListCard(backgroundColor = colors.bgElevated)
@@ -207,12 +211,7 @@ private fun DoffingRow(
                     )
                 }
                 .padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            // Shared with Statistik's shift detail so both read identically — see DoffEntryRow.kt.
-            DoffEntryRowContent(num = num, entry = entry, mesin = mesin, showEditHint = false)
-        }
+        )
     }
 }
 
