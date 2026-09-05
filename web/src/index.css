@@ -2417,6 +2417,9 @@ textarea.json-box {
   color: var(--text-secondary);
   margin-bottom: 18px;
   line-height: 1.5;
+  /* Sejumlah pesan konfirmasi (mis. potonganAwalReminderMessage) sengaja menyisipkan "\n" untuk
+     baris kedua yang lebih ringkas — tanpa ini HTML meratakannya jadi satu baris panjang. */
+  white-space: pre-line;
 }
 .dialog .actions {
   display: flex;

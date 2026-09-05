@@ -137,7 +137,7 @@ fun isPotonganAwalCorak(corakPotonganAwal: List<String>?, corak: String?): Boole
 }
 
 fun potonganAwalReminderMessage(corak: String): String =
-    "Corak $corak termasuk daftar potongan awal 70 yard. Pastikan beam sudah jalan minimal 70y sebelum ambil sampel Matching (1 yard), supaya sampel tidak kena LTK/lusi putus di awal jalan. Lanjutkan catat Doffing Matching sekarang?"
+    "Corak $corak wajib jalan minimal 70 yard.\nPastikan sudah ≥ 70y sebelum potong sampel. Lanjut catat Matching?"
 
 fun getRepresentativeEpochMin(shift: ShiftRecord): Long {
     val timestamps = shift.aktual.mapNotNull { it.tsEpochMin }

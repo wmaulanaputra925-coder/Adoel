@@ -14,5 +14,5 @@ export function isPotonganAwalCorak(state: DoffState, corak: string | undefined 
 }
 
 export function potonganAwalReminderMessage(corak: string): string {
-  return `Corak ${corak} termasuk daftar potongan awal 70 yard. Pastikan beam sudah jalan minimal 70y sebelum ambil sampel Matching (1 yard), supaya sampel tidak kena LTK/lusi putus di awal jalan. Lanjutkan catat Doffing Matching sekarang?`;
+  return `Corak ${corak} wajib jalan minimal 70 yard.\nPastikan sudah ≥ 70y sebelum potong sampel. Lanjut catat Matching?`;
 }
