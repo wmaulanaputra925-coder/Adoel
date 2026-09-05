@@ -114,17 +114,23 @@ class DoffViewModel @JvmOverloads constructor(
         // Tandai Matching" (lihat DoffState.pendingMatchingMcNos) — Estimasi baru ini adalah
         // tempat pertama flag itu punya rumah, jadi konsumsi (dan hapus dari daftar tunggu) di sini.
         val isPending = _state.value.pendingMatchingMcNos?.contains(mcNo) ?: false
+        val willBeMatching = isPending || (existing?.isMatching ?: false)
+        val effectiveCorak = existing?.corakOverride ?: mesin.corak
         val newEst = Estimasi(
             mcNo = mcNo,
             estAbsMin = estAbs,
             startAbsMin = existing?.startAbsMin ?: nowAbsMin,
             corakOverride = existing?.corakOverride,
-            // Sama seperti toggleEstimasiMatching manual: isi target yard ke sampel Matching
-            // (70y) kalau operator belum mengatur sendiri untuk mesin ini.
-            yardOverride = existing?.yardOverride ?: (if (isPending) POTONGAN_AWAL_YARD else null),
+            // yardOverride tidak punya penulis lain di luar fitur Matching ini, jadi dihitung ulang
+            // murni dari isMatching+corak tiap kali (bukan "preserve nilai lama") — sama seperti
+            // toggleEstimasiMatching manual: 70y HANYA untuk corak yang memang termasuk aturan
+            // potongan awal (lihat isPotonganAwalCorak); corak lain tetap null (pakai target
+            // standar mesin), dan begitu isMatching lepas (di sini maupun lewat toggle), yard ikut
+            // kembali ke standar.
+            yardOverride = if (willBeMatching && isPotonganAwalCorak(_state.value.corakPotonganAwal, effectiveCorak)) POTONGAN_AWAL_YARD else null,
             // Tali Hijau tags the beam, not the time estimate — re-timing an already-tagged
             // machine (mistyped duration, corrected reading) shouldn't silently untag it.
-            isMatching = isPending || (existing?.isMatching ?: false),
+            isMatching = willBeMatching,
         )
         updateState { s ->
             s.copy(
@@ -180,12 +186,13 @@ class DoffViewModel @JvmOverloads constructor(
 
         // Doffing Matching memotong 70 yard pertama, bukan sepanjang target standar mesin — tanpa
         // ini Riwayat mencatat panjang standar (mis. 303y) untuk potongan yang nyatanya 70y. Yard
-        // yang diketik operator selalu menang. Tali hijau pakai yardOverride yang sudah disiapkan
-        // saat penanda dipasang; corak potongan awal biasa (tanpa penanda manual) tetap pakai
-        // default 70y yang sama.
+        // yang diketik operator selalu menang. Tali hijau pakai yardOverride apa adanya (null
+        // berarti corak ini BUKAN corak potongan awal — lihat toggleEstimasiMatching/
+        // prosesBarisKondisiMesin — jadi TIDAK dipaksa 70y, tetap pakai target standar mesin
+        // seperti Matching biasa di luar daftar).
         if (customYard == null && extra.contains("MATCHING")) {
             customYard = when {
-                prevEst?.isMatching == true -> prevEst.yardOverride ?: POTONGAN_AWAL_YARD
+                prevEst?.isMatching == true -> prevEst.yardOverride
                 isPotonganAwalCorak(_state.value.corakPotonganAwal, effectiveCorak) -> POTONGAN_AWAL_YARD
                 else -> null
             }
@@ -252,14 +259,17 @@ class DoffViewModel @JvmOverloads constructor(
     }
 
     /** Tali Hijau: switches Mc [mcNo]'s Matching tag on/off — a no-op if the estimate no longer
-     * exists (e.g. already doffed out from under a pending tap). Switching it on auto-fills
-     * yardOverride with the Matching sample length (POTONGAN_AWAL_YARD) if the operator hasn't
-     * already set a target yard for this machine; switching it off leaves yardOverride untouched
-     * (it may have been typed in manually). */
+     * exists (e.g. already doffed out from under a pending tap). yardOverride has no other writer
+     * outside this Matching feature, so it's recomputed fresh from isMatching+corak on every
+     * toggle rather than "preserved": switching on sets it to the Matching sample length
+     * (POTONGAN_AWAL_YARD) ONLY when this machine's corak is actually in the potongan-awal list
+     * (see isPotonganAwalCorak) — other corak stay null (standard target yard), never forced to
+     * 70y; switching off always reverts to null (standard), never leaves a stale 70y behind. */
     fun toggleEstimasiMatching(mcNo: String) = updateState { s ->
         val est = s.estimasi[mcNo] ?: return@updateState s
         val next = !est.isMatching
-        val yardOverride = if (next && est.yardOverride == null) POTONGAN_AWAL_YARD else est.yardOverride
+        val effectiveCorak = est.corakOverride ?: s.db[mcNo]?.corak
+        val yardOverride = if (next && isPotonganAwalCorak(s.corakPotonganAwal, effectiveCorak)) POTONGAN_AWAL_YARD else null
         s.copy(estimasi = s.estimasi + (mcNo to est.copy(isMatching = next, yardOverride = yardOverride)))
     }
 

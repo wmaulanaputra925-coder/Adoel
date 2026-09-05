@@ -63,11 +63,13 @@ describe("prosesBarisKondisiMesin (estimasi)", () => {
   });
 
   // Tali Hijau menandai beam, bukan jam estimasi — mengoreksi durasi (mis. salah ketik) pada
-  // mesin yang sudah ditandai tidak boleh diam-diam melepas penandaannya.
+  // mesin yang sudah ditandai tidak boleh diam-diam melepas penandaannya. Mc 76 dipakai (bukan
+  // 29) karena coraknya (21242) termasuk daftar potongan awal — yardOverride 70y di sini memang
+  // seharusnya bertahan, bukan cuma nilai lama yang dipertahankan buta.
   it("isMatching dipertahankan lintas koreksi estimasi mesin yang sama", () => {
     const s = baseState();
-    s.estimasi["29"] = {
-      mcNo: "29",
+    s.estimasi["76"] = {
+      mcNo: "76",
       estAbsMin: 900,
       startAbsMin: 800,
       corakOverride: null,
@@ -75,10 +77,10 @@ describe("prosesBarisKondisiMesin (estimasi)", () => {
       pausedAtAbsMin: null,
       isMatching: true,
     };
-    const r = prosesBarisKondisiMesin(s, "29 45", 1000);
+    const r = prosesBarisKondisiMesin(s, "76 45", 1000);
     expect(r.result.ok).toBe(true);
-    expect(r.newState.estimasi["29"].isMatching).toBe(true);
-    expect(r.newState.estimasi["29"].yardOverride).toBe(70);
+    expect(r.newState.estimasi["76"].isMatching).toBe(true);
+    expect(r.newState.estimasi["76"].yardOverride).toBe(70);
   });
 
   it("isMatching baku false untuk estimasi baru", () => {
@@ -88,31 +90,26 @@ describe("prosesBarisKondisiMesin (estimasi)", () => {
 
   // Tali Hijau: mcNo yang menunggu (habis ditandai lewat pengingat HB) otomatis jadi isMatching
   // begitu Estimasi berikutnya untuk mesin itu benar-benar dibuat, dan langsung dikonsumsi
-  // (dihapus) dari daftar tunggu — sekali pakai, bukan menempel selamanya.
+  // (dihapus) dari daftar tunggu — sekali pakai, bukan menempel selamanya. Mc 76 (corak 21242)
+  // termasuk daftar potongan awal, jadi yard-nya otomatis 70y.
   it("pendingMatchingMcNos: Estimasi baru otomatis isMatching & dikonsumsi dari daftar tunggu", () => {
     const s = baseState();
-    s.pendingMatchingMcNos = ["29", "61"];
-    const r = prosesBarisKondisiMesin(s, "29 45", 1000);
-    expect(r.newState.estimasi["29"].isMatching).toBe(true);
-    expect(r.newState.estimasi["29"].yardOverride).toBe(70);
+    s.pendingMatchingMcNos = ["76", "61"];
+    const r = prosesBarisKondisiMesin(s, "76 45", 1000);
+    expect(r.newState.estimasi["76"].isMatching).toBe(true);
+    expect(r.newState.estimasi["76"].yardOverride).toBe(70);
     expect(r.newState.pendingMatchingMcNos).toEqual(["61"]);
   });
 
-  it("pendingMatchingMcNos: yard yang sudah diatur operator tidak ditimpa 70", () => {
+  // Regresi: corak di luar daftar potongan awal (mis. 34758) tidak pernah membutuhkan aturan
+  // "matang setelah 70y" — memaksanya ke 70y di sini justru salah, karena sampel Matching-nya
+  // memang diambil langsung dari target yard standar mesin, bukan dipotong pendek di 70y.
+  it("pendingMatchingMcNos: corak di luar daftar potongan awal TIDAK dipaksa 70y", () => {
     const s = baseState();
-    s.db["29"] = mesin({ tipe: "TAPPET", corak: "34758", targetYard: 200 });
-    s.estimasi["29"] = {
-      mcNo: "29",
-      estAbsMin: 900,
-      startAbsMin: 800,
-      corakOverride: null,
-      yardOverride: 200,
-      pausedAtAbsMin: null,
-    };
     s.pendingMatchingMcNos = ["29"];
     const r = prosesBarisKondisiMesin(s, "29 45", 1000);
     expect(r.newState.estimasi["29"].isMatching).toBe(true);
-    expect(r.newState.estimasi["29"].yardOverride).toBe(200);
+    expect(r.newState.estimasi["29"].yardOverride).toBeNull();
   });
 
   it("mcNo tidak dalam pendingMatchingMcNos tidak terpengaruh", () => {

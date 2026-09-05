@@ -3,6 +3,7 @@ import { prosesBarisKondisiMesin, prosesBarisUmum } from "../domain/commands";
 import { buildDefaultDb } from "../domain/defaultDb";
 import { currentShiftStartAbsMin, getRepresentativeEpochMin, nowAbsMin } from "../domain/format";
 import { parseJam } from "../domain/parse";
+import { isPotonganAwalCorak } from "../domain/matchingRules";
 import { loadState, parseBackupJson, saveState, serializeState } from "../domain/storage";
 import { processScannedQr } from "../domain/sync";
 import type { AktualEntry, DoffState, Estimasi, MesinData, ProsesResult, ShiftRecord, ThemeMode } from "../domain/types";
@@ -166,17 +167,19 @@ export function DoffStoreProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  // Tali Hijau: menyalakan/mematikan penanda Matching di Mc mcNo — no-op kalau
-  // estimasinya sudah tidak ada lagi (mis. sudah keburu didoffing). Menyalakan penanda
-  // otomatis mengisi yardOverride ke panjang sampel Matching (POTONGAN_AWAL_YARD) kalau
-  // operator belum mengatur target yard sendiri untuk mesin ini; mematikannya tidak
-  // menyentuh yardOverride yang sudah ada (operator mungkin sudah mengetiknya manual).
+  // Tali Hijau: menyalakan/mematikan penanda Matching di Mc mcNo — no-op kalau estimasinya sudah
+  // tidak ada lagi (mis. sudah keburu didoffing). yardOverride tidak punya penulis lain di luar
+  // fitur Matching ini, jadi dihitung ulang murni dari isMatching+corak setiap toggle (bukan
+  // "preserve nilai lama"): menyala → 70y HANYA kalau corak mesin ini memang termasuk aturan
+  // potongan awal (lihat isPotonganAwalCorak) — corak lain tetap null, tidak dipaksa 70y; mati →
+  // selalu kembali null (target standar mesin), tidak pernah menyisakan 70y yang menempel.
   const toggleEstimasiMatching = useCallback((mcNo: string) => {
     setState((s) => {
       const est = s.estimasi[mcNo];
       if (!est) return s;
       const next = !est.isMatching;
-      const yardOverride = next && est.yardOverride === null ? POTONGAN_AWAL_YARD : est.yardOverride;
+      const effectiveCorak = est.corakOverride ?? s.db[mcNo]?.corak;
+      const yardOverride = next && isPotonganAwalCorak(s, effectiveCorak) ? POTONGAN_AWAL_YARD : null;
       return { ...s, estimasi: { ...s.estimasi, [mcNo]: { ...est, isMatching: next, yardOverride } } };
     });
   }, []);
