@@ -1,6 +1,11 @@
 package com.jekael.adoel.ui
 
 import android.content.Context
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -682,72 +687,80 @@ private fun ShiftRow(
                 }
             }
 
-            if (expanded) {
-                Spacer(Modifier.height(10.dp))
-                if (chronological.isNotEmpty()) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 2.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text(
-                                "RINCIAN POTONGAN",
-                                style = TextStyle(fontSize = 10.5.sp, fontWeight = FontWeight.Black, letterSpacing = 0.5.sp, color = colors.textFaint),
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(4.dp))
-                                    .background(Cyan400.copy(alpha = 0.14f))
-                                    .padding(horizontal = 6.dp, vertical = 1.dp),
-                            ) {
+            // A shift can unfold a dozen detail rows at once; as a bare `if` the card jumped
+            // straight to its new height, the one list interaction in the app that didn't move.
+            AnimatedVisibility(
+                visible = expanded,
+                enter = expandVertically(animationSpec = tween(200, easing = FastOutSlowInEasing)) + fadeIn(tween(200)),
+                exit = shrinkVertically(animationSpec = tween(180, easing = FastOutSlowInEasing)) + fadeOut(tween(140)),
+            ) {
+                Column {
+                    Spacer(Modifier.height(10.dp))
+                    if (chronological.isNotEmpty()) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 2.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Text(
-                                    "${chronological.size} DOFF",
-                                    style = TextStyle(fontSize = 10.sp, fontWeight = FontWeight.Black, color = Cyan400),
+                                    "RINCIAN POTONGAN",
+                                    style = TextStyle(fontSize = 10.5.sp, fontWeight = FontWeight.Black, letterSpacing = 0.5.sp, color = colors.textFaint),
                                 )
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(Cyan400.copy(alpha = 0.14f))
+                                        .padding(horizontal = 6.dp, vertical = 1.dp),
+                                ) {
+                                    Text(
+                                        "${chronological.size} DOFF",
+                                        style = TextStyle(fontSize = 10.sp, fontWeight = FontWeight.Black, color = Cyan400),
+                                    )
+                                }
                             }
+                            Text(
+                                "Ketuk baris untuk edit",
+                                style = TextStyle(fontSize = 10.5.sp, color = colors.textFaint, fontStyle = FontStyle.Italic),
+                            )
                         }
-                        Text(
-                            "Ketuk baris untuk edit",
-                            style = TextStyle(fontSize = 10.5.sp, color = colors.textFaint, fontStyle = FontStyle.Italic),
-                        )
+                        Spacer(Modifier.height(6.dp))
+                    }
+                    chronological.forEachIndexed { index, entry ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 2.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(colors.bgElevated2)
+                                // Wins over the shift card's own onToggle clickable above it (innermost
+                                // clickable consumes the tap) — tapping a single archived entry opens
+                                // edit for just that record instead of collapsing the whole shift.
+                                .clickable(onClickLabel = "Edit riwayat Mc ${entry.mcNo}") { onEditEntry(entry.id) }
+                                .padding(horizontal = 10.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            // Shared with the Riwayat list so both read identically — see DoffEntryRow.kt.
+                            DoffEntryRowContent(
+                                num = index + 1,
+                                entry = entry,
+                                mesin = db[entry.mcNo],
+                                showEditHint = true,
+                            )
+                        }
                     }
                     Spacer(Modifier.height(6.dp))
-                }
-                chronological.forEachIndexed { index, entry ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 2.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(colors.bgElevated2)
-                            // Wins over the shift card's own onToggle clickable above it (innermost
-                            // clickable consumes the tap) — tapping a single archived entry opens
-                            // edit for just that record instead of collapsing the whole shift.
-                            .clickable(onClickLabel = "Edit riwayat Mc ${entry.mcNo}") { onEditEntry(entry.id) }
-                            .padding(horizontal = 10.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
+                    TextButton(
+                        // Wins over the outer onToggle clickable the same way the entry rows above do.
+                        onClick = onAddEntry,
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 40.dp),
+                        colors = ButtonDefaults.textButtonColors(contentColor = Cyan400),
                     ) {
-                        // Shared with the Riwayat list so both read identically — see DoffEntryRow.kt.
-                        DoffEntryRowContent(
-                            num = index + 1,
-                            entry = entry,
-                            mesin = db[entry.mcNo],
-                            showEditHint = true,
-                        )
+                        Icon(imageVector = Icons.Outlined.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Tambah Potongan", style = AppType.LabelSmallBold)
                     }
-                }
-                Spacer(Modifier.height(6.dp))
-                TextButton(
-                    // Wins over the outer onToggle clickable the same way the entry rows above do.
-                    onClick = onAddEntry,
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 40.dp),
-                    colors = ButtonDefaults.textButtonColors(contentColor = Cyan400),
-                ) {
-                    Icon(imageVector = Icons.Outlined.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text("Tambah Potongan", style = AppType.LabelSmallBold)
                 }
             }
         }

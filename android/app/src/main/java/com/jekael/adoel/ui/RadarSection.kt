@@ -66,7 +66,7 @@ internal fun LazyListScope.estimasiSection(
     if (radarList.isEmpty()) {
         item(key = "est_empty") {
             EmptyState(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
+                modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp).animateItem(),
                 title = "Radar Siap Memantau",
                 titleIcon = Icons.Outlined.Radar,
                 art = EmptyStateArt.RADAR,
@@ -111,7 +111,7 @@ internal fun LazyListScope.estimasiSection(
     if (segeraList.isEmpty() && menungguList.isEmpty() && dijedaList.isEmpty()) {
         item(key = "est_filter_empty") {
             EmptyState(
-                modifier = Modifier.fillMaxWidth().padding(vertical = Dimens.Space24),
+                modifier = Modifier.fillMaxWidth().padding(vertical = Dimens.Space24).animateItem(),
                 title = "Mesin Tidak Ditemukan",
                 titleIcon = Icons.Outlined.Search,
                 subtitle = "Coba kata kunci lain — masukkan nomor mesin yang terdaftar",

@@ -1,5 +1,11 @@
 package com.jekael.adoel.ui
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -19,6 +25,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
@@ -109,7 +116,10 @@ internal fun ConsoleBar(
                 )
                 OutlinedTextField(
                     value = mcNoInput,
-                    onValueChange = { mcNoInput = it.filter(Char::isDigit).take(3) },
+                    // 4 digits, same cap as the web console's input — machine numbers run past 999 in
+                    // the field (and prosesBaris* accepts \d{1,4}), so a 3-digit cap here silently
+                    // made those machines untypable from the console.
+                    onValueChange = { mcNoInput = it.filter(Char::isDigit).take(4) },
                     modifier = Modifier.width(96.dp),
                     // Shortened from "Nomor mesin" — doesn't fit this field's new, deliberately
                     // compact width, and singleLine would otherwise just clip it mid-word.
@@ -138,6 +148,7 @@ internal fun ConsoleBar(
                     contentDescription = "Estimasi",
                     enabled = mcNoInput.isNotBlank(),
                     accent = Cyan600,
+                    pulse = mcNoInput.isNotBlank(),
                     onClick = { submit(onEstimasiClick) },
                 )
                 ConsoleIconButton(
@@ -145,6 +156,7 @@ internal fun ConsoleBar(
                     contentDescription = "Doffing",
                     enabled = mcNoInput.isNotBlank(),
                     accent = Emerald500,
+                    pulse = mcNoInput.isNotBlank(),
                     onClick = { submit(onDoffingClick) },
                 )
             }
@@ -152,6 +164,10 @@ internal fun ConsoleBar(
     }
 }
 
+/** [pulse] breathes the button once the machine number is filled in, pointing at the step that
+ * comes next — the same cue web gives via `.console-icon-btn.ready-pulse`. Ambient, so it sits
+ * outside the 150-250ms micro-interaction range on purpose; only the enabled Estimasi/Doffing
+ * buttons ever ask for it, so nothing ticks a frame loop while the field is empty. */
 @Composable
 private fun ConsoleIconButton(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
@@ -159,12 +175,27 @@ private fun ConsoleIconButton(
     enabled: Boolean,
     accent: Color,
     onClick: () -> Unit,
+    pulse: Boolean = false,
 ) {
     val colors = LocalAppColors.current
+    val pulseScale = if (pulse) {
+        val transition = rememberInfiniteTransition(label = "consoleReady")
+        val scale by transition.animateFloat(
+            initialValue = 1f,
+            targetValue = 1.06f,
+            animationSpec = infiniteRepeatable(tween(750, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+            label = "consoleReadyScale",
+        )
+        scale
+    } else {
+        1f
+    }
     Button(
         onClick = onClick,
         enabled = enabled,
-        modifier = Modifier.size(48.dp),
+        modifier = Modifier
+            .size(48.dp)
+            .graphicsLayer { scaleX = pulseScale; scaleY = pulseScale },
         shape = CircleShape,
         contentPadding = PaddingValues(0.dp),
         colors = ButtonDefaults.buttonColors(

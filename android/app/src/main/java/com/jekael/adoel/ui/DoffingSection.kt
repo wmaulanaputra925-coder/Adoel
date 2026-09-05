@@ -48,7 +48,7 @@ fun LazyListScope.doffingSection(
     if (state.aktual.isEmpty()) {
         item(key = "doff_empty") {
             EmptyState(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
+                modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp).animateItem(),
                 title = "Belum Ada Riwayat Doffing",
                 titleIcon = Icons.Outlined.History,
                 art = EmptyStateArt.WEAVING,
@@ -155,7 +155,7 @@ fun LazyListScope.doffingSection(
     if (filteredIndexed.isEmpty()) {
         item(key = "doff_filter_empty") {
             EmptyState(
-                modifier = Modifier.fillMaxWidth().padding(vertical = Dimens.Space24),
+                modifier = Modifier.fillMaxWidth().padding(vertical = Dimens.Space24).animateItem(),
                 title = "Riwayat Tidak Ditemukan",
                 titleIcon = Icons.Outlined.Search,
                 subtitle = "Coba cari dengan nomor mesin lainnya",

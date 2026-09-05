@@ -78,29 +78,6 @@ fun MainScreen(
     var radarFilter by rememberSaveable { mutableStateOf("") }
     var doffFilter by rememberSaveable { mutableStateOf("") }
 
-    val sendPulse = remember { SendPulseState() }
-    LaunchedEffect(sendPulse.key) {
-        if (sendPulse.key == 0) return@LaunchedEffect
-        sendPulse.showCheck = true
-        sendPulse.scale.snapTo(0.8f)
-        launch {
-            sendPulse.scale.animateTo(1f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium))
-        }
-        delay(500)
-        sendPulse.showCheck = false
-    }
-
-    // Error feedback on a rejected console command — a toast alone (3.5s, auto-dismiss) can be
-    // missed if the operator looks back at the machine right after hitting send, so this pairs it
-    // with a haptic + a brief red ring around the input that doesn't depend on eyes staying on screen.
-    val errorFlash = remember { ErrorFlashState() }
-    LaunchedEffect(errorFlash.key) {
-        if (errorFlash.key == 0) return@LaunchedEffect
-        errorFlash.active = true
-        delay(200)
-        errorFlash.active = false
-    }
-
     // "Selesai Shift" closes out a full work shift — worth a beat more than a toast that's gone
     // in 3.5s, so this pops a big checkmark over a dimmed backdrop before fading on its own.
     val shiftFinished = remember { ShiftFinishedState() }
@@ -129,7 +106,7 @@ fun MainScreen(
 
     val undoRedo = remember { UndoRedoState() }
     val handlers = remember(context, doffVm, uiVm, haptic) {
-        MainScreenHandlers(context, doffVm, uiVm, haptic, sendPulse, errorFlash, shiftFinished, undoRedo)
+        MainScreenHandlers(context, doffVm, uiVm, haptic, shiftFinished, undoRedo)
     }
 
     // Request notification permission launcher

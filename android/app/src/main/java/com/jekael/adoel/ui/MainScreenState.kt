@@ -7,21 +7,13 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 
-/** Send-button feedback on a successful console submit: brief scale bounce + checkmark flash.
- * Held via `remember { SendPulseState() }` in MainScreen — grouping the trio here (instead of 3
- * separate top-level `remember`s) is pure organization, the Compose-tracked fields behave the same. */
-internal class SendPulseState {
-    var key by mutableIntStateOf(0)
-    val scale = Animatable(1f)
-    var showCheck by mutableStateOf(false)
-}
-
-/** Brief red-ring flash + haptic on a rejected console command — pairs with MainScreen's
- * flashError() so a failure isn't easy to miss if the operator looks away right after submitting. */
-internal class ErrorFlashState {
-    var key by mutableIntStateOf(0)
-    var active by mutableStateOf(false)
-}
+// SendPulseState / ErrorFlashState used to live here — a scale bounce + checkmark on the old
+// single "Kirim" button, and a red ring around the console input. Both were driven every submit
+// but nothing had read them since the console became `[nomor mesin] + [Estimasi][Doffing]`: the
+// button they animated is gone, and by the time a submit succeeds or fails the field is already
+// cleared with a guided sheet covering it. The feedback they promised now lands where the
+// operator is actually looking — the haptic in MainScreenHandlers plus the toast, which carries
+// a red ring of its own on a rejected command (see ToastHost).
 
 /** "Selesai Shift" celebration: checkmark scale-in over a dimming backdrop, both fading out on
  * their own after a beat. */

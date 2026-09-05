@@ -23,14 +23,13 @@ internal class MainScreenHandlers(
     private val doffVm: DoffViewModel,
     private val uiVm: UIViewModel,
     private val haptic: HapticFeedback,
-    private val sendPulse: SendPulseState,
-    private val errorFlash: ErrorFlashState,
     private val shiftFinished: ShiftFinishedState,
     private val undoRedo: UndoRedoState,
 ) {
+    /** Rejected command: deep haptic + a toast the operator can feel and see. The "⚠ " prefix is
+     * what ToastHost keys its red-ring error styling off, so every rejection reads the same. */
     private fun flashError(msg: String) {
         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-        errorFlash.key++
         uiVm.showToast("⚠ $msg")
     }
 
@@ -38,7 +37,6 @@ internal class MainScreenHandlers(
         val result = doffVm.prosesBarisKondisiMesin(cmd, nowAbsMin())
         when (result) {
             is ProsesResult.Ok -> {
-                sendPulse.key++
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 uiVm.showToast(result.msg)
                 onCleared()
@@ -72,7 +70,6 @@ internal class MainScreenHandlers(
                 val result = doffVm.prosesBarisUmum(cmd)
                 when (result) {
                     is ProsesResult.Ok -> {
-                        sendPulse.key++
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         NotificationHelper.cancelNotif(context, result.mcNo)
                         undoRedo.push(

@@ -555,6 +555,17 @@ button:disabled {
     opacity: 1;
   }
 }
+.shift-finished-overlay.leaving {
+  animation: overlay-fade-out 0.25s ease-in forwards;
+}
+@keyframes overlay-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
 .shift-finished-content {
   display: flex;
   flex-direction: column;
@@ -810,29 +821,81 @@ button:disabled {
   justify-content: center;
   border-radius: 14px;
   pointer-events: none;
-  /* Wash in, hold, then fade back out just as triggerDoff's 950ms timer hands the row to the
-     store and the card leaves the list — otherwise the panel sat frozen for half a second and
-     then vanished mid-frame with the reflow. Same timing as Android's celebrationFade. */
-  animation:
-    celebrate-wash 0.22s ease-out forwards,
-    celebrate-dismiss 0.19s ease-in 0.76s forwards;
+  overflow: hidden;
 }
+/* Panel perayaan tidak lagi sekadar muncul dengan opacity: ia **disapu** dari sisi arah
+   swipe-nya — Doff normal menyapu dari kiri (arah kartu keluar), Matching dari kanan — persis
+   weaveSweep di RadarCard.kt, lengkap dengan kilau tipis di ujung sapuan. Sebelum ini kedua
+   aksi terlihat sama persis di web padahal di Android sudah dibedakan arahnya, jadi Matching
+   tidak terbaca sebagai aksi yang berbeda. Sapuan 0.28s, tahan, lalu pudar tepat sebelum
+   timer 950ms triggerDoff menyerahkan barisnya ke store dan kartunya keluar dari daftar. */
 .radar-card-celebrate.normal {
   background: linear-gradient(135deg, rgba(5, 150, 105, 0.92) 0%, rgba(16, 185, 129, 0.92) 100%);
   backdrop-filter: blur(6px);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+  animation:
+    celebrate-wipe-from-left 0.28s ease-out forwards,
+    celebrate-dismiss 0.19s ease-in 0.76s forwards;
 }
 .radar-card-celebrate.matching {
   background: linear-gradient(135deg, rgba(2, 132, 199, 0.92) 0%, rgba(14, 165, 233, 0.92) 100%);
   backdrop-filter: blur(6px);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+  animation:
+    celebrate-wipe-from-right 0.28s ease-out forwards,
+    celebrate-dismiss 0.19s ease-in 0.76s forwards;
 }
-@keyframes celebrate-wash {
+.radar-card-celebrate::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 40%;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.28) 50%, transparent 100%);
+  pointer-events: none;
+}
+.radar-card-celebrate.normal::after {
+  left: 0;
+  animation: celebrate-gleam-right 0.28s ease-out forwards;
+}
+.radar-card-celebrate.matching::after {
+  right: 0;
+  animation: celebrate-gleam-left 0.28s ease-out forwards;
+}
+@keyframes celebrate-wipe-from-left {
   from {
-    opacity: 0;
+    clip-path: inset(0 100% 0 0);
   }
   to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+@keyframes celebrate-wipe-from-right {
+  from {
+    clip-path: inset(0 0 0 100%);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+@keyframes celebrate-gleam-right {
+  from {
+    transform: translateX(-100%);
     opacity: 1;
+  }
+  to {
+    transform: translateX(250%);
+    opacity: 0;
+  }
+}
+@keyframes celebrate-gleam-left {
+  from {
+    transform: translateX(100%);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(-250%);
+    opacity: 0;
   }
 }
 @keyframes celebrate-dismiss {
@@ -1579,6 +1642,22 @@ button:disabled {
   flex-shrink: 0;
   transition: background 0.15s, color 0.15s;
 }
+/* Kedua tombol aksi bernapas halus begitu nomor mesin terisi — penunjuk langkah berikutnya,
+   bukan hiasan. Kelas .ready-pulse sudah lama dipasang di ConsoleBar.tsx tapi aturannya tidak
+   pernah ada, jadi tombolnya diam saja; sekarang sama persis dengan denyut ConsoleIconButton
+   di ConsoleBar.kt (Android): skala 1 -> 1.06, 750ms per arah. */
+.console-icon-btn.ready-pulse {
+  animation: console-ready 1.5s ease-in-out infinite;
+}
+@keyframes console-ready {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.06);
+  }
+}
 
 /* ---- Filter field ---- */
 .filter-field {
@@ -1938,6 +2017,19 @@ button:disabled {
   display: flex;
   flex-direction: column;
   gap: 5px;
+  /* A shift can unfold a dozen rows at once; without this the card jumped straight to its new
+     height, the one list interaction here that didn't move. Matches Android's expandVertically. */
+  animation: shift-detail-in 0.2s ease-out both;
+}
+@keyframes shift-detail-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 .shift-detail-header {
   display: flex;
@@ -2173,6 +2265,25 @@ textarea.json-box {
     opacity: 1;
   }
 }
+.toast.leaving {
+  animation: toast-out 0.18s ease-in forwards;
+}
+@keyframes toast-out {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(-12px);
+    opacity: 0;
+  }
+}
+/* Toast gagal (pesan diawali "⚠") — cincin merah tipis supaya penolakan perintah tidak
+   tampil persis sama dengan konfirmasi berhasil. */
+.toast.error {
+  border: 1px solid color-mix(in srgb, var(--red-500) 45%, transparent);
+  background: color-mix(in srgb, var(--red-500) 10%, var(--bg-elevated-2));
+}
 .toast-close {
   flex-shrink: 0;
   width: 26px;
@@ -2197,6 +2308,10 @@ textarea.json-box {
   align-items: center;
   justify-content: center;
   padding: 24px;
+  /* Sebelumnya semua dialog di web muncul mendadak tanpa animasi sama sekali, padahal di
+     Android ConfirmDialog.kt (dan turunannya) selalu fadeIn(200ms) + scaleIn(0.92). Ditaruh di
+     kelas bersama supaya kesepuluh pemakai .dialog-backdrop ikut sekaligus. */
+  animation: dialog-backdrop-in 0.2s ease-out;
 }
 .dialog {
   background: var(--bg-elevated);
@@ -2205,6 +2320,51 @@ textarea.json-box {
   max-width: 360px;
   width: 100%;
   box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5);
+  animation: dialog-in 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes dialog-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+/* Keluarnya cuma dipakai dialog yang menunda unmount-nya sendiri (ConfirmDialog) — cermin
+   scaleOut(0.95) + fadeOut(140ms) di ConfirmDialog.kt. */
+.dialog-backdrop.leaving {
+  animation: dialog-backdrop-out 0.16s ease-in forwards;
+}
+.dialog-backdrop.leaving .dialog {
+  animation: dialog-out 0.16s ease-in forwards;
+}
+@keyframes dialog-backdrop-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@keyframes dialog-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
 }
 .dialog .msg {
   font-size: 14px;

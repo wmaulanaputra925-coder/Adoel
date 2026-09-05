@@ -1,5 +1,8 @@
 package com.jekael.adoel.ui.components
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -63,11 +66,29 @@ private fun CorakSummaryCard(
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalAppColors.current
+    // Selecting a corak filters the whole list below it, so the card that did it should visibly
+    // settle into its selected state rather than snap — same treatment the Statistik chart gives
+    // its selected bar.
+    val cardBg by animateColorAsState(
+        targetValue = if (isSelected) Cyan600.copy(alpha = 0.16f) else colors.bg,
+        animationSpec = tween(180),
+        label = "corakCardBg",
+    )
+    val cardBorder by animateColorAsState(
+        targetValue = if (isSelected) Cyan500 else colors.border,
+        animationSpec = tween(180),
+        label = "corakCardBorder",
+    )
+    val corakNameColor by animateColorAsState(
+        targetValue = if (isSelected) Cyan400 else colors.textPrimary,
+        animationSpec = tween(180),
+        label = "corakCardName",
+    )
     Surface(
         modifier = modifier.clickable(onClick = onToggleSelect),
         shape = RoundedCornerShape(8.dp),
-        color = if (isSelected) Cyan600.copy(alpha = 0.16f) else colors.bg,
-        border = BorderStroke(1.dp, if (isSelected) Cyan500 else colors.border),
+        color = cardBg,
+        border = BorderStroke(1.dp, cardBorder),
     ) {
         Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(
@@ -77,7 +98,7 @@ private fun CorakSummaryCard(
             ) {
                 Text(
                     item.corak,
-                    style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = if (isSelected) Cyan400 else colors.textPrimary),
+                    style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = corakNameColor),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f, fill = false),
@@ -518,6 +539,9 @@ internal fun MesinTab(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            // Filtering by search/status/corak adds and drops whole groups; every
+                            // other list in the app reflows through animateItem, this one snapped.
+                            .animateItem()
                             .background(colors.bg)
                             .padding(vertical = Dimens.Space8),
                         verticalAlignment = Alignment.CenterVertically,
@@ -540,17 +564,38 @@ internal fun MesinTab(
                 }
                 items(rows, key = { (k, _) -> k }) { (k, v) ->
                     val isRunning = v.isActive
+                    // Toggling a machine ON/OFF is a tap away and repaints the whole row — dim,
+                    // tint and border all at once. Eased rather than swapped so the row reads as
+                    // changing state instead of blinking into a different one.
+                    val runningAlpha by animateFloatAsState(
+                        targetValue = if (isRunning) 1f else 0.72f,
+                        animationSpec = tween(180),
+                        label = "mesinRowAlpha",
+                    )
+                    val runningBg by animateColorAsState(
+                        targetValue = if (isRunning) {
+                            colors.bgElevated2
+                        } else {
+                            Amber500.copy(alpha = 0.05f).compositeOver(colors.bgElevated2)
+                        },
+                        animationSpec = tween(180),
+                        label = "mesinRowBg",
+                    )
+                    val runningBorder by animateColorAsState(
+                        targetValue = if (isRunning) colors.border else Amber500.copy(alpha = 0.4f),
+                        animationSpec = tween(180),
+                        label = "mesinRowBorder",
+                    )
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .alpha(if (isRunning) 1f else 0.72f)
+                            .animateItem()
+                            .alpha(runningAlpha)
                             .elevatedListCard(
-                                backgroundColor = if (isRunning) {
-                                    colors.bgElevated2
-                                } else {
-                                    Amber500.copy(alpha = 0.05f).compositeOver(colors.bgElevated2)
-                                },
-                                borderColor = if (isRunning) null else Amber500.copy(alpha = 0.4f),
+                                backgroundColor = runningBg,
+                                borderColor = runningBorder,
+                                // Dash pattern can't tween, so it still flips outright — the tint
+                                // and border colour easing around it carry the transition.
                                 dashedBorder = !isRunning,
                             )
                             .clickable { loadFrom(k, v) }
