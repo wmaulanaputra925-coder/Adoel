@@ -534,7 +534,11 @@ fun SyncDialog(onClose: () -> Unit, isFirstTimeEmpty: Boolean = false) {
 
 private fun createQrBitmap(data: String): Bitmap? = runCatching {
     val hints = mapOf(
-        EncodeHintType.ERROR_CORRECTION to ErrorCorrectionLevel.L,
+        // "M" (~15% recovery), bukan "L" (~7%) — kode ini biasanya dipindai langsung dari layar
+        // ponsel lain, bukan dari cetakan, dan itu tepat skenario yang rawan glare/moire yang
+        // paling diuntungkan error correction lebih tinggi. Payload gzip di sini kecil (ratusan
+        // byte tipikal), jadi lompatan L→M nyaris tidak menambah versi QR-nya. Sama dengan web.
+        EncodeHintType.ERROR_CORRECTION to ErrorCorrectionLevel.M,
         EncodeHintType.MARGIN to 2,
     )
     BarcodeEncoder().encodeBitmap(data, BarcodeFormat.QR_CODE, 600, 600, hints)

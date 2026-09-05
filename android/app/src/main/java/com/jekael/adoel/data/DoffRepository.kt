@@ -442,7 +442,7 @@ class DoffRepository private constructor(private val context: Context) : DoffSta
     /** Decompresses and merges a scanned QR payload, then restores every active notification. */
     suspend fun processScannedQr(data: String, context: Context): Pair<DoffState?, String> {
         return try {
-            val envelope = gson.fromJson(data, SyncEnvelope::class.java)
+            val envelope = gson.fromJson(sanitizeSyncText(data), SyncEnvelope::class.java)
                 ?: return Pair(null, "Format QR tidak valid")
             val type = envelope.type ?: return Pair(null, "Format QR tidak valid")
             if (type != "HANDOVER" && type != "MASTER_DB") return Pair(null, "Format QR tidak dikenali")
@@ -509,6 +509,20 @@ class DoffRepository private constructor(private val context: Context) : DoffSta
         val compressed = Base64.decode(encoded, Base64.NO_WRAP)
         return GZIPInputStream(ByteArrayInputStream(compressed)).bufferedReader(Charsets.UTF_8).use { it.readText() }
     }
+
+    /** Buang seluruh whitespace — termasuk yang tersisip DI TENGAH string, bukan cuma di ujung —
+     * plus karakter tak-terlihat (BOM, zero-width space/joiner) sebelum diparse sebagai JSON.
+     * Envelope-nya sendiri (dan payload base64 di dalamnya) TIDAK PERNAH mengandung whitespace
+     * sama sekali di kedua platform — gson.toJson/JSON.stringify selalu compact, base64 tidak
+     * punya spasi — jadi ini aman dibuang seluruhnya. Tanpa ini, satu newline yang tersisip saat
+     * teks datanya diteruskan lewat aplikasi pesan pihak ketiga (di-reflow, disalin ulang dari
+     * tampilan yang sudah word-wrap, dst.) sudah cukup membuat parsing gagal total dan
+     * menampilkan "Format QR Sync tidak valid" walau datanya sendiri sebenarnya utuh. Sama
+     * persis dengan sanitizeSyncText di sync.ts (web). */
+    private fun sanitizeSyncText(raw: String): String =
+        raw.filterNot {
+            it.isWhitespace() || it == '\uFEFF' || it == '\u200B' || it == '\u200C' || it == '\u200D'
+        }
 
     private fun mergeHandover(current: DoffState, payload: SyncPayload): DoffState {
         val incomingAktual = (payload.aktual ?: emptyList()).filterNotNull().map(::toAktualEntry)

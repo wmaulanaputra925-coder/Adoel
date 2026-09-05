@@ -49,7 +49,11 @@ export function SyncDialog({
     }
 
     QRCode.toDataURL(raw, {
-      errorCorrectionLevel: "L",
+      // "M" (~15% recovery), bukan "L" (~7%) — kode ini biasanya dipindai langsung dari layar
+      // ponsel lain, bukan dari cetakan, dan itu tepat skenario yang rawan glare/moire yang
+      // paling diuntungkan error correction lebih tinggi. Payload gzip di sini kecil (ratusan
+      // byte tipikal), jadi lompatan L→M nyaris tidak menambah versi QR-nya.
+      errorCorrectionLevel: "M",
       width: 300,
       margin: 2,
       color: {

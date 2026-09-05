@@ -102,6 +102,19 @@ function decodeSyncPayload(encoded: string): SyncPayload | null {
   }
 }
 
+/** Buang seluruh whitespace — termasuk yang tersisip DI TENGAH string, bukan cuma di ujung —
+ * plus karakter tak-terlihat (BOM, zero-width space/joiner) sebelum di-parse sebagai JSON.
+ * Envelope-nya sendiri (dan payload base64 di dalamnya) TIDAK PERNAH mengandung whitespace sama
+ * sekali di kedua platform — JSON.stringify/gson.toJson selalu compact, base64 tidak punya
+ * spasi — jadi ini aman dibuang seluruhnya. Tanpa ini, satu newline yang tersisip saat teks
+ * datanya diteruskan lewat aplikasi pesan pihak ketiga (di-reflow, disalin ulang dari tampilan
+ * yang sudah word-wrap, dst.) sudah cukup membuat atob()/JSON.parse gagal total dan menampilkan
+ * "Format QR Sync tidak valid" walau datanya sendiri sebenarnya utuh. Sama persis dengan
+ * sanitizeSyncText di DoffRepository.kt (Android). */
+function sanitizeSyncText(raw: string): string {
+  return raw.replace(/[\s\u200B\u200C\u200D\uFEFF]/g, "");
+}
+
 export function getNextShiftEstimasiEntries(state: DoffState, nowAbs: number = nowAbsMin()): [string, Estimasi][] {
   const shiftEndAbs = currentShiftStartAbsMin(nowAbs) + 8 * 60;
   return Object.entries(state.estimasi).filter(([, e]) => e.estAbsMin > shiftEndAbs);
@@ -109,11 +122,16 @@ export function getNextShiftEstimasiEntries(state: DoffState, nowAbs: number = n
 
 export function prepareHandoverData(state: DoffState, nowAbs: number = nowAbsMin()): string {
   const nextShiftEstEntries = getNextShiftEstimasiEntries(state, nowAbs);
+  // Kalau tidak ada estimasi yang lolos ke shift berikutnya, bagikan semua estimasi yang ada
+  // sekarang — sama seperti prepareHandoverData di DoffRepository.kt (Android). Tanpa fallback
+  // ini, "Oper Shift" pada kondisi yang persis sama menghasilkan isi QR yang berbeda di kedua
+  // platform: Android tetap mengirim sesuatu, web mengirim payload kosong.
+  const targetEntries = nextShiftEstEntries.length > 0 ? nextShiftEstEntries : Object.entries(state.estimasi);
 
   const estMap: Record<string, SerialEstimasi> = {};
   const cDb: [string, string, string, number | null, number | null, number | null, boolean?][] = [];
 
-  for (const [mcNo, e] of nextShiftEstEntries) {
+  for (const [mcNo, e] of targetEntries) {
     estMap[mcNo] = {
       mcNo: e.mcNo,
       estAbsMin: e.estAbsMin,
@@ -273,7 +291,7 @@ function dedupeIds(entries: AktualEntry[], currentNextId: number): { deduped: Ak
 
 export function processScannedQr(data: string, current: DoffState): { state: DoffState; message?: string } | null {
   try {
-    const envelope = JSON.parse(data) as SyncEnvelope;
+    const envelope = JSON.parse(sanitizeSyncText(data)) as SyncEnvelope;
     if (!envelope || !envelope.type || !envelope.payload) return null;
     if (envelope.type !== "HANDOVER" && envelope.type !== "MASTER_DB") return null;
 
