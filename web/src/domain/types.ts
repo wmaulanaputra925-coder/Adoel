@@ -56,6 +56,12 @@ export const DEFAULT_CORAK_SHORTCUTS: string[] = [];
  * Matching (1 yard) untuk corak-corak ini baru diambil setelah 70y, bukan langsung dari 0. */
 export const DEFAULT_CORAK_POTONGAN_AWAL: string[] = ["80125", "21242", "66335"];
 
+/** Panjang potongan yang benar-benar dicatat untuk Doffing Matching pada corak potongan awal:
+ * kainnya dipotong setelah 70 yard pertama, bukan sepanjang target standar mesin. Tanpa angka ini
+ * Riwayat menampilkan target standar (mis. 303y) untuk potongan yang nyatanya 70y. Sama persis
+ * dengan POTONGAN_AWAL_YARD di Models.kt (Android). */
+export const POTONGAN_AWAL_YARD = 70;
+
 export interface DoffState {
   db: Record<string, MesinData>;
   estimasi: Record<string, Estimasi>;
@@ -70,6 +76,11 @@ export interface DoffState {
    * membaca laporan di WhatsApp tahu laporan itu dari siapa tanpa harus bertanya. */
   operatorNama?: string;
   operatorGrup?: string;
+  /** Sudah pernah ditanyai identitasnya (termasuk kalau pertanyaannya dilewati). Terpisah dari
+   * operatorNama supaya "dilewati" tidak berarti "tanya lagi tiap buka", dan terpisah dari
+   * onboardingSeen supaya pemakai lama — yang panduannya sudah lewat — tetap ditanya sekali,
+   * bukan diam-diam mengirim laporan tanpa nama. */
+  operatorAsked?: boolean;
   keteranganShortcuts?: string[];
   corakShortcuts?: string[];
   corakPotonganAwal?: string[];

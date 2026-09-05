@@ -67,7 +67,10 @@ export function StatistikScreen({ onClose }: { onClose: () => void }) {
 
   async function handleShareShift(shift: ShiftRecord) {
     if (shift.aktual.length === 0) return;
-    const outcome = await shareOrCopy(shareShiftText(shift, state.db), "Riwayat Shift");
+    const outcome = await shareOrCopy(
+      shareShiftText(shift, state.db, state.operatorNama ?? "", state.operatorGrup ?? ""),
+      "Riwayat Shift",
+    );
     if (outcome === "copied") showToast("Teks disalin ke clipboard ✓");
   }
 

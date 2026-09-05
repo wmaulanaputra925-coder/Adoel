@@ -115,7 +115,12 @@ export function shareHistoryText(state: DoffState): string {
 }
 
 /** Teks ringkasan siap-bagikan untuk satu shift yang sudah diarsipkan. */
-export function shareShiftText(shift: ShiftRecord, db: Record<string, MesinData>): string {
+export function shareShiftText(
+  shift: ShiftRecord,
+  db: Record<string, MesinData>,
+  fallbackNama = "",
+  fallbackGrup = "",
+): string {
   const shiftNo = shiftNumberForEpochMin(shift.startedAtEpochMin);
   const dateStr = formatShiftDate(shift.startedAtEpochMin);
   const chrono = sortAktualChronological(shift.aktual, shift.startedAtEpochMin + 240);
@@ -126,9 +131,15 @@ export function shareShiftText(shift: ShiftRecord, db: Record<string, MesinData>
     return formatAktualLine(i, a.mcNo, corak, yard, a.ket);
   });
   const head = [`*LAPORAN SHIFT ${shiftNo}*`, dateStr];
-  // Operator yang dicap saat shift ini diarsipkan — arsip sebelum pendataan operator ada tidak
-  // punya capnya, dan barisnya sekadar tidak dicetak (bukan diisi operator hari ini).
-  const operatorLine = formatOperatorLine(shift.operatorNama, shift.operatorGrup);
+  // Operator yang dicap saat shift ini diarsipkan. Arsip dari sebelum pendataan operator ada
+  // tidak punya capnya — untuk itu saja identitas yang berlaku sekarang dipakai sebagai cadangan,
+  // karena satu perangkat dipegang satu operator dan laporan tanpa nama sama sekali lebih
+  // merugikan daripada nama yang mungkin sudah pindah grup. Shift yang diarsipkan versi ini dan
+  // seterusnya selalu memakai capnya sendiri.
+  const operatorLine = formatOperatorLine(
+    shift.operatorNama || fallbackNama,
+    shift.operatorGrup || fallbackGrup,
+  );
   if (operatorLine) head.push(operatorLine);
   const body = lines.length > 0 ? `*Selesai (${shift.aktual.length} doff)*\n${lines.join("\n")}` : `*Selesai (0 doff)*`;
   return `${head.join("\n")}\n${DIVIDER}\n\n${body}\n\n${DIVIDER}\n*Total: ${shift.aktual.length} doff*`;

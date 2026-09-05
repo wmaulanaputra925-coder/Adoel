@@ -16,7 +16,7 @@ export function AboutDialog({ onClose }: { onClose: () => void }) {
           Aplikasi Estimasi Doff & Manajemen Mesin Tenun
         </div>
         <div style={{ fontSize: 12, color: "var(--text-muted)", background: "var(--bg-elevated-2)", padding: 12, borderRadius: 10, marginBottom: 20 }}>
-          Versi 10.3.0 · Web Edition
+          Versi 10.3.1 · Web Edition
           <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 4 }}>
             Mendukung sinkronisasi QR dua arah dengan versi Android
           </div>

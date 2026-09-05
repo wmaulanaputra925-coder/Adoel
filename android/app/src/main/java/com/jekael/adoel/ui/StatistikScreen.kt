@@ -110,6 +110,10 @@ import kotlinx.coroutines.launch
 fun StatistikScreen(
     history: List<ShiftRecord>,
     db: Map<String, MesinData>,
+    // Identitas yang berlaku sekarang — cadangan untuk arsip yang belum punya cap operator
+    // sendiri (lihat buildShareShiftText).
+    operatorNama: String,
+    operatorGrup: String,
     onClose: () -> Unit,
     onDeleteShift: (Int) -> Unit,
     showConfirm: (String, () -> Unit) -> Unit,
@@ -198,6 +202,8 @@ fun StatistikScreen(
                             showConfirm = showConfirm,
                             onEditEntry = { entryId -> editingEntry = shift.id to entryId },
                             onAddEntry = { addingToShiftId = shift.id },
+                            operatorNama = operatorNama,
+                            operatorGrup = operatorGrup,
                             modifier = Modifier.animateItem(),
                         )
                     }
@@ -570,6 +576,8 @@ private fun ShiftRow(
     showConfirm: (String, () -> Unit) -> Unit,
     onEditEntry: (entryId: Int) -> Unit,
     onAddEntry: () -> Unit,
+    operatorNama: String,
+    operatorGrup: String,
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalAppColors.current
@@ -601,7 +609,7 @@ private fun ShiftRow(
     // Tidak berarti apa-apa untuk shift tanpa doff (mis. diarsipkan dengan estimasi yang belum
     // sempat diselesaikan), jadi tombol Bagikan-nya dinonaktifkan untuk shift kosong.
     fun requestShare() {
-        if (shift.aktual.isNotEmpty()) shareShift(context, shift, db)
+        if (shift.aktual.isNotEmpty()) shareShift(context, shift, db, operatorNama, operatorGrup)
     }
     fun requestDelete() {
         showConfirm("Hapus arsip Shift $shiftNo · $dateStr? Data ini tidak bisa dikembalikan.") {
@@ -767,6 +775,12 @@ private fun ShiftRow(
  * "Bravo!!!" casual register, same audience: rekan kerja), for whenever an operator needs to
  * resend a specific day's record instead of the whole running total. Opens the share-sheet
  * directly instead of a copy-then-paste round trip. */
-private fun shareShift(context: Context, shift: ShiftRecord, db: Map<String, MesinData>) {
-    shareIntent(context, buildShareShiftText(shift, db), "Bagikan shift")
+private fun shareShift(
+    context: Context,
+    shift: ShiftRecord,
+    db: Map<String, MesinData>,
+    operatorNama: String,
+    operatorGrup: String,
+) {
+    shareIntent(context, buildShareShiftText(shift, db, operatorNama, operatorGrup), "Bagikan shift")
 }

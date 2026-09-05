@@ -71,6 +71,7 @@ class DoffViewModel @JvmOverloads constructor(
             onboardingSeen = false,
             operatorNama = s.operatorNama,
             operatorGrup = s.operatorGrup,
+            operatorAsked = s.operatorAsked,
         )
     }
 
@@ -156,6 +157,15 @@ class DoffViewModel @JvmOverloads constructor(
 
         val prevEst = _state.value.estimasi[mcNo]
         val effectiveCorak = prevEst?.corakOverride ?: mesin.corak
+
+        // Doffing Matching pada corak potongan awal memotong 70 yard pertama, bukan sepanjang
+        // target standar mesin — tanpa ini Riwayat mencatat panjang standar (mis. 303y) untuk
+        // potongan yang nyatanya 70y. Yard yang diketik operator selalu menang.
+        if (customYard == null && extra.contains("MATCHING") &&
+            isPotonganAwalCorak(_state.value.corakPotonganAwal, effectiveCorak)
+        ) {
+            customYard = POTONGAN_AWAL_YARD
+        }
 
         var entryId = 0
         var createdEntry: AktualEntry? = null
@@ -343,8 +353,12 @@ class DoffViewModel @JvmOverloads constructor(
     /** Identitas operator — ditanyakan sekali saat pertama buka, lalu bisa diubah di Pengaturan.
      * Dipakai teks bagikan; dicap ke arsip shift saat Selesai Shift ditekan. */
     fun setOperator(nama: String, grup: String) = updateState { s ->
-        s.copy(operatorNama = nama.trim(), operatorGrup = grup.trim())
+        s.copy(operatorNama = nama.trim(), operatorGrup = grup.trim(), operatorAsked = true)
     }
+
+    /** Pertanyaan identitasnya dilewati — jangan tanya lagi tiap buka aplikasi; kolomnya tetap
+     * bisa diisi kapan saja lewat Pengaturan. */
+    fun markOperatorAsked() = updateState { s -> s.copy(operatorAsked = true) }
 
     fun addKeteranganShortcut(shortcut: String) = updateState { s ->
         val list = (s.keteranganShortcuts ?: DEFAULT_KETERANGAN_SHORTCUTS)

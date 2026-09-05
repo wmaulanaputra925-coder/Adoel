@@ -3,6 +3,8 @@
 // Android supaya operator tidak perlu belajar ulang cara pakai.
 import { absMinToTimeStr, jamKeShiftAbs, nowAbsMin, nowTimeStr } from "./format";
 import { parseDurasi, parseJam, standarisasiKeterangan } from "./parse";
+import { isPotonganAwalCorak } from "./matchingRules";
+import { POTONGAN_AWAL_YARD } from "./types";
 import type { AktualEntry, DoffState, Estimasi, ProsesResult } from "./types";
 
 export interface CommandOutcome {
@@ -121,6 +123,13 @@ export function prosesBarisUmum(state: DoffState, ln: string): CommandOutcome {
 
   const prevEst = state.estimasi[mcNo] ?? null;
   const effectiveCorak = prevEst?.corakOverride ?? mesin.corak;
+
+  // Doffing Matching pada corak potongan awal memotong 70 yard pertama, bukan sepanjang target
+  // standar mesin — tanpa ini Riwayat mencatat panjang standar (mis. 303y) untuk potongan yang
+  // nyatanya 70y. Yard yang diketik operator selalu menang.
+  if (customYard === null && extra.includes("MATCHING") && isPotonganAwalCorak(state, effectiveCorak)) {
+    customYard = POTONGAN_AWAL_YARD;
+  }
 
   const entryId = state.nextId;
   const entry: AktualEntry = {

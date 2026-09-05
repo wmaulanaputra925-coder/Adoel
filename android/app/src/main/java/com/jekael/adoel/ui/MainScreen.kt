@@ -99,10 +99,6 @@ fun MainScreen(
     var activeOverlay by rememberSaveable(stateSaver = ActiveOverlaySaver) { mutableStateOf<ActiveOverlay>(ActiveOverlay.None) }
     var syncOpen by rememberSaveable { mutableStateOf(false) }
     var autoQrDismissed by rememberSaveable { mutableStateOf(false) }
-    // "Sudah ditanya identitasnya di sesi ini" — bukan bagian dari state tersimpan karena
-    // pertanyaannya boleh dilewati: yang menandai first-launch sudah lewat tetap onboardingSeen,
-    // dan identitas yang kosong bisa diisi belakangan lewat Pengaturan.
-    var operatorAsked by rememberSaveable { mutableStateOf(false) }
     var showRemaining by rememberSaveable { mutableStateOf(false) }
 
     var consoleBarHeight by remember { mutableStateOf(0.dp) }
@@ -511,6 +507,8 @@ fun MainScreen(
             StatistikScreen(
                 history = state.history,
                 db = state.db,
+                operatorNama = state.operatorNama,
+                operatorGrup = state.operatorGrup,
                 onClose = { activeOverlay = ActiveOverlay.None },
                 onDeleteShift = { id -> doffVm.hapusShift(id) },
                 showConfirm = { msg, fn -> uiVm.showConfirm(msg, onConfirm = fn) },
@@ -647,21 +645,22 @@ fun MainScreen(
     // Identitas operator ditanyakan di antara impor QR dan Panduan: setelah data mesin ada
     // (kalau memang diimpor) tapi sebelum walkthrough, jadi operator baru cukup sekali mengisi
     // dan teks bagikannya langsung bernama. Boleh dilewati — lihat OperatorDialog.
+    //
+    // Gatenya operatorAsked, BUKAN onboardingSeen: pemasangan di atas versi lama sudah lewat
+    // panduannya, jadi kalau ikut onboardingSeen mereka tidak pernah ditanya sama sekali dan
+    // laporannya diam-diam terkirim tanpa nama — persis yang terjadi setelah 10.3.0.
     if (shouldShowAutoQr) {
         SyncDialog(
             isFirstTimeEmpty = true,
             onClose = { autoQrDismissed = true },
         )
-    } else if (!state.onboardingSeen && !operatorAsked) {
+    } else if (!state.operatorAsked) {
         OperatorDialog(
             nama = state.operatorNama,
             grup = state.operatorGrup,
-            isFirstLaunch = true,
-            onDismiss = { operatorAsked = true },
-            onSave = { nama, grup ->
-                doffVm.setOperator(nama, grup)
-                operatorAsked = true
-            },
+            isFirstLaunch = !state.onboardingSeen,
+            onDismiss = { doffVm.markOperatorAsked() },
+            onSave = { nama, grup -> doffVm.setOperator(nama, grup) },
         )
     } else if (!state.onboardingSeen) {
         OnboardingDialog(onClose = { doffVm.setOnboardingSeen() })

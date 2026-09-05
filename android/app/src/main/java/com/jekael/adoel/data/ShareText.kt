@@ -125,7 +125,13 @@ fun buildShareHistoryText(
  * resend a specific day's record instead of the whole running total.
  *
  * [zone] hanya untuk unit test — call site produksi memakai default zona perangkat. */
-fun buildShareShiftText(shift: ShiftRecord, db: Map<String, MesinData>, zone: TimeZone = TimeZone.getDefault()): String {
+fun buildShareShiftText(
+    shift: ShiftRecord,
+    db: Map<String, MesinData>,
+    fallbackNama: String = "",
+    fallbackGrup: String = "",
+    zone: TimeZone = TimeZone.getDefault(),
+): String {
     val shiftNo = shiftNumberForEpochMin(shift.startedAtEpochMin, zone)
     val dateStr = formatShiftDate(shift.startedAtEpochMin, zone)
     // +240 (4 jam setelah mulai) dipakai sebagai titik tengah yang aman dari pembungkusan
@@ -138,9 +144,15 @@ fun buildShareShiftText(shift: ShiftRecord, db: Map<String, MesinData>, zone: Ti
         formatAktualLine(i, a.mcNo, corak, yard, a.ket)
     }
     val head = mutableListOf("*LAPORAN SHIFT $shiftNo*", dateStr)
-    // Operator yang dicap saat shift ini diarsipkan — arsip sebelum pendataan operator ada tidak
-    // punya capnya, dan barisnya sekadar tidak dicetak (bukan diisi operator hari ini).
-    formatOperatorLine(shift.operatorNama, shift.operatorGrup)?.let { head += it }
+    // Operator yang dicap saat shift ini diarsipkan. Arsip dari sebelum pendataan operator ada
+    // tidak punya capnya — untuk itu saja identitas yang berlaku sekarang dipakai sebagai
+    // cadangan, karena satu ponsel dipegang satu operator dan laporan tanpa nama sama sekali
+    // lebih merugikan daripada nama yang mungkin sudah pindah grup. Shift yang diarsipkan versi
+    // ini dan seterusnya selalu memakai capnya sendiri.
+    formatOperatorLine(
+        shift.operatorNama.ifBlank { fallbackNama },
+        shift.operatorGrup.ifBlank { fallbackGrup },
+    )?.let { head += it }
     val body = if (lines.isNotEmpty()) {
         "*Selesai (${shift.aktual.size} doff)*\n${lines.joinToString("\n")}"
     } else {

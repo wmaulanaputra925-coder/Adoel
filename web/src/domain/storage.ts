@@ -110,6 +110,8 @@ export function parseBackupJson(json: string): DoffState | null {
     onboardingSeen: typeof serial.onboardingSeen === "boolean" ? serial.onboardingSeen : true,
     operatorNama: typeof serial.operatorNama === "string" ? serial.operatorNama.trim() : "",
     operatorGrup: typeof serial.operatorGrup === "string" ? serial.operatorGrup.trim() : "",
+    // Absen di backup versi lama → false, jadi pemakai lama tetap ditanya sekali.
+    operatorAsked: typeof serial.operatorAsked === "boolean" ? serial.operatorAsked : false,
     keteranganShortcuts: rawShortcuts,
     corakShortcuts: rawCorakShortcuts,
     corakPotonganAwal: rawCorakPotonganAwal,
@@ -164,6 +166,7 @@ export function loadState(): DoffState {
     onboardingSeen: false,
     operatorNama: "",
     operatorGrup: "",
+    operatorAsked: false,
     keteranganShortcuts: DEFAULT_KETERANGAN_SHORTCUTS,
     corakShortcuts: DEFAULT_CORAK_SHORTCUTS,
     corakPotonganAwal: DEFAULT_CORAK_POTONGAN_AWAL,

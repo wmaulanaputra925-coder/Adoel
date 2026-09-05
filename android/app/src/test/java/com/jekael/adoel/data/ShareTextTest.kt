@@ -1,6 +1,7 @@
 package com.jekael.adoel.data
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.util.Calendar
 import java.util.TimeZone
@@ -116,5 +117,22 @@ class ShareTextTest {
             "2. Mc 61 – 60357 (120y) · 11.00 (HB)\n\n" +
             "$divider\n*Total: 2 doff*"
         assertEquals(expected, text)
+    }
+
+    /** Arsip dari sebelum pendataan operator ada tidak punya cap sendiri — laporannya memakai
+     * identitas yang berlaku sekarang, bukan terkirim tanpa nama sama sekali. */
+    @Test
+    fun buildShareShiftText_archiveWithoutStampFallsBackToCurrentOperator() {
+        val db = mapOf("61" to MesinData(MesinTipe.D405, "60357", targetYard = 303.0))
+        val shift = ShiftRecord(
+            id = 6,
+            startedAtEpochMin = epochMin(2026, 1, 15, 6, 0),
+            endedAtEpochMin = epochMin(2026, 1, 15, 14, 0),
+            aktual = listOf(AktualEntry(id = 1, mcNo = "61", jam = "07.00", ket = "07.00")),
+        )
+
+        val text = buildShareShiftText(shift, db, "Wahyu", "B", wib)
+
+        assertTrue(text.contains("Operator: Wahyu · Grup B"))
     }
 }

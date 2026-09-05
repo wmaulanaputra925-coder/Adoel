@@ -106,6 +106,30 @@ describe("prosesBarisUmum (doff/aktual)", () => {
     expect(r.newState.aktual[0].ket).toContain("(HB)");
   });
 
+  // Corak potongan awal: kainnya dipotong setelah 70 yard pertama, jadi Riwayat harus mencatat
+  // 70y — bukan target standar mesin, yang bikin potongan 70y terbaca 165y di laporan.
+  it("Matching pada corak potongan awal dicatat 70y, bukan target standar", () => {
+    const s = baseState();
+    s.db["76"] = mesin({ tipe: "CAM", corak: "21242", targetYard: 165 });
+    const r = prosesBarisUmum(s, "76 matching");
+    expect(r.result.ok).toBe(true);
+    expect(r.newState.aktual[0].ket).toContain("(MATCHING)");
+    expect(r.newState.aktual[0].customYard).toBe(70);
+  });
+
+  it("Matching pada corak di luar daftar potongan awal tidak dipaksa 70y", () => {
+    const r = prosesBarisUmum(baseState(), "29 matching");
+    expect(r.result.ok).toBe(true);
+    expect(r.newState.aktual[0].customYard).toBeNull();
+  });
+
+  it("yard yang diketik operator menang atas aturan 70y", () => {
+    const s = baseState();
+    s.db["76"] = mesin({ tipe: "CAM", corak: "21242", targetYard: 165 });
+    const r = prosesBarisUmum(s, "76 matching 40");
+    expect(r.newState.aktual[0].customYard).toBe(40);
+  });
+
   it("paritas Android: '<mc> c <bacaan>' D408 dicatat sebagai DOFF, bukan update estimasi", () => {
     const r = prosesBarisUmum(baseState(), "79 c 1430");
     expect(r.result.ok).toBe(true);

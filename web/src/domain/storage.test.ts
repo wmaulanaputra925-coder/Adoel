@@ -40,6 +40,7 @@ function fullState(): DoffState {
     onboardingSeen: false,
     operatorNama: "Wahyu",
     operatorGrup: "B",
+    operatorAsked: true,
     keteranganShortcuts: ["HB", "P.LP", "P.SN", "P.OH", "P.EL", "P.Sel"],
     corakShortcuts: ["4500", "5000"],
     corakPotonganAwal: ["80125", "21242", "66335"],
@@ -64,6 +65,9 @@ describe("parseBackupJson", () => {
     // tidak mencetak baris operator.
     expect(p.operatorNama).toBe("");
     expect(p.operatorGrup).toBe("");
+    // false, bukan true: pemakai lama harus tetap ditanya sekali, bukan diam-diam mengirim
+    // laporan tanpa nama.
+    expect(p.operatorAsked).toBe(false);
     expect(p.keteranganShortcuts).toEqual([]);
     expect(p.corakShortcuts).toEqual([]);
     // Beda dari corakShortcuts (default []): backup lama tanpa field ini masih dapat aturan

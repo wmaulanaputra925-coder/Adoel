@@ -2,6 +2,7 @@ package com.jekael.adoel.data
 
 import android.app.Application
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -53,6 +54,7 @@ class SerializationTest {
         onboardingSeen = false,
         operatorNama = "Wahyu",
         operatorGrup = "B",
+        operatorAsked = true,
     )
 
     @Test
@@ -78,6 +80,9 @@ class SerializationTest {
         // tidak mencetak baris operator.
         assertEquals("", parsed.operatorNama)
         assertEquals("", parsed.operatorGrup)
+        // false, bukan true: pemasangan di atas versi lama harus tetap ditanya sekali, bukan
+        // diam-diam mengirim laporan tanpa nama.
+        assertFalse(parsed.operatorAsked)
     }
 
     @Test

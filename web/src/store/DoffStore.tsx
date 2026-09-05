@@ -42,6 +42,7 @@ interface DoffStore {
   setThemeMode: (mode: ThemeMode) => void;
   setOnboardingSeen: () => void;
   setOperator: (nama: string, grup: string) => void;
+  markOperatorAsked: () => void;
   addKeteranganShortcut: (shortcut: string) => void;
   removeKeteranganShortcut: (shortcut: string) => void;
   resetKeteranganShortcuts: () => void;
@@ -371,6 +372,7 @@ export function DoffStoreProvider({ children }: { children: ReactNode }) {
       onboardingSeen: true,
       operatorNama: s.operatorNama ?? "",
       operatorGrup: s.operatorGrup ?? "",
+      operatorAsked: s.operatorAsked ?? false,
       keteranganShortcuts: DEFAULT_KETERANGAN_SHORTCUTS,
       corakShortcuts: DEFAULT_CORAK_SHORTCUTS,
     }));
@@ -387,7 +389,13 @@ export function DoffStoreProvider({ children }: { children: ReactNode }) {
   /** Identitas operator — ditanyakan sekali saat pertama buka, lalu bisa diubah di Pengaturan.
    * Dipakai teks bagikan; dicap ke arsip shift saat Selesai Shift ditekan. */
   const setOperator = useCallback((nama: string, grup: string) => {
-    setState((s) => ({ ...s, operatorNama: nama.trim(), operatorGrup: grup.trim() }));
+    setState((s) => ({ ...s, operatorNama: nama.trim(), operatorGrup: grup.trim(), operatorAsked: true }));
+  }, []);
+
+  /** Pertanyaan identitasnya dilewati — jangan tanya lagi tiap buka; kolomnya tetap bisa diisi
+   * kapan saja lewat Pengaturan. */
+  const markOperatorAsked = useCallback(() => {
+    setState((s) => ({ ...s, operatorAsked: true }));
   }, []);
 
   const addKeteranganShortcut = useCallback((shortcut: string) => {
@@ -521,6 +529,7 @@ export function DoffStoreProvider({ children }: { children: ReactNode }) {
       setThemeMode,
       setOnboardingSeen,
       setOperator,
+      markOperatorAsked,
       addKeteranganShortcut,
       removeKeteranganShortcut,
       resetKeteranganShortcuts,
@@ -564,6 +573,7 @@ export function DoffStoreProvider({ children }: { children: ReactNode }) {
       setThemeMode,
       setOnboardingSeen,
       setOperator,
+      markOperatorAsked,
       addKeteranganShortcut,
       removeKeteranganShortcut,
       resetKeteranganShortcuts,

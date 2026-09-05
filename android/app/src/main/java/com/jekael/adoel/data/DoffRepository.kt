@@ -47,6 +47,7 @@ private data class SerialState(
     val onboardingSeen: Boolean?,
     val operatorNama: String? = null,
     val operatorGrup: String? = null,
+    val operatorAsked: Boolean? = null,
     val keteranganShortcuts: List<String>? = null,
     val corakShortcuts: List<String>? = null,
     val corakPotonganAwal: List<String>? = null,
@@ -200,6 +201,9 @@ class DoffRepository private constructor(private val context: Context) : DoffSta
                 onboardingSeen = serial.onboardingSeen ?: true,
                 operatorNama = serial.operatorNama?.trim().orEmpty(),
                 operatorGrup = serial.operatorGrup?.trim().orEmpty(),
+                // Absen di blob versi lama → false, jadi pemasangan di atas versi tanpa pendataan
+                // operator tetap ditanya sekali (lihat DoffState.operatorAsked).
+                operatorAsked = serial.operatorAsked ?: false,
                 keteranganShortcuts = serial.keteranganShortcuts,
                 corakShortcuts = serial.corakShortcuts,
                 corakPotonganAwal = serial.corakPotonganAwal,
@@ -290,6 +294,7 @@ class DoffRepository private constructor(private val context: Context) : DoffSta
             onboardingSeen = state.onboardingSeen,
             operatorNama = state.operatorNama,
             operatorGrup = state.operatorGrup,
+            operatorAsked = state.operatorAsked,
             keteranganShortcuts = state.keteranganShortcuts,
             corakShortcuts = state.corakShortcuts,
             corakPotonganAwal = state.corakPotonganAwal,

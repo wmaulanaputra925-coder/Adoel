@@ -75,6 +75,12 @@ val DEFAULT_CORAK_SHORTCUTS = emptyList<String>()
  * persis dengan DEFAULT_CORAK_POTONGAN_AWAL di types.ts (web) — jaga daftar & pesannya identik. */
 val DEFAULT_CORAK_POTONGAN_AWAL = listOf("80125", "21242", "66335")
 
+/** Panjang potongan yang benar-benar dicatat untuk Doffing Matching pada corak potongan awal:
+ * kainnya dipotong setelah 70 yard pertama, bukan sepanjang target standar mesin. Tanpa angka ini
+ * Riwayat menampilkan target standar (mis. 303y) untuk potongan yang nyatanya 70y. Sama persis
+ * dengan POTONGAN_AWAL_YARD di types.ts (web). */
+const val POTONGAN_AWAL_YARD = 70.0
+
 data class DoffState(
     val db: Map<String, MesinData> = emptyMap(),
     val estimasi: Map<String, Estimasi> = emptyMap(),
@@ -92,6 +98,11 @@ data class DoffState(
      * membaca laporan di WhatsApp tahu laporan itu dari siapa tanpa harus bertanya. */
     val operatorNama: String = "",
     val operatorGrup: String = "",
+    /** Sudah pernah ditanyai identitasnya (termasuk kalau pertanyaannya dilewati). Terpisah dari
+     * [operatorNama] supaya "dilewati" tidak berarti "tanya lagi tiap buka aplikasi", dan terpisah
+     * dari [onboardingSeen] supaya pemasangan di atas versi lama — yang panduannya sudah lewat —
+     * tetap ditanya sekali, bukan diam-diam mengirim laporan tanpa nama. */
+    val operatorAsked: Boolean = false,
     val keteranganShortcuts: List<String>? = null,
     val corakShortcuts: List<String>? = null,
     val corakPotonganAwal: List<String>? = null,

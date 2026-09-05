@@ -40,7 +40,7 @@ type Page = "RADAR" | "RIWAYAT";
 type Screen = "main" | "statistik" | "settings" | "mesin";
 
 function AppInner() {
-  const { state, setMesin, setOnboardingSeen, setOperator, undo, redo, canUndo, canRedo } = useDoffStore();
+  const { state, setMesin, setOnboardingSeen, setOperator, markOperatorAsked, undo, redo, canUndo, canRedo } = useDoffStore();
   const { showToast } = useUiStore();
   const { handleEstimasiSubmit, handleAktualSubmit, handleFinishShift } = useConsoleHandlers();
   const [page, setPage] = useState<Page>("RADAR");
@@ -51,10 +51,6 @@ function AppInner() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [syncOpen, setSyncOpen] = useState(false);
   const [autoQrDismissed, setAutoQrDismissed] = useState(false);
-  // "Sudah ditanya identitasnya di sesi ini" — tidak ikut disimpan karena pertanyaannya boleh
-  // dilewati: penanda first-launch sudah lewat tetap onboardingSeen, dan identitas yang kosong
-  // bisa diisi belakangan lewat Pengaturan.
-  const [operatorAsked, setOperatorAsked] = useState(false);
   const [showRemaining, setShowRemaining] = useState(false);
   const [actionsMenuOpen, setActionsMenuOpen] = useState(false);
   const [brandPulse, setBrandPulse] = useState(false);
@@ -63,7 +59,10 @@ function AppInner() {
 
   const isDbEmpty = useMemo(() => isMachineDataEmpty(state.db), [state.db]);
   const shouldShowAutoQr = !state.onboardingSeen && isDbEmpty && !autoQrDismissed;
-  const showOperatorAsk = !shouldShowAutoQr && !state.onboardingSeen && !operatorAsked;
+  // Gatenya operatorAsked, BUKAN onboardingSeen: pemakai lama sudah lewat panduannya, jadi kalau
+  // ikut onboardingSeen mereka tidak pernah ditanya sama sekali dan laporannya diam-diam terkirim
+  // tanpa nama.
+  const showOperatorAsk = !shouldShowAutoQr && !state.operatorAsked;
 
   // Tema: SYSTEM mengikuti preferensi OS, DARK/LIGHT dipaksa lewat atribut di <html>.
   useEffect(() => {
@@ -412,12 +411,9 @@ function AppInner() {
         <OperatorDialog
           nama={state.operatorNama ?? ""}
           grup={state.operatorGrup ?? ""}
-          isFirstLaunch={true}
-          onClose={() => setOperatorAsked(true)}
-          onSave={(nama, grup) => {
-            setOperator(nama, grup);
-            setOperatorAsked(true);
-          }}
+          isFirstLaunch={!state.onboardingSeen}
+          onClose={markOperatorAsked}
+          onSave={setOperator}
         />
       )}
 

@@ -131,6 +131,37 @@ class DoffViewModelTest {
         assertEquals("29", viewModel.state.value.aktual.first().mcNo)
     }
 
+    // Corak potongan awal: kainnya dipotong setelah 70 yard pertama, jadi Riwayat harus mencatat
+    // 70y — bukan target standar mesin, yang bikin potongan 70y terbaca 165y di laporan.
+    @Test
+    fun matchingOnPotonganAwalCorakRecords70Yard() {
+        viewModel.setMesin("76", MesinData(MesinTipe.CAM, "21242", targetYard = 165.0))
+
+        viewModel.prosesBarisUmum("76 MATCHING")
+
+        val entry = viewModel.state.value.aktual.first()
+        assertTrue(entry.ket.contains("(MATCHING)"))
+        assertEquals(70.0, entry.customYard)
+    }
+
+    @Test
+    fun matchingOnOrdinaryCorakKeepsStandardYard() {
+        viewModel.setMesin("29", MesinData(MesinTipe.TAPPET, "34758", targetYard = 303.0))
+
+        viewModel.prosesBarisUmum("29 MATCHING")
+
+        assertNull(viewModel.state.value.aktual.first().customYard)
+    }
+
+    @Test
+    fun typedYardWinsOverThe70YardRule() {
+        viewModel.setMesin("76", MesinData(MesinTipe.CAM, "21242", targetYard = 165.0))
+
+        viewModel.prosesBarisUmum("76 MATCHING 40")
+
+        assertEquals(40.0, viewModel.state.value.aktual.first().customYard)
+    }
+
     @Test
     fun finishShiftArchivesAktualAndDeletesEstimasiWithoutArchivingIt() {
         // Mc 61's estimasi (D405) is unrelated to mc 29's doff below — it represents a machine

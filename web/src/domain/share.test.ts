@@ -84,4 +84,16 @@ describe("shareShiftText", () => {
       "*Total: 2 doff*";
     expect(shareShiftText(shift, db)).toBe(expected);
   });
+
+  it("arsip lama tanpa cap operator memakai identitas yang berlaku sekarang", () => {
+    const shift: ShiftRecord = {
+      id: 6,
+      startedAtEpochMin: epochMin(2026, 1, 15, 6, 0),
+      endedAtEpochMin: epochMin(2026, 1, 15, 14, 0),
+      aktual: [{ id: 1, mcNo: "61", jam: "07.00", ket: "07.00", corakOverride: null, customYard: null, tsEpochMin: null }],
+      estimasiRemaining: {},
+    };
+
+    expect(shareShiftText(shift, db, "Wahyu", "B")).toContain("Operator: Wahyu · Grup B");
+  });
 });
