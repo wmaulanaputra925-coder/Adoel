@@ -505,98 +505,105 @@ fun RadarCard(
                 ) {
                     Row(
                         verticalAlignment = Alignment.Bottom,
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                        horizontalArrangement = Arrangement.spacedBy(Dimens.Space8),
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.Bottom,
-                            horizontalArrangement = Arrangement.spacedBy(Dimens.Space8),
-                            // Lets this whole cluster — mcno/tipe/urgency AND Bentrok, which sits
-                            // adjacent to it just like web's .radar-clash-badge (no auto-margin of
-                            // its own) — shrink as one unit instead of overflowing the card. Only
-                            // OPERAN SHIFT lives outside this weight: it's the one item web pushes
-                            // flush right via margin-left:auto, mirrored here by SpaceBetween on
-                            // the outer Row instead of a second weight(1f) Spacer racing this one
-                            // for space — two weight(1f) siblings split 50/50 regardless of fill,
-                            // which was quietly capping this cluster's width in half and pushing
-                            // the tipe label into an ellipsis so tight it rendered as nothing at
-                            // all whenever a card carried both a tipe and OPERAN SHIFT together.
-                            modifier = Modifier.weight(1f, fill = false),
+                        Text(
+                            text = est.mcNo,
+                            // A 3-digit mcNo at the 2-digit size wraps mid-number in a half-width
+                            // grid card (e.g. "104" breaking into "10"/"4") — shrink it instead of
+                            // letting it wrap, since maxLines=1 alone would just clip a digit.
+                            style = TextStyle(
+                                fontSize = if (est.mcNo.length >= 3) 30.sp else 40.sp,
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = (-2).sp,
+                                color = colors.textPrimary,
+                            ),
+                            maxLines = 1,
+                            softWrap = false,
+                        )
+                        // The mcNo is 30–40sp while the type line beside it is 12sp, so bottom-
+                        // aligning them leaves a band of dead space above the type. Bentrok and
+                        // OPERAN SHIFT go up in that band instead of sharing the type label's
+                        // baseline: the card stays exactly as tall, and neither badge is competing
+                        // with the type label for width any more. A deliberate departure from web,
+                        // which runs all of these inline in one .radar-card-title-row.
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(3.dp),
                         ) {
-                            Text(
-                                text = est.mcNo,
-                                // A 3-digit mcNo at the 2-digit size wraps mid-number in a half-width
-                                // grid card (e.g. "104" breaking into "10"/"4") — shrink it instead of
-                                // letting it wrap, since maxLines=1 alone would just clip a digit.
-                                style = TextStyle(
-                                    fontSize = if (est.mcNo.length >= 3) 30.sp else 40.sp,
-                                    fontWeight = FontWeight.Black,
-                                    letterSpacing = (-2).sp,
-                                    color = colors.textPrimary,
-                                ),
-                                maxLines = 1,
-                                softWrap = false,
-                            )
-                            if (mesin != null) {
-                                MesinTipeIcon(
-                                    tipe = mesin.tipe,
-                                    tint = mesinTipeColor(mesin.tipe),
-                                    modifier = Modifier.size(12.dp).padding(bottom = Dimens.Space4),
-                                )
+                            if (clashingMcNos.isNotEmpty() || shiftHandover) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    // Bentrok is the only weighted child here, so it gets the room
+                                    // it actually needs (ellipsizing only when a long clash list
+                                    // genuinely won't fit) while SpaceBetween keeps OPERAN SHIFT
+                                    // flush right — web's margin-left:auto for that same badge.
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    if (clashingMcNos.isNotEmpty()) {
+                                        RadarCardBadge(
+                                            icon = Icons.Filled.Warning,
+                                            text = "Bentrok Mc ${clashingMcNos.joinToString(", ")}",
+                                            accent = Amber400,
+                                            modifier = Modifier.weight(1f, fill = false),
+                                        )
+                                    } else {
+                                        // Zero-width stand-in: SpaceBetween needs two children to
+                                        // have anything to push apart, or a lone shift badge would
+                                        // sit at the start instead of the far edge.
+                                        Spacer(Modifier)
+                                    }
+                                    if (shiftHandover) {
+                                        RadarCardBadge(
+                                            icon = Icons.Outlined.SwapHoriz,
+                                            text = "OPERAN SHIFT",
+                                            accent = Orange400,
+                                        )
+                                    }
+                                }
                             }
-                            Text(
-                                text = tipe,
-                                style = TextStyle(
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    letterSpacing = 2.sp,
-                                    // Same per-type color as the icon right before it (Tappet/Cam/D405/
-                                    // D408 each have their own), not the urgency color — the machine
-                                    // type is its own identity, independent of how close the doff is.
-                                    color = mesin?.tipe?.let { mesinTipeColor(it) } ?: colors.textFaint,
-                                ),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.padding(bottom = Dimens.Space4),
-                            )
-                            if (clr.icon != null) {
-                                // 15dp, not the 12dp everything else in this row uses — Material's
-                                // Schedule/Warning outlines carry more internal linework than web's
-                                // minimalist 2-stroke SVGs, so at 12dp they read as a smudge instead
-                                // of a recognizable glyph. Bumped up rather than swapped to a filled
-                                // variant, since Outlined vs Filled here is deliberately meaningful
-                                // (OVERDUE alone is filled — see the `urgency()` levels above).
-                                Icon(
-                                    imageVector = clr.icon,
-                                    contentDescription = null,
-                                    tint = clr.labelColor,
-                                    modifier = Modifier.size(15.dp).padding(bottom = Dimens.Space4),
-                                )
-                            }
-                            // Bentrok sits inside this same shrink-safe cluster, right after the
-                            // urgency icon — matches web's .radar-clash-badge, an ordinary sibling
-                            // in .radar-card-title-row with no margin-left:auto of its own (only
-                            // OPERAN SHIFT gets pushed to the far edge, below).
-                            if (clashingMcNos.isNotEmpty()) {
-                                RadarCardBadge(
-                                    icon = Icons.Filled.Warning,
-                                    text = "Bentrok Mc ${clashingMcNos.joinToString(", ")}",
-                                    accent = Amber400,
+                            Row(
+                                verticalAlignment = Alignment.Bottom,
+                                horizontalArrangement = Arrangement.spacedBy(Dimens.Space8),
+                            ) {
+                                if (mesin != null) {
+                                    MesinTipeIcon(
+                                        tipe = mesin.tipe,
+                                        tint = mesinTipeColor(mesin.tipe),
+                                        modifier = Modifier.size(12.dp).padding(bottom = Dimens.Space4),
+                                    )
+                                }
+                                Text(
+                                    text = tipe,
+                                    style = TextStyle(
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        letterSpacing = 2.sp,
+                                        // Same per-type color as the icon right before it (Tappet/Cam/D405/
+                                        // D408 each have their own), not the urgency color — the machine
+                                        // type is its own identity, independent of how close the doff is.
+                                        color = mesin?.tipe?.let { mesinTipeColor(it) } ?: colors.textFaint,
+                                    ),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
                                     modifier = Modifier.padding(bottom = Dimens.Space4),
                                 )
+                                if (clr.icon != null) {
+                                    // 15dp, not the 12dp everything else in this row uses — Material's
+                                    // Schedule/Warning outlines carry more internal linework than web's
+                                    // minimalist 2-stroke SVGs, so at 12dp they read as a smudge instead
+                                    // of a recognizable glyph. Bumped up rather than swapped to a filled
+                                    // variant, since Outlined vs Filled here is deliberately meaningful
+                                    // (OVERDUE alone is filled — see the `urgency()` levels above).
+                                    Icon(
+                                        imageVector = clr.icon,
+                                        contentDescription = null,
+                                        tint = clr.labelColor,
+                                        modifier = Modifier.size(15.dp).padding(bottom = Dimens.Space4),
+                                    )
+                                }
                             }
-                        }
-                        // OPERAN SHIFT is the one badge web pushes flush to the row's far right via
-                        // margin-left:auto — the outer Row's SpaceBetween does that here (see the
-                        // weight(fill=false) comment above for why this can't also be a weighted
-                        // Spacer). A card with no shift handover renders just the cluster above,
-                        // taking its natural width; SpaceBetween is a no-op with a single child.
-                        if (shiftHandover) {
-                            RadarCardBadge(
-                                icon = Icons.Outlined.SwapHoriz,
-                                text = "OPERAN SHIFT",
-                                accent = Orange400,
-                                modifier = Modifier.padding(bottom = Dimens.Space4),
-                            )
                         }
                     }
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Dimens.Space4)) {
