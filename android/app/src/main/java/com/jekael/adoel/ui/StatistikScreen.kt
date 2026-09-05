@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -53,10 +54,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalContext
@@ -481,8 +478,10 @@ private fun DoffCountChart(history: List<ShiftRecord>, selectedShiftId: Int?, on
                         animatedFraction.animateTo(targetFraction, animationSpec = tween(250, easing = FastOutSlowInEasing))
                     }
                     val selected = shift.id == selectedShiftId
+                    // 0.85 unselected / full-opacity Cyan400 selected — matches web's own
+                    // .stat-chart-bar (opacity: 0.85) / .selected (opacity: 1, brighter cyan-400).
                     val barColor by animateColorAsState(
-                        if (selected) Cyan400 else Cyan500.copy(alpha = 0.75f),
+                        if (selected) Cyan400 else Cyan500.copy(alpha = 0.85f),
                         label = "barColor",
                     )
                     Column(
@@ -505,31 +504,25 @@ private fun DoffCountChart(history: List<ShiftRecord>, selectedShiftId: Int?, on
                             ),
                         )
                         Spacer(Modifier.height(2.dp))
+                        // Flat solid bar, capped at 28dp wide like web's .stat-chart-bar (max-width:
+                        // 28px) instead of stretching to fill the column on a short history list —
+                        // and a plain flat fill, not the diagonal thread-texture this used to draw:
+                        // web's bars are solid color, and the texture was the one clearly visible
+                        // mismatch between the two platforms' charts.
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .widthIn(max = 28.dp)
                                 .height((44.dp * animatedFraction.value).coerceAtLeast(4.dp))
-                                .clip(RoundedCornerShape(3.dp))
-                                .background(barColor)
-                                // Same twisted-thread banding as RadarCard's left accent — these
-                                // bars were the one other vertical fill left as a flat block after
-                                // that pass, and both read as the same "thread" material now.
-                                .drawWithContent {
-                                    drawContent()
-                                    val pitch = 7.dp.toPx()
-                                    val band = 2.dp.toPx()
-                                    var y = 0f
-                                    var dark = true
-                                    while (y < size.height) {
-                                        drawRect(
-                                            color = if (dark) Color.Black.copy(alpha = 0.2f) else Color.White.copy(alpha = 0.18f),
-                                            topLeft = Offset(0f, y),
-                                            size = Size(size.width, band),
-                                        )
-                                        dark = !dark
-                                        y += pitch
-                                    }
-                                },
+                                .clip(
+                                    RoundedCornerShape(
+                                        topStart = 4.dp,
+                                        topEnd = 4.dp,
+                                        bottomStart = 1.dp,
+                                        bottomEnd = 1.dp,
+                                    ),
+                                )
+                                .background(barColor),
                         )
                     }
                 }
