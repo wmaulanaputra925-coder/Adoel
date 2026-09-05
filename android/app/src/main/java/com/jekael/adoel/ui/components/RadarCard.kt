@@ -34,13 +34,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.clipPath
-import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -194,13 +191,29 @@ fun RadarCard(
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
         label = "checkScale",
     )
-    // One-shot diagonal sweep across the completion tint instead of a generic flash.
+    // The wash wiping in behind the departing card. 280ms rather than the old 200 so the wipe is
+    // actually legible as motion instead of a flicker that's over before the eye lands on it.
     val weaveSweep by animateFloatAsState(
         targetValue = if (completing) 1f else 0f,
-        animationSpec = tween(200, easing = FastOutSlowInEasing),
+        animationSpec = tween(280, easing = FastOutSlowInEasing),
         label = "weaveSweep",
     )
-    val completionColor = if (completingKind == DoffCompletionKind.MATCHING) Sky500 else Emerald500
+    // Everything above settles inside ~300ms but the row isn't handed back to the list until 950ms
+    // (see triggerDoff), which left the panel sitting frozen for the remaining half second and then
+    // vanishing mid-frame with the reflow. Fading it out just before that hand-off gives the
+    // celebration an ending instead of a cut.
+    val celebrationFade = remember(est.mcNo) { Animatable(1f) }
+    LaunchedEffect(completingKind) {
+        if (completingKind != null) {
+            delay(760)
+            celebrationFade.animateTo(0f, tween(190))
+        }
+    }
+    val isMatchingCompletion = completingKind == DoffCompletionKind.MATCHING
+    val completionColor = if (isMatchingCompletion) Sky500 else Emerald500
+    // Deeper end of the same hue — the wash is a gradient between the two rather than one flat
+    // fill, matching web's linear-gradient celebrate panel.
+    val completionColorDeep = if (isMatchingCompletion) Sky600 else Emerald600
     // Same icon pair as the swipe-in-progress reveal above — one consistent "cut"/"matching" icon
     // vocabulary from the first drag pixel through to the completion pop, not a switch mid-gesture.
     val completionIcon = if (completingKind == DoffCompletionKind.MATCHING) Icons.Outlined.AutoAwesome else Icons.Outlined.ContentCut
@@ -732,34 +745,55 @@ fun RadarCard(
         // then an icon+title/subtitle pill pops in on top (web's .radar-card-celebrate-content).
         // Which shape, icon, and copy depends on completingKind.
         if (checkScale > 0f) {
-            val isMatching = completingKind == DoffCompletionKind.MATCHING
+            val isMatching = isMatchingCompletion
             Box(
-                modifier = Modifier.matchParentSize(),
+                modifier = Modifier
+                    .matchParentSize()
+                    .graphicsLayer { alpha = celebrationFade.value },
                 contentAlignment = Alignment.Center,
             ) {
                 Box(
                     modifier = Modifier
                         .matchParentSize()
                         .clip(RoundedCornerShape(Dimens.RadiusCard))
-                        .drawWithContent {
-                            drawContent()
-                            val splitPath = if (isMatching) {
-                                jaggedSplitPath(size, weaveSweep)
-                            } else {
-                                diagonalSplitPath(size, weaveSweep)
-                            }
-                            clipPath(splitPath) {
-                                drawRect(completionColor.copy(alpha = 0.30f))
-                            }
-                            // Bright flash racing along the split boundary as it sweeps across.
-                            rotate(if (isMatching) -12f else 20f) {
-                                val bandWidth = size.width * 0.18f
-                                val travel = size.width * 1.6f
-                                val x = -bandWidth + weaveSweep * travel
+                        .drawBehind {
+                            // Wipes in from the edge the card is leaving toward — right for Normal,
+                            // left for Matching — so the panel reads as that swipe completing.
+                            // This replaces a clip-path "split" whose Matching variant zigzagged by
+                            // only ~3px across the whole card: invisible in practice, so Matching
+                            // ended up looking like a washed-out copy of Normal rather than its own
+                            // thing. Direction now carries the distinction, and the fill is nearly
+                            // opaque (it used to be a 30% tint over an empty slot, since the card
+                            // itself has already slid away by this point).
+                            val revealed = size.width * weaveSweep
+                            val left = if (isMatching) size.width - revealed else 0f
+                            if (revealed > 0.5f) {
                                 drawRect(
-                                    color = Color.White.copy(alpha = 0.5f * (1f - weaveSweep)),
-                                    topLeft = Offset(x, -size.height),
-                                    size = Size(bandWidth, size.height * 3f),
+                                    brush = Brush.horizontalGradient(
+                                        colors = if (isMatching) {
+                                            listOf(completionColor.copy(alpha = 0.94f), completionColorDeep.copy(alpha = 0.94f))
+                                        } else {
+                                            listOf(completionColorDeep.copy(alpha = 0.94f), completionColor.copy(alpha = 0.94f))
+                                        },
+                                        startX = left,
+                                        endX = left + revealed,
+                                    ),
+                                    topLeft = Offset(left, 0f),
+                                    size = Size(revealed, size.height),
+                                )
+                                // Soft gleam riding the leading edge, as a gradient rather than the
+                                // hard-edged white bar this used to sweep across the whole card.
+                                val gleamWidth = size.width * 0.20f
+                                val leadingX = if (isMatching) left else left + revealed
+                                val gleamX = leadingX - gleamWidth / 2f
+                                drawRect(
+                                    brush = Brush.horizontalGradient(
+                                        colors = listOf(Color.Transparent, Color.White.copy(alpha = 0.28f), Color.Transparent),
+                                        startX = gleamX,
+                                        endX = gleamX + gleamWidth,
+                                    ),
+                                    topLeft = Offset(gleamX, 0f),
+                                    size = Size(gleamWidth, size.height),
                                 )
                             }
                         },
@@ -1029,41 +1063,6 @@ private fun DeleteIconButton(onClick: () -> Unit) {
         contentAlignment = Alignment.Center,
     ) {
         Icon(imageVector = Icons.Outlined.Delete, contentDescription = null, tint = Red400, modifier = Modifier.size(16.dp))
-    }
-}
-
-/** Straight diagonal boundary sweeping left-to-right as [progress] goes 0→1 — everything left of
- * the boundary is inside the returned path (see [clipPath] call site). Slanted like a single
- * cutter pass through taut cloth, for the routine "Potong Normal" completion. */
-private fun diagonalSplitPath(size: Size, progress: Float): Path {
-    val slant = size.height * 0.55f
-    val edgeX = size.width * progress
-    return Path().apply {
-        moveTo(0f, 0f)
-        lineTo(edgeX, 0f)
-        lineTo(edgeX - slant, size.height)
-        lineTo(0f, size.height)
-        close()
-    }
-}
-
-/** Zigzag boundary sweeping left-to-right as [progress] goes 0→1 — a "swatch clip" sampling snip
- * rather than a clean blade pass, for the "Potong Matching" quality-check completion. */
-private fun jaggedSplitPath(size: Size, progress: Float): Path {
-    val edgeX = size.width * progress
-    val teeth = 8
-    val toothH = size.height / teeth
-    val toothDepth = size.minDimension * 0.03f
-    return Path().apply {
-        moveTo(0f, 0f)
-        lineTo(edgeX, 0f)
-        for (i in 1..teeth) {
-            val y = (toothH * i).coerceAtMost(size.height)
-            val x = edgeX + (if (i % 2 == 0) toothDepth else -toothDepth)
-            lineTo(x, y)
-        }
-        lineTo(0f, size.height)
-        close()
     }
 }
 

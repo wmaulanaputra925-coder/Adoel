@@ -810,7 +810,12 @@ button:disabled {
   justify-content: center;
   border-radius: 14px;
   pointer-events: none;
-  animation: celebrate-wash 0.22s ease-out forwards;
+  /* Wash in, hold, then fade back out just as triggerDoff's 950ms timer hands the row to the
+     store and the card leaves the list — otherwise the panel sat frozen for half a second and
+     then vanished mid-frame with the reflow. Same timing as Android's celebrationFade. */
+  animation:
+    celebrate-wash 0.22s ease-out forwards,
+    celebrate-dismiss 0.19s ease-in 0.76s forwards;
 }
 .radar-card-celebrate.normal {
   background: linear-gradient(135deg, rgba(5, 150, 105, 0.92) 0%, rgba(16, 185, 129, 0.92) 100%);
@@ -828,6 +833,11 @@ button:disabled {
   }
   to {
     opacity: 1;
+  }
+}
+@keyframes celebrate-dismiss {
+  to {
+    opacity: 0;
   }
 }
 .radar-card-celebrate-content {
