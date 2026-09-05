@@ -41,6 +41,7 @@ interface DoffStore {
   resetDb: () => void;
   setThemeMode: (mode: ThemeMode) => void;
   setOnboardingSeen: () => void;
+  setOperator: (nama: string, grup: string) => void;
   addKeteranganShortcut: (shortcut: string) => void;
   removeKeteranganShortcut: (shortcut: string) => void;
   resetKeteranganShortcuts: () => void;
@@ -323,6 +324,10 @@ export function DoffStoreProvider({ children }: { children: ReactNode }) {
           endedAtEpochMin: started + 8 * 60,
           aktual: s.aktual,
           estimasiRemaining: {},
+          // Dicap sekarang, bukan dibaca saat laporannya dibagikan — kalau operator/grup di
+          // pengaturan berubah, arsip lama tetap atas nama orang yang benar-benar menjalankannya.
+          operatorNama: s.operatorNama ?? "",
+          operatorGrup: s.operatorGrup ?? "",
         };
         return {
           ...s,
@@ -352,7 +357,10 @@ export function DoffStoreProvider({ children }: { children: ReactNode }) {
 
   const resetDb = useCallback(() => {
     clearUndo();
-    setState(() => ({
+    // Identitas operator ikut dipertahankan seperti onboardingSeen: ini data diri pemakai, bukan
+    // data produksi, dan orangnya tidak berubah hanya karena data mesin dikembalikan ke bawaan.
+    // Kalau ponselnya memang berpindah tangan, namanya tinggal diganti di Pengaturan.
+    setState((s) => ({
       db: buildDefaultDb(),
       estimasi: {},
       aktual: [],
@@ -361,6 +369,8 @@ export function DoffStoreProvider({ children }: { children: ReactNode }) {
       history: [],
       nextShiftId: 1,
       onboardingSeen: true,
+      operatorNama: s.operatorNama ?? "",
+      operatorGrup: s.operatorGrup ?? "",
       keteranganShortcuts: DEFAULT_KETERANGAN_SHORTCUTS,
       corakShortcuts: DEFAULT_CORAK_SHORTCUTS,
     }));
@@ -372,6 +382,12 @@ export function DoffStoreProvider({ children }: { children: ReactNode }) {
 
   const setOnboardingSeen = useCallback(() => {
     setState((s) => ({ ...s, onboardingSeen: true }));
+  }, []);
+
+  /** Identitas operator — ditanyakan sekali saat pertama buka, lalu bisa diubah di Pengaturan.
+   * Dipakai teks bagikan; dicap ke arsip shift saat Selesai Shift ditekan. */
+  const setOperator = useCallback((nama: string, grup: string) => {
+    setState((s) => ({ ...s, operatorNama: nama.trim(), operatorGrup: grup.trim() }));
   }, []);
 
   const addKeteranganShortcut = useCallback((shortcut: string) => {
@@ -504,6 +520,7 @@ export function DoffStoreProvider({ children }: { children: ReactNode }) {
       resetDb,
       setThemeMode,
       setOnboardingSeen,
+      setOperator,
       addKeteranganShortcut,
       removeKeteranganShortcut,
       resetKeteranganShortcuts,
@@ -546,6 +563,7 @@ export function DoffStoreProvider({ children }: { children: ReactNode }) {
       resetDb,
       setThemeMode,
       setOnboardingSeen,
+      setOperator,
       addKeteranganShortcut,
       removeKeteranganShortcut,
       resetKeteranganShortcuts,

@@ -62,8 +62,16 @@ class DoffViewModel @JvmOverloads constructor(
         s.copy(db = s.db + (mcNo to default))
     }
 
-    fun resetDb() = updateState {
-        DoffState(db = buildDefaultDb(), onboardingSeen = false)
+    fun resetDb() = updateState { s ->
+        // Identitas operator ikut dipertahankan: ini data diri pemakai, bukan data produksi, dan
+        // orangnya tidak berubah hanya karena data mesin dikembalikan ke bawaan. Kalau ponselnya
+        // memang berpindah tangan, namanya tinggal diganti di Pengaturan.
+        DoffState(
+            db = buildDefaultDb(),
+            onboardingSeen = false,
+            operatorNama = s.operatorNama,
+            operatorGrup = s.operatorGrup,
+        )
     }
 
     fun prosesBarisKondisiMesin(ln: String, nowAbsMin: Long): ProsesResult {
@@ -307,6 +315,10 @@ class DoffViewModel @JvmOverloads constructor(
                 endedAtEpochMin = started + 480,
                 aktual = s.aktual,
                 estimasiRemaining = emptyMap(),
+                // Dicap sekarang, bukan dibaca saat laporannya dibagikan — kalau operator/grup di
+                // pengaturan berubah, arsip lama tetap atas nama orang yang menjalankannya.
+                operatorNama = s.operatorNama,
+                operatorGrup = s.operatorGrup,
             )
             return@updateState s.copy(
                 estimasi = emptyMap(),
@@ -326,6 +338,12 @@ class DoffViewModel @JvmOverloads constructor(
 
     fun setOnboardingSeen() = updateState { s ->
         s.copy(onboardingSeen = true)
+    }
+
+    /** Identitas operator — ditanyakan sekali saat pertama buka, lalu bisa diubah di Pengaturan.
+     * Dipakai teks bagikan; dicap ke arsip shift saat Selesai Shift ditekan. */
+    fun setOperator(nama: String, grup: String) = updateState { s ->
+        s.copy(operatorNama = nama.trim(), operatorGrup = grup.trim())
     }
 
     fun addKeteranganShortcut(shortcut: String) = updateState { s ->

@@ -4,11 +4,13 @@ import { useUiStore } from "../store/UiStore";
 import { DEFAULT_CORAK_POTONGAN_AWAL, DEFAULT_CORAK_SHORTCUTS, DEFAULT_KETERANGAN_SHORTCUTS } from "../domain/types";
 import {
   AddIcon,
+  BadgeIcon,
   BookOpenIcon,
   CloseIcon,
   DatabaseIcon,
   DeleteIcon,
   DownloadIcon,
+  EditIcon,
   InfoIcon,
   MonitorIcon,
   MoonIcon,
@@ -21,12 +23,14 @@ import {
   WarningIcon,
 } from "./Icons";
 import { AboutDialog } from "./AboutDialog";
+import { OperatorDialog } from "./OperatorDialog";
 
 export function SettingsScreen({ onClose, onOpenHelp }: { onClose: () => void; onOpenHelp: () => void }) {
   const {
     state,
     resetDb,
     setThemeMode,
+    setOperator,
     exportJson,
     importJson,
     addKeteranganShortcut,
@@ -41,6 +45,7 @@ export function SettingsScreen({ onClose, onOpenHelp }: { onClose: () => void; o
   } = useDoffStore();
   const { showToast, showConfirm } = useUiStore();
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [operatorEditing, setOperatorEditing] = useState(false);
   const [newShortcut, setNewShortcut] = useState("");
   const [newCorakShortcut, setNewCorakShortcut] = useState("");
   const [newPotonganAwal, setNewPotonganAwal] = useState("");
@@ -130,6 +135,42 @@ export function SettingsScreen({ onClose, onOpenHelp }: { onClose: () => void; o
 
       <div className="overlay-body" style={{ paddingBottom: 32 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          {/* Card: Identitas Operator — didata sekali saat pertama buka (OperatorDialog), diubah
+              dari sini kapan saja. Yang dibaca teks bagikan, bukan sekadar catatan: ditaruh
+              paling atas supaya operator yang laporannya "tanpa nama" langsung menemukan tempat
+              mengisinya. */}
+          <div className="settings-section-card">
+            <div className="settings-section-header">
+              <BadgeIcon size={16} />
+              <span>Identitas Operator</span>
+            </div>
+            <div className="settings-section-desc">Dicantumkan di kepala teks laporan yang dibagikan ke WhatsApp.</div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+              <div style={{ minWidth: 0 }}>
+                <div
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 800,
+                    color: state.operatorNama ? "var(--text-primary)" : "var(--text-faint)",
+                  }}
+                >
+                  {state.operatorNama || "Belum diisi"}
+                </div>
+                <div style={{ fontSize: 12, color: "var(--text-faint)" }}>
+                  {state.operatorGrup ? `Grup ${state.operatorGrup}` : "Grup belum diisi"}
+                </div>
+              </div>
+              <button
+                className="chip-btn"
+                onClick={() => setOperatorEditing(true)}
+                style={{ display: "inline-flex", alignItems: "center", gap: 5, flexShrink: 0 }}
+              >
+                <EditIcon size={13} />
+                <span>Ubah</span>
+              </button>
+            </div>
+          </div>
+
           {/* Card: Tema Aplikasi */}
           <div className="settings-section-card">
             <div className="settings-section-header">
@@ -634,6 +675,21 @@ export function SettingsScreen({ onClose, onOpenHelp }: { onClose: () => void; o
       </div>
 
       {aboutOpen && <AboutDialog onClose={() => setAboutOpen(false)} />}
+
+      {/* Dialog yang sama persis dengan yang muncul saat pertama kali aplikasi dibuka — satu
+          form, satu tempat perbaikannya kalau bidangnya bertambah. */}
+      {operatorEditing && (
+        <OperatorDialog
+          nama={state.operatorNama ?? ""}
+          grup={state.operatorGrup ?? ""}
+          onClose={() => setOperatorEditing(false)}
+          onSave={(nama, grup) => {
+            setOperator(nama, grup);
+            setOperatorEditing(false);
+            showToast("Identitas operator disimpan ✓");
+          }}
+        />
+      )}
     </div>
   );
 }

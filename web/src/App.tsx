@@ -13,6 +13,7 @@ import { ConfirmDialog } from "./components/ConfirmDialog";
 import { GuidedEstimasiSheet } from "./components/GuidedEstimasiSheet";
 import { GuidedDoffingSheet } from "./components/GuidedDoffingSheet";
 import { OnboardingDialog } from "./components/OnboardingDialog";
+import { OperatorDialog } from "./components/OperatorDialog";
 import { ShiftFinishedOverlay } from "./components/ShiftFinishedOverlay";
 import { SyncDialog } from "./components/SyncDialog";
 import { WaveProgressBar } from "./components/WaveProgressBar";
@@ -39,7 +40,7 @@ type Page = "RADAR" | "RIWAYAT";
 type Screen = "main" | "statistik" | "settings" | "mesin";
 
 function AppInner() {
-  const { state, setMesin, setOnboardingSeen, undo, redo, canUndo, canRedo } = useDoffStore();
+  const { state, setMesin, setOnboardingSeen, setOperator, undo, redo, canUndo, canRedo } = useDoffStore();
   const { showToast } = useUiStore();
   const { handleEstimasiSubmit, handleAktualSubmit, handleFinishShift } = useConsoleHandlers();
   const [page, setPage] = useState<Page>("RADAR");
@@ -50,6 +51,10 @@ function AppInner() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [syncOpen, setSyncOpen] = useState(false);
   const [autoQrDismissed, setAutoQrDismissed] = useState(false);
+  // "Sudah ditanya identitasnya di sesi ini" — tidak ikut disimpan karena pertanyaannya boleh
+  // dilewati: penanda first-launch sudah lewat tetap onboardingSeen, dan identitas yang kosong
+  // bisa diisi belakangan lewat Pengaturan.
+  const [operatorAsked, setOperatorAsked] = useState(false);
   const [showRemaining, setShowRemaining] = useState(false);
   const [actionsMenuOpen, setActionsMenuOpen] = useState(false);
   const [brandPulse, setBrandPulse] = useState(false);
@@ -58,6 +63,7 @@ function AppInner() {
 
   const isDbEmpty = useMemo(() => isMachineDataEmpty(state.db), [state.db]);
   const shouldShowAutoQr = !state.onboardingSeen && isDbEmpty && !autoQrDismissed;
+  const showOperatorAsk = !shouldShowAutoQr && !state.onboardingSeen && !operatorAsked;
 
   // Tema: SYSTEM mengikuti preferensi OS, DARK/LIGHT dipaksa lewat atribut di <html>.
   useEffect(() => {
@@ -399,7 +405,23 @@ function AppInner() {
 
       {syncOpen && !shouldShowAutoQr && <SyncDialog onClose={() => setSyncOpen(false)} />}
 
-      {!shouldShowAutoQr && (!state.onboardingSeen || helpOpen) && (
+      {/* Identitas operator ditanyakan di antara impor QR dan Panduan: setelah data mesin ada
+          (kalau memang diimpor) tapi sebelum walkthrough, jadi operator baru cukup sekali mengisi
+          dan teks bagikannya langsung bernama. Boleh dilewati — lihat OperatorDialog. */}
+      {showOperatorAsk && (
+        <OperatorDialog
+          nama={state.operatorNama ?? ""}
+          grup={state.operatorGrup ?? ""}
+          isFirstLaunch={true}
+          onClose={() => setOperatorAsked(true)}
+          onSave={(nama, grup) => {
+            setOperator(nama, grup);
+            setOperatorAsked(true);
+          }}
+        />
+      )}
+
+      {!shouldShowAutoQr && !showOperatorAsk && (!state.onboardingSeen || helpOpen) && (
         <OnboardingDialog
           onClose={() => {
             setOnboardingSeen();

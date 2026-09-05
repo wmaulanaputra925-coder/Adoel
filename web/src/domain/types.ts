@@ -38,6 +38,12 @@ export interface ShiftRecord {
   endedAtEpochMin: number;
   aktual: AktualEntry[];
   estimasiRemaining: Record<string, Estimasi>;
+  /** Operator & grup yang menutup shift ini, dicap saat diarsipkan — bukan dibaca ulang dari
+   * pengaturan saat laporannya dibagikan, supaya arsip lama tidak berganti nama pemilik ketika
+   * operator/grup di pengaturan berubah. Kosong untuk arsip yang dibuat sebelum ada pendataan
+   * ini; teks bagikannya sekadar tidak mencantumkan baris operator. */
+  operatorNama?: string;
+  operatorGrup?: string;
 }
 
 export type ThemeMode = "SYSTEM" | "LIGHT" | "DARK";
@@ -59,6 +65,11 @@ export interface DoffState {
   history: ShiftRecord[];
   nextShiftId: number;
   onboardingSeen: boolean;
+  /** Identitas operator pemakai aplikasi ini — ditanyakan sekali saat pertama kali dibuka dan
+   * bisa diubah kapan saja di Pengaturan. Ikut tercetak di teks bagikan supaya rekan yang
+   * membaca laporan di WhatsApp tahu laporan itu dari siapa tanpa harus bertanya. */
+  operatorNama?: string;
+  operatorGrup?: string;
   keteranganShortcuts?: string[];
   corakShortcuts?: string[];
   corakPotonganAwal?: string[];

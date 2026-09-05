@@ -45,6 +45,8 @@ private data class SerialState(
     val history: List<SerialShiftRecord>?,
     val nextShiftId: Int?,
     val onboardingSeen: Boolean?,
+    val operatorNama: String? = null,
+    val operatorGrup: String? = null,
     val keteranganShortcuts: List<String>? = null,
     val corakShortcuts: List<String>? = null,
     val corakPotonganAwal: List<String>? = null,
@@ -86,6 +88,8 @@ private data class SerialShiftRecord(
     val endedAtEpochMin: Long?,
     val aktual: List<SerialAktual>?,
     val estimasiRemaining: Map<String, SerialEstimasi>?,
+    val operatorNama: String? = null,
+    val operatorGrup: String? = null,
 )
 
 data class SyncEnvelope(
@@ -188,10 +192,14 @@ class DoffRepository private constructor(private val context: Context) : DoffSta
                             val startAbsMin = v.startAbsMin ?: return@mapNotNull null
                             safeMcNo to Estimasi(safeMcNo, estAbsMin, startAbsMin, v.corakOverride, v.yardOverride, v.pausedAtAbsMin)
                         }.toMap(),
+                        operatorNama = r.operatorNama.orEmpty(),
+                        operatorGrup = r.operatorGrup.orEmpty(),
                     )
                 },
                 nextShiftId = serial.nextShiftId ?: 1,
                 onboardingSeen = serial.onboardingSeen ?: true,
+                operatorNama = serial.operatorNama?.trim().orEmpty(),
+                operatorGrup = serial.operatorGrup?.trim().orEmpty(),
                 keteranganShortcuts = serial.keteranganShortcuts,
                 corakShortcuts = serial.corakShortcuts,
                 corakPotonganAwal = serial.corakPotonganAwal,
@@ -274,10 +282,14 @@ class DoffRepository private constructor(private val context: Context) : DoffSta
                     estimasiRemaining = r.estimasiRemaining.mapValues { (_, v) ->
                         SerialEstimasi(v.mcNo, v.estAbsMin, v.startAbsMin, v.corakOverride, v.yardOverride, v.pausedAtAbsMin)
                     },
+                    operatorNama = r.operatorNama,
+                    operatorGrup = r.operatorGrup,
                 )
             },
             nextShiftId = state.nextShiftId,
             onboardingSeen = state.onboardingSeen,
+            operatorNama = state.operatorNama,
+            operatorGrup = state.operatorGrup,
             keteranganShortcuts = state.keteranganShortcuts,
             corakShortcuts = state.corakShortcuts,
             corakPotonganAwal = state.corakPotonganAwal,

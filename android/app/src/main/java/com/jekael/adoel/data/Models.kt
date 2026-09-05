@@ -58,6 +58,12 @@ data class ShiftRecord(
     val endedAtEpochMin: Long,
     val aktual: List<AktualEntry> = emptyList(),
     val estimasiRemaining: Map<String, Estimasi> = emptyMap(),
+    /** Operator & grup yang menutup shift ini, dicap saat diarsipkan — bukan dibaca ulang dari
+     * pengaturan saat laporannya dibagikan, supaya arsip lama tidak berganti nama pemilik ketika
+     * operator/grup di pengaturan berubah. Kosong untuk arsip yang dibuat sebelum ada pendataan
+     * ini; teks bagikannya sekadar tidak mencantumkan baris operator. */
+    val operatorNama: String = "",
+    val operatorGrup: String = "",
 )
 
 val DEFAULT_KETERANGAN_SHORTCUTS = emptyList<String>()
@@ -81,6 +87,11 @@ data class DoffState(
     // field don't suddenly get the first-run tutorial — it's only explicitly set false in
     // DoffRepository.parseState()'s genuinely-fresh-install fallback (no persisted state at all).
     val onboardingSeen: Boolean = true,
+    /** Identitas operator pemakai aplikasi ini — ditanyakan sekali saat pertama kali dibuka dan
+     * bisa diubah kapan saja di Pengaturan. Ikut tercetak di teks bagikan supaya rekan yang
+     * membaca laporan di WhatsApp tahu laporan itu dari siapa tanpa harus bertanya. */
+    val operatorNama: String = "",
+    val operatorGrup: String = "",
     val keteranganShortcuts: List<String>? = null,
     val corakShortcuts: List<String>? = null,
     val corakPotonganAwal: List<String>? = null,

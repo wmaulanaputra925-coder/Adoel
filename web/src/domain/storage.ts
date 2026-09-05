@@ -67,6 +67,8 @@ export function parseBackupJson(json: string): DoffState | null {
     startedAtEpochMin: Number(r?.startedAtEpochMin) || 0,
     endedAtEpochMin: Number(r?.endedAtEpochMin) || 0,
     aktual: dedupeIds(Array.isArray(r?.aktual) ? r.aktual : []),
+    operatorNama: typeof r?.operatorNama === "string" ? r.operatorNama : "",
+    operatorGrup: typeof r?.operatorGrup === "string" ? r.operatorGrup : "",
     estimasiRemaining: Object.fromEntries(
       Object.entries((r?.estimasiRemaining as Record<string, any>) ?? {}).map(([mcNo, v]) => [
         mcNo,
@@ -106,6 +108,8 @@ export function parseBackupJson(json: string): DoffState | null {
     history,
     nextShiftId: Number(serial.nextShiftId) || 1,
     onboardingSeen: typeof serial.onboardingSeen === "boolean" ? serial.onboardingSeen : true,
+    operatorNama: typeof serial.operatorNama === "string" ? serial.operatorNama.trim() : "",
+    operatorGrup: typeof serial.operatorGrup === "string" ? serial.operatorGrup.trim() : "",
     keteranganShortcuts: rawShortcuts,
     corakShortcuts: rawCorakShortcuts,
     corakPotonganAwal: rawCorakPotonganAwal,
@@ -158,6 +162,8 @@ export function loadState(): DoffState {
     history: [],
     nextShiftId: 1,
     onboardingSeen: false,
+    operatorNama: "",
+    operatorGrup: "",
     keteranganShortcuts: DEFAULT_KETERANGAN_SHORTCUTS,
     corakShortcuts: DEFAULT_CORAK_SHORTCUTS,
     corakPotonganAwal: DEFAULT_CORAK_POTONGAN_AWAL,

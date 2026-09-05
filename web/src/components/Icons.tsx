@@ -508,6 +508,19 @@ export function TagIcon({ size = 16 }: IconProps) {
   );
 }
 
+/** Kartu identitas — dipakai kartu "Identitas Operator" di Pengaturan; padanan
+ * Icons.Outlined.Badge di sisi Android. */
+export function BadgeIcon({ size = 16 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="5" width="18" height="15" rx="2" />
+      <path d="M9 3h6v4H9z" />
+      <circle cx="9" cy="13" r="2" />
+      <path d="M14 12h4M14 16h4M6 17.5c.6-1.2 1.7-1.8 3-1.8s2.4.6 3 1.8" />
+    </svg>
+  );
+}
+
 export function RulerIcon({ size = 14 }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

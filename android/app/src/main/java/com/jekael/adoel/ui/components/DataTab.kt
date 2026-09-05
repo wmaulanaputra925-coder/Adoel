@@ -16,11 +16,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.outlined.Badge
 import androidx.compose.material.icons.outlined.Computer
 import androidx.compose.material.icons.outlined.ContentCut
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.outlined.RestartAlt
@@ -113,6 +115,7 @@ internal fun DataTab(
     headerHeight: Dp,
     onResetDb: () -> Unit,
     onSetThemeMode: (ThemeMode) -> Unit,
+    onSetOperator: (nama: String, grup: String) -> Unit,
     onExportJson: () -> String,
     onImport: (String) -> Unit,
     onAddKeteranganShortcut: (String) -> Unit,
@@ -134,6 +137,7 @@ internal fun DataTab(
     val scope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
 
+    var operatorEditing by remember { mutableStateOf(false) }
     var newKetInput by remember { mutableStateOf("") }
     var newCorakInput by remember { mutableStateOf("") }
     var newPotonganAwalInput by remember { mutableStateOf("") }
@@ -190,7 +194,39 @@ internal fun DataTab(
     ) {
         Spacer(Modifier.height(10.dp + headerHeight + Dimens.Space16))
 
-        // 1. Tema Tampilan
+        // 1. Identitas Operator — didata sekali saat pertama buka (OperatorDialog), diubah dari
+        // sini kapan saja. Yang dibaca teks bagikan, bukan sekadar catatan: ditaruh paling atas
+        // supaya operator yang laporannya "tanpa nama" langsung menemukan tempat mengisinya.
+        SectionCard {
+            SectionHeader(icon = Icons.Outlined.Badge, title = "Identitas Operator")
+            Text(
+                "Dicantumkan di kepala teks laporan yang dibagikan ke WhatsApp.",
+                style = AppType.Caption.copy(color = colors.textMuted),
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        state.operatorNama.ifBlank { "Belum diisi" },
+                        style = TextStyle(
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (state.operatorNama.isBlank()) colors.textFaint else colors.textPrimary,
+                        ),
+                    )
+                    Text(
+                        if (state.operatorGrup.isBlank()) "Grup belum diisi" else "Grup ${state.operatorGrup}",
+                        style = AppType.Caption.copy(color = colors.textFaint),
+                    )
+                }
+                ChipBtn("Ubah", selected = false, icon = Icons.Outlined.Edit) { operatorEditing = true }
+            }
+        }
+
+        // 2. Tema Tampilan
         SectionCard {
             SectionHeader(icon = Icons.Outlined.LightMode, title = "Tema Tampilan")
             Text(
@@ -204,7 +240,7 @@ internal fun DataTab(
             }
         }
 
-        // 2. Shortcut Keterangan
+        // 3. Shortcut Keterangan
         SectionCard {
             SectionHeader(
                 icon = Icons.Outlined.Sell,
@@ -329,7 +365,7 @@ internal fun DataTab(
             }
         }
 
-        // 3. Shortcut Kode Corak
+        // 4. Shortcut Kode Corak
         SectionCard {
             SectionHeader(
                 icon = Icons.Outlined.Texture,
@@ -576,7 +612,7 @@ internal fun DataTab(
             }
         }
 
-        // 4. Cadangan & Pemulihan
+        // 5. Cadangan & Pemulihan
         SectionCard {
             SectionHeader(icon = Icons.Outlined.Storage, title = "Cadangan & Pemulihan")
             Text(
@@ -614,7 +650,7 @@ internal fun DataTab(
             }
         }
 
-        // 5. Reset Data
+        // 6. Reset Data
         SectionCard {
             SectionHeader(icon = Icons.Outlined.WarningAmber, title = "Reset Data", danger = true)
             Text(
@@ -639,7 +675,7 @@ internal fun DataTab(
             }
         }
 
-        // 6. Bantuan & Informasi
+        // 7. Bantuan & Informasi
         SectionCard {
             SectionHeader(icon = Icons.Outlined.Info, title = "Bantuan & Informasi")
             Row(horizontalArrangement = Arrangement.spacedBy(Dimens.Space8)) {
@@ -669,6 +705,21 @@ internal fun DataTab(
         }
 
         Spacer(Modifier.height(Dimens.Space24))
+    }
+
+    // Dialog yang sama persis dengan yang muncul saat pertama kali aplikasi dibuka — satu form,
+    // satu tempat perbaikannya kalau bidangnya bertambah.
+    if (operatorEditing) {
+        OperatorDialog(
+            nama = state.operatorNama,
+            grup = state.operatorGrup,
+            onDismiss = { operatorEditing = false },
+            onSave = { nama, grup ->
+                onSetOperator(nama, grup)
+                operatorEditing = false
+                showToast("Identitas operator disimpan")
+            },
+        )
     }
 }
 

@@ -7,9 +7,12 @@ import java.util.TimeZone
 
 /**
  * Golden-fixture test untuk teks Bagikan (WhatsApp) — format laporan, ditujukan ke rekan kerja di
- * lantai produksi. Fixture di bawah ditulis dari keluaran kode SEBELUM dipindah ke fungsi murni ini
- * (shareHistory di DoffingSection.kt lama, shareShift di StatistikScreen.kt lama) — supaya
- * pemindahan kode tidak diam-diam mengubah pesan yang dibaca orang lain.
+ * lantai produksi. Pesannya dibaca orang lain, jadi setiap perubahan bentuknya harus disengaja dan
+ * terlihat di diff, bukan efek samping refactor.
+ *
+ * Dua hal yang dijaga fixture ini secara khusus: (1) tidak ada penanda tebal di baris daftar —
+ * WhatsApp tidak pernah memformatnya, bintangnya justru ikut terbaca; (2) mesin operan TIDAK ikut
+ * dijumlahkan ke total shift ini, cuma disebut di baris terpisah.
  */
 class ShareTextTest {
 
@@ -39,19 +42,22 @@ class ShareTextTest {
             estimasi = mapOf(
                 "76" to Estimasi("76", estAbsMin = epochMin(2026, 1, 15, 16, 20), startAbsMin = epochMin(2026, 1, 15, 15, 0)),
             ),
+            operatorNama = "Wahyu",
+            operatorGrup = "B",
         )
         val nowMillis = epochMin(2026, 1, 15, 12, 0) * 60000L
 
         val text = buildShareHistoryText(state, nowMillis, wib)
 
-        val expected = "*UPDATE DOFFING AKTIF*\n📅 15/01/2026\n$divider\n\n" +
-            "✅ *Selesai (2 doff)*\n" +
-            "1. *Mc 29* – 34758 (303y) · 10.00\n" +
-            "2. *Mc 61* – 60357 (120y) · 11.00 (HB)\n\n" +
-            "📤 *Operan Shift Berikutnya (1 mc)*\n" +
-            "• *Mc 76* – 21242 (165y) · Est. 16.20\n" +
+        val expected = "*UPDATE DOFFING AKTIF*\n15/01/2026 · Shift 1\nOperator: Wahyu · Grup B\n$divider\n\n" +
+            "*Selesai (2 doff)*\n" +
+            "1. Mc 29 – 34758 (303y) · 10.00\n" +
+            "2. Mc 61 – 60357 (120y) · 11.00 (HB)\n\n" +
+            "*Operan shift berikutnya (1 mc)*\n" +
+            "• Mc 76 – 21242 (165y) · Est. 16.20\n\n" +
             "$divider\n" +
-            "📊 *Total: 2 selesai + 1 berjalan = 3 mc*"
+            "*Total shift ini: 2 doff*\n" +
+            "Operan ke shift berikutnya: 1 mc (di luar total)"
         assertEquals(expected, text)
     }
 
@@ -66,9 +72,10 @@ class ShareTextTest {
 
         val text = buildShareHistoryText(state, nowMillis, wib)
 
-        val expected = "*UPDATE DOFFING AKTIF*\n📅 15/01/2026\n$divider\n\n" +
-            "✅ *Selesai (1 doff)*\n1. *Mc 29* – 34758 · 10.00\n" +
-            "$divider\n📊 *Total: 1 doff*"
+        // Tanpa identitas operator: barisnya sekadar tidak dicetak, bukan dicetak kosong.
+        val expected = "*UPDATE DOFFING AKTIF*\n15/01/2026 · Shift 1\n$divider\n\n" +
+            "*Selesai (1 doff)*\n1. Mc 29 – 34758 · 10.00\n\n" +
+            "$divider\n*Total shift ini: 1 doff*"
         assertEquals(expected, text)
     }
 
@@ -79,9 +86,9 @@ class ShareTextTest {
 
         val text = buildShareHistoryText(state, nowMillis, wib)
 
-        val expected = "*UPDATE DOFFING AKTIF*\n📅 15/01/2026\n$divider\n\n" +
-            "✅ *Selesai (0 doff)*\n\n" +
-            "$divider\n📊 *Total: 0 doff*"
+        val expected = "*UPDATE DOFFING AKTIF*\n15/01/2026 · Shift 3\n$divider\n\n" +
+            "*Selesai (0 doff)*\n\n" +
+            "$divider\n*Total shift ini: 0 doff*"
         assertEquals(expected, text)
     }
 
@@ -96,15 +103,18 @@ class ShareTextTest {
                 AktualEntry(id = 2, mcNo = "61", jam = "11.00", ket = "11.00(HB)", customYard = 120.0),
                 AktualEntry(id = 1, mcNo = "61", jam = "07.00", ket = "07.00"),
             ),
+            // Dicap saat shift diarsipkan — laporan lama tetap atas nama yang menjalankannya.
+            operatorNama = "Wahyu",
+            operatorGrup = "B",
         )
 
         val text = buildShareShiftText(shift, db, wib)
 
-        val expected = "*LAPORAN SHIFT 1*\n📅 15/01/2026\n$divider\n\n" +
-            "✅ *Selesai (2 doff)*\n" +
-            "1. *Mc 61* – 60357 (303y) · 07.00\n" +
-            "2. *Mc 61* – 60357 (120y) · 11.00 (HB)\n" +
-            "$divider\n📊 *Total: 2 doff*"
+        val expected = "*LAPORAN SHIFT 1*\n15/01/2026\nOperator: Wahyu · Grup B\n$divider\n\n" +
+            "*Selesai (2 doff)*\n" +
+            "1. Mc 61 – 60357 (303y) · 07.00\n" +
+            "2. Mc 61 – 60357 (120y) · 11.00 (HB)\n\n" +
+            "$divider\n*Total: 2 doff*"
         assertEquals(expected, text)
     }
 }
