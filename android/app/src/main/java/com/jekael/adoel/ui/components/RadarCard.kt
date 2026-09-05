@@ -125,6 +125,9 @@ fun RadarCard(
     // rather than one tap target guessing which the operator meant (Master Blueprint v9.2 §2).
     onQuickEdit: () -> Unit,
     onEditWaktu: () -> Unit,
+    // Tali Hijau: one-tap toggle for Estimasi.isMatching, always reachable from the type row
+    // regardless of urgency/badge state (see the toggle icon further down).
+    onToggleMatching: () -> Unit,
     modifier: Modifier = Modifier,
     entranceDelayMs: Long = 0L,
     clashingMcNos: List<String> = emptyList(),
@@ -313,8 +316,13 @@ fun RadarCard(
         if (swipeArmed) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
     }
 
-    fun triggerDoff(kind: DoffCompletionKind) {
+    fun triggerDoff(rawKind: DoffCompletionKind) {
         if (completing) return
+
+        // Tali Hijau: a machine tagged isMatching always doffs as Matching, no matter which
+        // direction actually fired the swipe (or which button) — the operator already decided
+        // this back at shift start, so nothing here should ask them to choose again.
+        val kind = if (est.isMatching) DoffCompletionKind.MATCHING else rawKind
 
         fun startAnim() {
             completingKind = kind
@@ -342,7 +350,11 @@ fun RadarCard(
             }
         }
 
-        if (kind == DoffCompletionKind.MATCHING && guardDoffMatching != null) {
+        // The potongan-awal-70y reminder only makes sense when the operator is choosing Matching
+        // right now, in front of the machine — skip it for a Tali Hijau tag, since that choice
+        // (and its yard) was already made and prepared back at tag time (see
+        // DoffViewModel.toggleEstimasiMatching).
+        if (kind == DoffCompletionKind.MATCHING && guardDoffMatching != null && !est.isMatching) {
             // Snap the card back to neutral right away instead of optimistically sliding it off —
             // guardDoffMatching may show a confirm dialog, and if the operator cancels there'd be
             // nothing left to undo the slide-out with. startAnim only runs if/when the guard calls
@@ -558,13 +570,13 @@ fun RadarCard(
                             modifier = Modifier.weight(1f),
                             verticalArrangement = Arrangement.spacedBy(3.dp),
                         ) {
-                            if (clashingMcNos.isNotEmpty() || shiftHandover) {
+                            if (clashingMcNos.isNotEmpty() || shiftHandover || est.isMatching) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     // Bentrok is the only weighted child here, so it gets the room
                                     // it actually needs (ellipsizing only when a long clash list
-                                    // genuinely won't fit) while SpaceBetween keeps OPERAN SHIFT
-                                    // flush right — web's margin-left:auto for that same badge.
+                                    // genuinely won't fit) while SpaceBetween keeps the right-side
+                                    // badges flush right — web's margin-left:auto for those badges.
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
@@ -577,16 +589,28 @@ fun RadarCard(
                                         )
                                     } else {
                                         // Zero-width stand-in: SpaceBetween needs two children to
-                                        // have anything to push apart, or a lone shift badge would
+                                        // have anything to push apart, or the right-side badges would
                                         // sit at the start instead of the far edge.
                                         Spacer(Modifier)
                                     }
-                                    if (shiftHandover) {
-                                        RadarCardBadge(
-                                            icon = Icons.Outlined.SwapHoriz,
-                                            text = "OPERAN SHIFT",
-                                            accent = Orange400,
-                                        )
+                                    Row(horizontalArrangement = Arrangement.spacedBy(Dimens.Space4)) {
+                                        // Tali Hijau: tagged well before doffing time, so it needs to
+                                        // stay visible at a glance the whole time it's set — not just
+                                        // flash at doff, like the swipe-direction celebration does.
+                                        if (est.isMatching) {
+                                            RadarCardBadge(
+                                                icon = Icons.Outlined.AutoAwesome,
+                                                text = "TALI HIJAU · MATCHING",
+                                                accent = Emerald500,
+                                            )
+                                        }
+                                        if (shiftHandover) {
+                                            RadarCardBadge(
+                                                icon = Icons.Outlined.SwapHoriz,
+                                                text = "OPERAN SHIFT",
+                                                accent = Orange400,
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -628,6 +652,31 @@ fun RadarCard(
                                         contentDescription = null,
                                         tint = clr.labelColor,
                                         modifier = Modifier.size(15.dp).padding(bottom = Dimens.Space4),
+                                    )
+                                }
+                                // Tali Hijau: always reachable in one tap, unlike the badge above
+                                // (which only appears once the tag is on) — this is where the
+                                // operator actually sets/clears the tag while walking the floor.
+                                Box(
+                                    modifier = Modifier
+                                        .padding(bottom = Dimens.Space4)
+                                        .size(20.dp)
+                                        .clip(CircleShape)
+                                        .clickable(
+                                            onClickLabel = if (est.isMatching) {
+                                                "Lepas penanda Tali Hijau Mc ${est.mcNo}"
+                                            } else {
+                                                "Tandai Mc ${est.mcNo} Tali Hijau · Matching"
+                                            },
+                                            onClick = onToggleMatching,
+                                        ),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.AutoAwesome,
+                                        contentDescription = null,
+                                        tint = if (est.isMatching) Emerald500 else colors.textFaint,
+                                        modifier = Modifier.size(14.dp),
                                     )
                                 }
                             }

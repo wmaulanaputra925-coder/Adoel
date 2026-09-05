@@ -185,6 +185,23 @@ internal class MainScreenHandlers(
         uiVm.showToast("Mc $mcNo dilanjutkan")
     }
 
+    /** Tali Hijau: RadarCard's always-visible one-tap toggle. No confirm dialog and no reminder
+     * reschedule — isMatching never touches estAbsMin, only which flavor of doff gets forced at
+     * DoffViewModel.prosesBarisUmum once the machine's time actually comes. */
+    fun handleToggleMatching(mcNo: String) {
+        val prevEst = doffVm.state.value.estimasi[mcNo] ?: return
+        doffVm.toggleEstimasiMatching(mcNo)
+        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        val nowMatching = doffVm.state.value.estimasi[mcNo]?.isMatching == true
+        undoRedo.push(
+            UndoableAction(
+                undo = { doffVm.restoreEstimasi(prevEst) },
+                redo = { doffVm.toggleEstimasiMatching(mcNo) },
+            ),
+        )
+        uiVm.showToast(if (nowMatching) "Mc $mcNo ditandai Tali Hijau" else "Penanda Tali Hijau Mc $mcNo dilepas")
+    }
+
     fun handleHapusAktual(id: Int, onCleared: () -> Unit) {
         val entry = doffVm.state.value.aktual.find { it.id == id } ?: return
         uiVm.showConfirm("Hapus riwayat Mc ${entry.mcNo}?") {

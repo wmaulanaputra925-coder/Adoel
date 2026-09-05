@@ -79,6 +79,9 @@ export function prosesBarisKondisiMesin(state: DoffState, ln: string, now: numbe
     corakOverride: existing?.corakOverride ?? null,
     yardOverride: existing?.yardOverride ?? null,
     pausedAtAbsMin: null,
+    // Tali Hijau menandai beam, bukan jam estimasi — koreksi durasi pada mesin yang sudah
+    // ditandai tidak boleh diam-diam melepas penandaannya.
+    isMatching: existing?.isMatching ?? false,
   };
   const newState: DoffState = { ...state, estimasi: { ...state.estimasi, [mcNo]: newEst } };
 
@@ -118,17 +121,29 @@ export function prosesBarisUmum(state: DoffState, ln: string): CommandOutcome {
     ketTokens.push(token);
   }
 
-  const extra = standarisasiKeterangan(ketTokens.join(" ").trim());
-  const ket = extra.length > 0 ? `${jam}(${extra})` : jam;
-
   const prevEst = state.estimasi[mcNo] ?? null;
   const effectiveCorak = prevEst?.corakOverride ?? mesin.corak;
 
-  // Doffing Matching pada corak potongan awal memotong 70 yard pertama, bukan sepanjang target
-  // standar mesin — tanpa ini Riwayat mencatat panjang standar (mis. 303y) untuk potongan yang
-  // nyatanya 70y. Yard yang diketik operator selalu menang.
-  if (customYard === null && extra.includes("MATCHING") && isPotonganAwalCorak(state, effectiveCorak)) {
-    customYard = POTONGAN_AWAL_YARD;
+  const rawExtra = standarisasiKeterangan(ketTokens.join(" ").trim());
+  // Tali hijau: operator sudah menandai mesin ini Matching sebelum waktunya doffing (lihat
+  // Estimasi.isMatching) — begitu waktunya tiba, aksi doff APA PUN (swipe biasa, tombol
+  // Doffing, command yang diketik manual) langsung tercatat sebagai Matching juga, supaya
+  // operator tidak perlu memilih ulang di depan mesin. Menang atas ketTokens yang diketik —
+  // penanda ini dipasang justru supaya operator tidak perlu berpikir lagi saat itu.
+  const extra = prevEst?.isMatching ? "MATCHING" : rawExtra;
+  const ket = extra.length > 0 ? `${jam}(${extra})` : jam;
+
+  // Doffing Matching memotong 70 yard pertama, bukan sepanjang target standar mesin — tanpa ini
+  // Riwayat mencatat panjang standar (mis. 303y) untuk potongan yang nyatanya 70y. Yard yang
+  // diketik operator selalu menang. Tali hijau pakai yardOverride yang sudah disiapkan saat
+  // penanda dipasang; corak potongan awal biasa (tanpa penanda manual) tetap pakai default 70y
+  // yang sama.
+  if (customYard === null && extra.includes("MATCHING")) {
+    if (prevEst?.isMatching) {
+      customYard = prevEst.yardOverride ?? POTONGAN_AWAL_YARD;
+    } else if (isPotonganAwalCorak(state, effectiveCorak)) {
+      customYard = POTONGAN_AWAL_YARD;
+    }
   }
 
   const entryId = state.nextId;

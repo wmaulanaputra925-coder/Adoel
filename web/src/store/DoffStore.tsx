@@ -6,7 +6,7 @@ import { parseJam } from "../domain/parse";
 import { loadState, parseBackupJson, saveState, serializeState } from "../domain/storage";
 import { processScannedQr } from "../domain/sync";
 import type { AktualEntry, DoffState, Estimasi, MesinData, ProsesResult, ShiftRecord, ThemeMode } from "../domain/types";
-import { DEFAULT_CORAK_POTONGAN_AWAL, DEFAULT_CORAK_SHORTCUTS, DEFAULT_KETERANGAN_SHORTCUTS } from "../domain/types";
+import { DEFAULT_CORAK_POTONGAN_AWAL, DEFAULT_CORAK_SHORTCUTS, DEFAULT_KETERANGAN_SHORTCUTS, POTONGAN_AWAL_YARD } from "../domain/types";
 
 // Retensi riwayat: 30 HARI KALENDER (bukan jumlah shift) — sama seperti
 // HISTORY_RETENTION_DAYS di DoffViewModel.kt.
@@ -28,6 +28,7 @@ interface DoffStore {
   restoreEstimasi: (est: Estimasi) => void;
   pauseEstimasi: (mcNo: string) => void;
   resumeEstimasi: (mcNo: string) => void;
+  toggleEstimasiMatching: (mcNo: string) => void;
   hapusAktualById: (id: number) => void;
   restoreAktual: (entry: AktualEntry) => void;
   hapusShift: (id: number) => void;
@@ -161,6 +162,21 @@ export function DoffStoreProvider({ children }: { children: ReactNode }) {
         ...s,
         estimasi: { ...s.estimasi, [mcNo]: { ...est, estAbsMin: est.estAbsMin + pausedFor, pausedAtAbsMin: null } },
       };
+    });
+  }, []);
+
+  // Tali Hijau: menyalakan/mematikan penanda Matching di Mc mcNo — no-op kalau
+  // estimasinya sudah tidak ada lagi (mis. sudah keburu didoffing). Menyalakan penanda
+  // otomatis mengisi yardOverride ke panjang sampel Matching (POTONGAN_AWAL_YARD) kalau
+  // operator belum mengatur target yard sendiri untuk mesin ini; mematikannya tidak
+  // menyentuh yardOverride yang sudah ada (operator mungkin sudah mengetiknya manual).
+  const toggleEstimasiMatching = useCallback((mcNo: string) => {
+    setState((s) => {
+      const est = s.estimasi[mcNo];
+      if (!est) return s;
+      const next = !est.isMatching;
+      const yardOverride = next && est.yardOverride === null ? POTONGAN_AWAL_YARD : est.yardOverride;
+      return { ...s, estimasi: { ...s.estimasi, [mcNo]: { ...est, isMatching: next, yardOverride } } };
     });
   }, []);
 
@@ -515,6 +531,7 @@ export function DoffStoreProvider({ children }: { children: ReactNode }) {
       restoreEstimasi,
       pauseEstimasi,
       resumeEstimasi,
+      toggleEstimasiMatching,
       hapusAktualById,
       restoreAktual,
       hapusShift,
@@ -559,6 +576,7 @@ export function DoffStoreProvider({ children }: { children: ReactNode }) {
       restoreEstimasi,
       pauseEstimasi,
       resumeEstimasi,
+      toggleEstimasiMatching,
       hapusAktualById,
       restoreAktual,
       hapusShift,

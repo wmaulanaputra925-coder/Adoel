@@ -14,8 +14,8 @@ function fullState(): DoffState {
       "79": { tipe: "D408", corak: "60357", targetYard: 303, speed: null, koreksi: 18 },
     },
     estimasi: {
-      "29": { mcNo: "29", estAbsMin: 29_726_400, startAbsMin: 29_726_300, corakOverride: null, yardOverride: null, pausedAtAbsMin: null },
-      "61": { mcNo: "61", estAbsMin: 29_726_500, startAbsMin: 29_726_310, corakOverride: "99999", yardOverride: 250, pausedAtAbsMin: null },
+      "29": { mcNo: "29", estAbsMin: 29_726_400, startAbsMin: 29_726_300, corakOverride: null, yardOverride: null, pausedAtAbsMin: null, isMatching: false },
+      "61": { mcNo: "61", estAbsMin: 29_726_500, startAbsMin: 29_726_310, corakOverride: "99999", yardOverride: 250, pausedAtAbsMin: null, isMatching: true },
     },
     aktual: [
       { id: 7, mcNo: "76", jam: "13.49", ket: "13.49(HB)", corakOverride: null, customYard: 116, tsEpochMin: 29_726_329 },
@@ -30,7 +30,7 @@ function fullState(): DoffState {
         endedAtEpochMin: 29_726_441,
         aktual: [{ id: 5, mcNo: "61", jam: "10.00", ket: "10.00", corakOverride: null, customYard: null, tsEpochMin: null }],
         estimasiRemaining: {
-          "79": { mcNo: "79", estAbsMin: 29_726_600, startAbsMin: 29_726_000, corakOverride: null, yardOverride: null, pausedAtAbsMin: null },
+          "79": { mcNo: "79", estAbsMin: 29_726_600, startAbsMin: 29_726_000, corakOverride: null, yardOverride: null, pausedAtAbsMin: null, isMatching: false },
         },
         operatorNama: "Wahyu",
         operatorGrup: "B",
@@ -73,6 +73,12 @@ describe("parseBackupJson", () => {
     // Beda dari corakShortcuts (default []): backup lama tanpa field ini masih dapat aturan
     // kualitas 3-corak standar, bukan daftar kosong yang mematikan pengingatnya diam-diam.
     expect(p.corakPotonganAwal).toEqual(["80125", "21242", "66335"]);
+  });
+
+  it("JSON lama tanpa isMatching → default false, bukan undefined", () => {
+    const json =
+      '{"db":{"29":{"tipe":"TAPPET","corak":"34758"}},"estimasi":{"29":{"mcNo":"29","estAbsMin":100,"startAbsMin":50}},"aktual":[],"nextId":1}';
+    expect(parseBackupJson(json)!.estimasi["29"].isMatching).toBe(false);
   });
 
   it("id aktual duplikat di-reassign, bukan dibuang", () => {

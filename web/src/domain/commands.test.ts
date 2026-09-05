@@ -61,6 +61,30 @@ describe("prosesBarisKondisiMesin (estimasi)", () => {
     const r = prosesBarisKondisiMesin(s, "10 45", 1000);
     expect(r.result.ok).toBe(false);
   });
+
+  // Tali Hijau menandai beam, bukan jam estimasi — mengoreksi durasi (mis. salah ketik) pada
+  // mesin yang sudah ditandai tidak boleh diam-diam melepas penandaannya.
+  it("isMatching dipertahankan lintas koreksi estimasi mesin yang sama", () => {
+    const s = baseState();
+    s.estimasi["29"] = {
+      mcNo: "29",
+      estAbsMin: 900,
+      startAbsMin: 800,
+      corakOverride: null,
+      yardOverride: 70,
+      pausedAtAbsMin: null,
+      isMatching: true,
+    };
+    const r = prosesBarisKondisiMesin(s, "29 45", 1000);
+    expect(r.result.ok).toBe(true);
+    expect(r.newState.estimasi["29"].isMatching).toBe(true);
+    expect(r.newState.estimasi["29"].yardOverride).toBe(70);
+  });
+
+  it("isMatching baku false untuk estimasi baru", () => {
+    const r = prosesBarisKondisiMesin(baseState(), "29 45", 1000);
+    expect(r.newState.estimasi["29"].isMatching).toBe(false);
+  });
 });
 
 describe("prosesBarisKondisiMesin — D408 (butuh waktu tetap)", () => {
@@ -128,6 +152,58 @@ describe("prosesBarisUmum (doff/aktual)", () => {
     s.db["76"] = mesin({ tipe: "CAM", corak: "21242", targetYard: 165 });
     const r = prosesBarisUmum(s, "76 matching 40");
     expect(r.newState.aktual[0].customYard).toBe(40);
+  });
+
+  // Tali Hijau: operator sudah menandai mesin ini Matching sebelum waktunya doffing — aksi doff
+  // apa pun (swipe biasa, command polos) langsung tercatat sebagai Matching juga, tanpa perlu
+  // ketterangan "matching" diketik ulang.
+  it("Tali Hijau: doff polos pada mesin isMatching tetap tercatat MATCHING", () => {
+    const s = baseState();
+    s.estimasi["29"] = {
+      mcNo: "29",
+      estAbsMin: 900,
+      startAbsMin: 800,
+      corakOverride: null,
+      yardOverride: 70,
+      pausedAtAbsMin: null,
+      isMatching: true,
+    };
+    const r = prosesBarisUmum(s, "29");
+    expect(r.result.ok).toBe(true);
+    expect(r.newState.aktual[0].ket).toContain("(MATCHING)");
+    expect(r.newState.aktual[0].customYard).toBe(70);
+  });
+
+  it("Tali Hijau: yard yang diketik operator tetap menang atas yardOverride tag", () => {
+    const s = baseState();
+    s.estimasi["29"] = {
+      mcNo: "29",
+      estAbsMin: 900,
+      startAbsMin: 800,
+      corakOverride: null,
+      yardOverride: 70,
+      pausedAtAbsMin: null,
+      isMatching: true,
+    };
+    const r = prosesBarisUmum(s, "29 55");
+    expect(r.newState.aktual[0].ket).toContain("(MATCHING)");
+    expect(r.newState.aktual[0].customYard).toBe(55);
+  });
+
+  it("Tali Hijau: keterangan lain yang diketik diabaikan, tetap tercatat MATCHING", () => {
+    const s = baseState();
+    s.estimasi["29"] = {
+      mcNo: "29",
+      estAbsMin: 900,
+      startAbsMin: 800,
+      corakOverride: null,
+      yardOverride: null,
+      pausedAtAbsMin: null,
+      isMatching: true,
+    };
+    const r = prosesBarisUmum(s, "29 hb");
+    expect(r.newState.aktual[0].ket).toContain("(MATCHING)");
+    expect(r.newState.aktual[0].ket).not.toContain("HB");
   });
 
   it("paritas Android: '<mc> c <bacaan>' D408 dicatat sebagai DOFF, bukan update estimasi", () => {

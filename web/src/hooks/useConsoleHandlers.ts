@@ -13,7 +13,20 @@ function vibrate(pattern: number | number[]) {
  * itu (ketik nomor mesin vs swipe/tekan-tahan kartu) berbagi persis perilaku yang sama. */
 export function useConsoleHandlers() {
   const store = useDoffStore();
-  const { state, submitEstimasi, submitAktual, hapusEstimasi, restoreEstimasi, pauseEstimasi, resumeEstimasi, hapusAktualById, restoreAktual, finishShift, pushUndo } = store;
+  const {
+    state,
+    submitEstimasi,
+    submitAktual,
+    hapusEstimasi,
+    restoreEstimasi,
+    pauseEstimasi,
+    resumeEstimasi,
+    toggleEstimasiMatching,
+    hapusAktualById,
+    restoreAktual,
+    finishShift,
+    pushUndo,
+  } = store;
   const { showToast, showConfirm } = useUiStore();
 
   function flashError(msg: string) {
@@ -125,6 +138,22 @@ export function useConsoleHandlers() {
     showToast(`Mc ${mcNo} dilanjutkan`);
   }
 
+  /** Tali Hijau: RadarCard's always-visible one-tap toggle. No confirm dialog and no reminder
+   * reschedule — isMatching never touches estAbsMin, only which flavor of doff gets forced at
+   * commands.ts prosesBarisUmum once the machine's time actually comes. */
+  function handleToggleMatching(mcNo: string) {
+    const prevEst = state.estimasi[mcNo];
+    if (!prevEst) return;
+    toggleEstimasiMatching(mcNo);
+    vibrate(20);
+    pushUndo({
+      undo: () => restoreEstimasi(prevEst),
+      redo: () => toggleEstimasiMatching(mcNo),
+    });
+    const nowMatching = !prevEst.isMatching;
+    showToast(nowMatching ? `Mc ${mcNo} ditandai Tali Hijau` : `Penanda Tali Hijau Mc ${mcNo} dilepas`);
+  }
+
   function handleHapusAktual(id: number, onCleared?: () => void) {
     const entry = state.aktual.find((a) => a.id === id);
     if (!entry) return;
@@ -170,6 +199,7 @@ export function useConsoleHandlers() {
     handleHapusEst,
     handleJeda,
     handleLanjutkan,
+    handleToggleMatching,
     handleHapusAktual,
     handleFinishShift,
     flashError,

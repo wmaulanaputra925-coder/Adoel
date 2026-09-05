@@ -116,6 +116,9 @@ class DoffViewModel @JvmOverloads constructor(
             startAbsMin = existing?.startAbsMin ?: nowAbsMin,
             corakOverride = existing?.corakOverride,
             yardOverride = existing?.yardOverride,
+            // Tali Hijau tags the beam, not the time estimate — re-timing an already-tagged
+            // machine (mistyped duration, corrected reading) shouldn't silently untag it.
+            isMatching = existing?.isMatching ?: false,
         )
         updateState { s -> s.copy(estimasi = s.estimasi + (mcNo to newEst)) }
 
@@ -152,19 +155,29 @@ class DoffViewModel @JvmOverloads constructor(
             ketTokens.add(token)
         }
 
-        val extra = standarisasiKeterangan(ketTokens.joinToString(" ").trim())
-        val ket = if (extra.isNotEmpty()) "$jam($extra)" else jam
-
         val prevEst = _state.value.estimasi[mcNo]
         val effectiveCorak = prevEst?.corakOverride ?: mesin.corak
 
-        // Doffing Matching pada corak potongan awal memotong 70 yard pertama, bukan sepanjang
-        // target standar mesin — tanpa ini Riwayat mencatat panjang standar (mis. 303y) untuk
-        // potongan yang nyatanya 70y. Yard yang diketik operator selalu menang.
-        if (customYard == null && extra.contains("MATCHING") &&
-            isPotonganAwalCorak(_state.value.corakPotonganAwal, effectiveCorak)
-        ) {
-            customYard = POTONGAN_AWAL_YARD
+        val rawExtra = standarisasiKeterangan(ketTokens.joinToString(" ").trim())
+        // Tali hijau: operator sudah menandai mesin ini Matching sebelum waktunya doffing (lihat
+        // Estimasi.isMatching) — begitu waktunya tiba, aksi doff APA PUN (swipe biasa, tombol
+        // Doffing, command yang diketik manual) langsung tercatat sebagai Matching juga, supaya
+        // operator tidak perlu memilih ulang di depan mesin. Menang atas ketTokens yang diketik —
+        // penanda ini dipasang justru supaya operator tidak perlu berpikir lagi saat itu.
+        val extra = if (prevEst?.isMatching == true) "MATCHING" else rawExtra
+        val ket = if (extra.isNotEmpty()) "$jam($extra)" else jam
+
+        // Doffing Matching memotong 70 yard pertama, bukan sepanjang target standar mesin — tanpa
+        // ini Riwayat mencatat panjang standar (mis. 303y) untuk potongan yang nyatanya 70y. Yard
+        // yang diketik operator selalu menang. Tali hijau pakai yardOverride yang sudah disiapkan
+        // saat penanda dipasang; corak potongan awal biasa (tanpa penanda manual) tetap pakai
+        // default 70y yang sama.
+        if (customYard == null && extra.contains("MATCHING")) {
+            customYard = when {
+                prevEst?.isMatching == true -> prevEst.yardOverride ?: POTONGAN_AWAL_YARD
+                isPotonganAwalCorak(_state.value.corakPotonganAwal, effectiveCorak) -> POTONGAN_AWAL_YARD
+                else -> null
+            }
         }
 
         var entryId = 0
@@ -225,6 +238,18 @@ class DoffViewModel @JvmOverloads constructor(
         val pausedAt = est.pausedAtAbsMin ?: return@updateState s
         val pausedFor = nowAbsMin() - pausedAt
         s.copy(estimasi = s.estimasi + (mcNo to est.copy(estAbsMin = est.estAbsMin + pausedFor, pausedAtAbsMin = null)))
+    }
+
+    /** Tali Hijau: switches Mc [mcNo]'s Matching tag on/off — a no-op if the estimate no longer
+     * exists (e.g. already doffed out from under a pending tap). Switching it on auto-fills
+     * yardOverride with the Matching sample length (POTONGAN_AWAL_YARD) if the operator hasn't
+     * already set a target yard for this machine; switching it off leaves yardOverride untouched
+     * (it may have been typed in manually). */
+    fun toggleEstimasiMatching(mcNo: String) = updateState { s ->
+        val est = s.estimasi[mcNo] ?: return@updateState s
+        val next = !est.isMatching
+        val yardOverride = if (next && est.yardOverride == null) POTONGAN_AWAL_YARD else est.yardOverride
+        s.copy(estimasi = s.estimasi + (mcNo to est.copy(isMatching = next, yardOverride = yardOverride)))
     }
 
     fun hapusAktualById(id: Int) = updateState { s ->

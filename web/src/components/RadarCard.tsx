@@ -49,6 +49,7 @@ export function RadarCard({
   onLanjutkan,
   onQuickEdit,
   onEditWaktu,
+  onToggleMatching,
   shiftHandover = false,
 }: {
   est: Estimasi;
@@ -67,6 +68,9 @@ export function RadarCard({
   onLanjutkan: () => void;
   onQuickEdit: () => void;
   onEditWaktu: () => void;
+  // Tali Hijau: one-tap toggle for Estimasi.isMatching, always reachable from the type row
+  // regardless of urgency/badge state (see the toggle icon further down).
+  onToggleMatching: () => void;
   shiftHandover?: boolean;
 }) {
   const remaining = effectiveRemaining(est, nowAbs);
@@ -208,8 +212,13 @@ export function RadarCard({
     }
   }
 
-  function triggerDoff(kind: "NORMAL" | "MATCHING") {
+  function triggerDoff(rawKind: "NORMAL" | "MATCHING") {
     if (completing) return;
+
+    // Tali Hijau: a machine tagged isMatching always doffs as Matching, no matter which
+    // direction actually fired the swipe — the operator already decided this back at shift
+    // start, so nothing here should ask them to choose again.
+    const kind = est.isMatching ? "MATCHING" : rawKind;
 
     function startAnim() {
       setCompleting(kind);
@@ -220,7 +229,10 @@ export function RadarCard({
       }, 950);
     }
 
-    if (kind === "MATCHING" && guardDoffMatching) {
+    // The potongan-awal-70y reminder only makes sense when the operator is choosing Matching
+    // right now, in front of the machine — skip it for a Tali Hijau tag, since that choice (and
+    // its yard) was already made and prepared back at tag time (see DoffStore.toggleEstimasiMatching).
+    if (kind === "MATCHING" && guardDoffMatching && !est.isMatching) {
       // Snap the card back to neutral right away instead of optimistically sliding it off —
       // the guard may show a confirm dialog, and if the operator cancels there'd be nothing to
       // undo the slide-out with. startAnim only runs if/when the guard calls proceed().
@@ -263,6 +275,28 @@ export function RadarCard({
                 <span className="radar-card-tipe-label" style={{ color: mesin ? TIPE_COLOR[mesin.tipe] : "var(--text-faint)" }}>
                   {mesin?.tipe ?? "?"}
                 </span>
+                <button
+                  type="button"
+                  className={`radar-matching-toggle${est.isMatching ? " active" : ""}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleMatching();
+                  }}
+                  title={est.isMatching ? "Lepas penanda Tali Hijau" : "Tandai Tali Hijau · Matching"}
+                  aria-label={
+                    est.isMatching
+                      ? `Lepas penanda Tali Hijau Mc ${est.mcNo}`
+                      : `Tandai Mc ${est.mcNo} Tali Hijau · Matching`
+                  }
+                >
+                  <SparklesIcon size={12} />
+                </button>
+                {est.isMatching && (
+                  <span className="radar-matching-badge">
+                    <SparklesIcon size={10} />
+                    <span>TALI HIJAU · MATCHING</span>
+                  </span>
+                )}
                 <span className="radar-paused-badge">
                   <PauseIcon size={11} />
                   <span>DIJEDA</span>
@@ -401,10 +435,35 @@ export function RadarCard({
                     <WarningIcon size={12} filled />
                   </span>
                 )}
+                {/* Tali Hijau: always reachable in one tap, unlike the badge below (which only
+                    appears once the tag is on) — this is where the operator actually sets/clears
+                    the tag while walking the floor. */}
+                <button
+                  type="button"
+                  className={`radar-matching-toggle${est.isMatching ? " active" : ""}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleMatching();
+                  }}
+                  title={est.isMatching ? "Lepas penanda Tali Hijau" : "Tandai Tali Hijau · Matching"}
+                  aria-label={
+                    est.isMatching
+                      ? `Lepas penanda Tali Hijau Mc ${est.mcNo}`
+                      : `Tandai Mc ${est.mcNo} Tali Hijau · Matching`
+                  }
+                >
+                  <SparklesIcon size={12} />
+                </button>
                 {clashingMcNos.length > 0 && (
                   <span className="radar-clash-badge" title={`Bentrok waktu dengan Mc ${clashingMcNos.join(", ")}`}>
                     <WarningIcon size={10} filled />
                     <span>Bentrok Mc {clashingMcNos.join(", ")}</span>
+                  </span>
+                )}
+                {est.isMatching && (
+                  <span className="radar-matching-badge">
+                    <SparklesIcon size={10} />
+                    <span>TALI HIJAU · MATCHING</span>
                   </span>
                 )}
                 {shiftHandover && (

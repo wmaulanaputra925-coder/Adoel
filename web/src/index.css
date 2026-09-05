@@ -1284,6 +1284,54 @@ button:disabled {
   display: inline-block;
   vertical-align: middle;
 }
+/* Tali Hijau badge — visible whenever Estimasi.isMatching is on, the whole time it's on (unlike
+   the swipe-direction celebration, which only flashes at doff). */
+.radar-matching-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3.5px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--emerald-500) 18%, transparent);
+  color: var(--emerald-400, #34d399);
+  font-size: 9.5px;
+  font-weight: 800;
+  border: 1px solid color-mix(in srgb, var(--emerald-500) 35%, transparent);
+  white-space: nowrap;
+  line-height: 1.2;
+  flex-shrink: 0;
+}
+.radar-matching-badge svg {
+  flex-shrink: 0;
+  display: inline-block;
+  vertical-align: middle;
+}
+/* Tali Hijau toggle — always present in the title row (unlike the badge above, which only
+   renders once the tag is on) so the operator can set/clear it in one tap while walking the
+   floor, well before doffing time. */
+.radar-matching-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-faint);
+  line-height: 1;
+  cursor: pointer;
+}
+.radar-matching-toggle.active {
+  color: var(--emerald-500);
+}
+.radar-matching-toggle svg {
+  display: inline-block;
+  vertical-align: middle;
+}
 .radar-card-corak {
   font-size: 12.5px;
   font-weight: 600;

@@ -25,6 +25,7 @@ export interface SerialEstimasi {
   corakOverride?: string | null;
   yardOverride?: number | null;
   pausedAtAbsMin?: number | null;
+  isMatching?: boolean;
 }
 
 export interface SerialAktual {
@@ -139,6 +140,7 @@ export function prepareHandoverData(state: DoffState, nowAbs: number = nowAbsMin
       corakOverride: e.corakOverride,
       yardOverride: e.yardOverride,
       pausedAtAbsMin: e.pausedAtAbsMin,
+      isMatching: e.isMatching,
     };
 
     const m = state.db[mcNo];
@@ -331,6 +333,7 @@ export function processScannedQr(data: string, current: DoffState): { state: Dof
             corakOverride: v.corakOverride ?? null,
             yardOverride: v.yardOverride ?? null,
             pausedAtAbsMin: v.pausedAtAbsMin ?? null,
+            isMatching: v.isMatching ?? false,
           };
         }
       }
