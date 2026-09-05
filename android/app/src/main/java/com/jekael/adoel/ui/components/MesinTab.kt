@@ -14,6 +14,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Edit
@@ -228,14 +229,18 @@ internal fun MesinTab(
         order.mapNotNull { tipe -> byTipe[tipe]?.let { tipe to it } }
     }
 
+    // Searching a number the list doesn't show is how a machine gets added: the mill's machine
+    // count grows over time, and buildDefaultDb only seeds 1-174, so anything past that has to be
+    // creatable from here. isNew separates "doesn't exist yet" from "exists but has no corak" so
+    // the button below can say which one it is, same as web's searchedTarget.
     val unconfigured = remember(state.db, search) {
         val n = search.trim()
         if (n.matches(Regex("^\\d{1,4}$"))) {
             val existing = state.db[n]
             if (existing == null) {
-                n to MesinData()
+                Triple(n, MesinData(), true)
             } else if (existing.corak.isEmpty() || existing.corak == "-") {
-                n to existing
+                Triple(n, existing, false)
             } else null
         } else null
     }
@@ -435,14 +440,24 @@ internal fun MesinTab(
 
             if (unconfigured != null) {
                 item(key = "unconfigured_banner") {
-                    val (n, m) = unconfigured
+                    val (n, m, isNew) = unconfigured
                     OutlinedButton(
                         onClick = { loadFrom(n, m) },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(Dimens.RadiusControl),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = Cyan500),
                         border = BorderStroke(1.dp, Cyan500),
-                    ) { Text("Konfigurasi Mc $n (belum diatur)") }
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(imageVector = Icons.Outlined.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Text(
+                                if (isNew) "Tambah Mesin Baru Mc $n" else "Konfigurasi Mc $n (belum diatur)",
+                            )
+                        }
+                    }
                 }
             }
 

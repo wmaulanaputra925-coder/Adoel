@@ -22,7 +22,7 @@ export function prosesBarisKondisiMesin(state: DoffState, ln: string, now: numbe
   const mcNo = parts[0];
   if (!/^\d{1,4}$/.test(mcNo)) return { result: { ok: false, msg: "Nomor mesin tidak valid" }, newState: state };
   const mesin = state.db[mcNo];
-  if (!mesin) return { result: { ok: false, msg: `Mc ${mcNo} tidak ditemukan` }, newState: state };
+  if (!mesin) return { result: { ok: false, msg: `Mc ${mcNo} belum terdaftar, tambahkan dulu di Pengaturan` }, newState: state };
   if (!mesin.corak || mesin.corak.trim() === "" || mesin.corak.trim() === "-") {
     return { result: { ok: false, msg: `Mc ${mcNo} belum diatur, atur corak dulu di Pengaturan` }, newState: state };
   }
@@ -93,7 +93,7 @@ export function prosesBarisUmum(state: DoffState, ln: string): CommandOutcome {
   const mcNo = parts[0];
   if (!/^\d{1,4}$/.test(mcNo)) return { result: { ok: false, msg: "Nomor mesin tidak valid" }, newState: state };
   const mesin = state.db[mcNo];
-  if (!mesin) return { result: { ok: false, msg: `Mc ${mcNo} tidak ditemukan` }, newState: state };
+  if (!mesin) return { result: { ok: false, msg: `Mc ${mcNo} belum terdaftar, tambahkan dulu di Pengaturan` }, newState: state };
 
   const jam = nowTimeStr();
   let customYard: number | null = null;

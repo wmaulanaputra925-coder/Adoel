@@ -70,8 +70,10 @@ class DoffViewModel @JvmOverloads constructor(
         val parts = ln.trim().split(Regex("\\s+"))
         if (parts.size < 2) return ProsesResult.Err("Kurang data")
         val mcNo = parts[0]
-        if (!mcNo.matches(Regex("^\\d{1,3}$"))) return ProsesResult.Err("Nomor mesin tidak valid")
-        val mesin = _state.value.db[mcNo] ?: return ProsesResult.Err("Mc $mcNo tidak ditemukan")
+        // 4 digits, matching web's commands.ts — the mill adds machines over time, so the console
+        // must not cap what Pengaturan will happily let you create (that form takes 4 digits too).
+        if (!mcNo.matches(Regex("^\\d{1,4}$"))) return ProsesResult.Err("Nomor mesin tidak valid")
+        val mesin = _state.value.db[mcNo] ?: return ProsesResult.Err("Mc $mcNo belum terdaftar, tambahkan dulu di Pengaturan")
         if (mesin.corak.isBlank() || mesin.corak.trim() == "-")
             return ProsesResult.Err("Mc $mcNo belum diatur, atur corak dulu di Pengaturan")
 
@@ -119,8 +121,8 @@ class DoffViewModel @JvmOverloads constructor(
         val parts = ln.trim().split(Regex("\\s+"))
         if (parts.isEmpty()) return ProsesResult.Err("Kosong")
         val mcNo = parts[0]
-        if (!mcNo.matches(Regex("^\\d{1,3}$"))) return ProsesResult.Err("Nomor mesin tidak valid")
-        val mesin = _state.value.db[mcNo] ?: return ProsesResult.Err("Mc $mcNo tidak ditemukan")
+        if (!mcNo.matches(Regex("^\\d{1,4}$"))) return ProsesResult.Err("Nomor mesin tidak valid")
+        val mesin = _state.value.db[mcNo] ?: return ProsesResult.Err("Mc $mcNo belum terdaftar, tambahkan dulu di Pengaturan")
 
         val jam = nowTimeStr()
         var customYard: Double? = null
