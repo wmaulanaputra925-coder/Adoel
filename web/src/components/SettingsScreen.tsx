@@ -178,6 +178,8 @@ export function SettingsScreen({ onClose, onOpenHelp }: { onClose: () => void; o
                 <button
                   type="button"
                   className="btn-link"
+                  aria-label="Hapus semua shortcut keterangan"
+                  title="Hapus semua shortcut keterangan"
                   style={{ fontSize: 12, color: "var(--red-400)", display: "inline-flex", alignItems: "center", gap: 3 }}
                   onClick={() => {
                     showConfirm("Hapus semua daftar shortcut keterangan?", () => {
@@ -186,8 +188,7 @@ export function SettingsScreen({ onClose, onOpenHelp }: { onClose: () => void; o
                     });
                   }}
                 >
-                  <DeleteIcon size={12} />
-                  <span>Hapus Semua</span>
+                  <DeleteIcon size={14} />
                 </button>
               )}
             </div>
@@ -311,6 +312,8 @@ export function SettingsScreen({ onClose, onOpenHelp }: { onClose: () => void; o
                 <button
                   type="button"
                   className="btn-link"
+                  aria-label="Hapus semua shortcut corak"
+                  title="Hapus semua shortcut corak"
                   style={{ fontSize: 12, color: "var(--red-400)", display: "inline-flex", alignItems: "center", gap: 3 }}
                   onClick={() => {
                     showConfirm("Hapus semua daftar shortcut kode corak?", () => {
@@ -319,8 +322,7 @@ export function SettingsScreen({ onClose, onOpenHelp }: { onClose: () => void; o
                     });
                   }}
                 >
-                  <DeleteIcon size={12} />
-                  <span>Hapus Semua</span>
+                  <DeleteIcon size={14} />
                 </button>
               )}
             </div>
@@ -444,6 +446,8 @@ export function SettingsScreen({ onClose, onOpenHelp }: { onClose: () => void; o
                 <button
                   type="button"
                   className="btn-link"
+                  aria-label="Setel daftar corak potongan awal ke default"
+                  title="Setel daftar corak potongan awal ke default"
                   style={{ fontSize: 12, color: "var(--text-faint)", display: "inline-flex", alignItems: "center", gap: 3 }}
                   onClick={() => {
                     showConfirm("Kembalikan daftar ke 3 corak standar (80125, 21242, 66335)?", () => {
@@ -452,8 +456,7 @@ export function SettingsScreen({ onClose, onOpenHelp }: { onClose: () => void; o
                     });
                   }}
                 >
-                  <ResetIcon size={12} />
-                  <span>Setel ke Default</span>
+                  <ResetIcon size={14} />
                 </button>
               )}
             </div>

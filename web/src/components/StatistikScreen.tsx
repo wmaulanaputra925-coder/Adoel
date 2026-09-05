@@ -1,12 +1,13 @@
 import { useMemo, useRef, useState } from "react";
 import { useDoffStore } from "../store/DoffStore";
 import { useUiStore } from "../store/UiStore";
-import { currentShiftStartAbsMin, formatDeltaMin, formatYard, getRepresentativeEpochMin, shiftNumberForEpochMin } from "../domain/format";
+import { currentShiftStartAbsMin, formatDeltaMin, getRepresentativeEpochMin, shiftNumberForEpochMin } from "../domain/format";
 import { sortAktualChronological } from "../domain/aktualOrder";
 import { shareOrCopy, shareShiftText } from "../domain/share";
 import { TIPE_COLOR } from "../domain/mesinVisual";
 import type { AktualEntry, MesinData, MesinTipe, ShiftRecord } from "../domain/types";
-import { AddIcon, CircleIcon, CloseIcon, DeleteIcon, EditIcon, MesinTipeIcon, ShareIcon } from "./Icons";
+import { AddIcon, CloseIcon, DeleteIcon, ShareIcon } from "./Icons";
+import { DoffEntryRowContent } from "./DoffEntryRow";
 import { WaveProgressBar } from "./WaveProgressBar";
 import { EditAktualDialog } from "./EditAktualDialog";
 import { TambahAktualDialog } from "./TambahAktualDialog";
@@ -28,17 +29,6 @@ function formatShiftTime(epochMin: number): string {
 
 function pad2(n: number): string {
   return n.toString().padStart(2, "0");
-}
-
-function formatCleanKeterangan(ket: string, jam: string): string {
-  if (ket.startsWith(jam)) {
-    const rest = ket.slice(jam.length).trim();
-    if (rest.startsWith("(") && rest.endsWith(")")) {
-      return rest.slice(1, -1);
-    }
-    return rest;
-  }
-  return ket;
 }
 
 /** Port 1:1 dari StatistikScreen.kt (aplikasi Android Adoel) — panel layar penuh yang
@@ -414,44 +404,18 @@ function ShiftRow({
                 <span className="shift-detail-hint">Ketuk baris untuk edit</span>
               </div>
 
-              {chronological.map((entry, index) => {
-                const mesin = db[entry.mcNo];
-                const tipe = mesin?.tipe;
-                const corak = entry.corakOverride ?? mesin?.corak ?? "—";
-                const yard = entry.customYard ?? mesin?.targetYard;
-                const ketCode = formatCleanKeterangan(entry.ket, entry.jam);
-
-                return (
-                  <div
-                    className="shift-detail-row"
-                    key={entry.id}
-                    onClick={() => onEditEntry(entry)}
-                    role="button"
-                    title={`Edit riwayat Mc ${entry.mcNo}`}
-                  >
-                    <div className="row-left">
-                      <span className="row-num">{index + 1}</span>
-                      {tipe ? (
-                        <span className="row-tipe-icon" style={{ color: TIPE_COLOR[tipe] }}>
-                          <MesinTipeIcon tipe={tipe} size={13} />
-                        </span>
-                      ) : (
-                        <span className="row-tipe-icon" style={{ color: "var(--text-faint)" }}>
-                          <CircleIcon size={13} />
-                        </span>
-                      )}
-                      <span className="row-mcno">Mc {entry.mcNo}</span>
-                      <span className="row-corak">{corak}</span>
-                      {yard != null && <span className="row-yard-badge">{formatYard(yard)}y</span>}
-                      {ketCode.length > 0 && <span className="row-ket-badge">{ketCode}</span>}
-                    </div>
-                    <div className="row-time-badge">
-                      <span>{entry.jam}</span>
-                      <EditIcon size={11} />
-                    </div>
-                  </div>
-                );
-              })}
+              {chronological.map((entry, index) => (
+                <div
+                  className="shift-detail-row doff-entry-row"
+                  key={entry.id}
+                  onClick={() => onEditEntry(entry)}
+                  role="button"
+                  title={`Edit riwayat Mc ${entry.mcNo}`}
+                >
+                  {/* Shared with the Riwayat list so both read identically — see DoffEntryRow.tsx. */}
+                  <DoffEntryRowContent num={index + 1} entry={entry} mesin={db[entry.mcNo]} showEditHint />
+                </div>
+              ))}
             </>
           )}
 

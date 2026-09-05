@@ -32,9 +32,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.Circle
 import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -75,21 +73,19 @@ import com.jekael.adoel.data.formatDeltaMin
 import com.jekael.adoel.data.formatShiftDate
 import com.jekael.adoel.data.formatShiftShortDate
 import com.jekael.adoel.data.formatShiftTime
-import com.jekael.adoel.data.formatYard
 import com.jekael.adoel.data.getRepresentativeEpochMin
 import com.jekael.adoel.data.shareIntent
 import com.jekael.adoel.data.shiftNumberForEpochMin
 import com.jekael.adoel.data.sortAktualChronological
 import com.jekael.adoel.ui.components.CloseIcon
+import com.jekael.adoel.ui.components.DoffEntryRowContent
 import com.jekael.adoel.ui.components.EditAktSheet
 import com.jekael.adoel.ui.components.EmptyState
 import com.jekael.adoel.ui.components.LinearProgressBar
-import com.jekael.adoel.ui.components.MesinTipeIcon
 import com.jekael.adoel.ui.components.SlidePanel
 import com.jekael.adoel.ui.components.SwipeableCard
 import com.jekael.adoel.ui.components.TambahAktSheet
 import com.jekael.adoel.ui.components.mesinTipeColor
-import com.jekael.adoel.ui.theme.Amber400
 import com.jekael.adoel.ui.theme.AppType
 import com.jekael.adoel.ui.theme.Cyan400
 import com.jekael.adoel.ui.theme.Cyan500
@@ -719,17 +715,6 @@ private fun ShiftRow(
                     Spacer(Modifier.height(6.dp))
                 }
                 chronological.forEachIndexed { index, entry ->
-                    val corak = entry.corakOverride ?: db[entry.mcNo]?.corak ?: "—"
-                    // Yard sudah terlihat di layar Doffing sebelum "Selesai Shift" mengarsipkannya ke
-                    // sini — datanya tetap tersimpan di AktualEntry, jadi riwayat semestinya tetap
-                    // menunjukkannya alih-alih diam-diam menghilang begitu shift diarsipkan.
-                    val yard = entry.customYard ?: db[entry.mcNo]?.targetYard
-                    // entry.ket is "$jam($extra)" when there's a keterangan code, or just $jam
-                    // when there isn't (see DoffViewModel.prosesBarisUmum) — entry.jam is already
-                    // shown in its own badge below, so showing the raw `ket` here too used to repeat
-                    // it a second time (or, with no keterangan, show the identical string twice).
-                    // Strip the jam back out and show only the code, if there is one.
-                    val ketCode = entry.ket.removePrefix(entry.jam).removeSurrounding("(", ")")
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -741,95 +726,16 @@ private fun ShiftRow(
                             // edit for just that record instead of collapsing the whole shift.
                             .clickable(onClickLabel = "Edit riwayat Mc ${entry.mcNo}") { onEditEntry(entry.id) }
                             .padding(horizontal = 10.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Row(
-                            modifier = Modifier.weight(1f),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(20.dp)
-                                    .clip(RoundedCornerShape(5.dp))
-                                    .background(colors.bgElevated)
-                                    .border(1.dp, colors.border, RoundedCornerShape(5.dp)),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Text(
-                                    "${index + 1}",
-                                    style = TextStyle(fontSize = 10.sp, fontWeight = FontWeight.Black, color = colors.textFaint),
-                                )
-                            }
-                            val archiveTipe = db[entry.mcNo]?.tipe
-                            if (archiveTipe != null) {
-                                MesinTipeIcon(
-                                    tipe = archiveTipe,
-                                    tint = mesinTipeColor(archiveTipe),
-                                    modifier = Modifier.size(13.dp),
-                                )
-                            } else {
-                                Icon(
-                                    imageVector = Icons.Outlined.Circle,
-                                    contentDescription = null,
-                                    tint = colors.textFaint,
-                                    modifier = Modifier.size(13.dp),
-                                )
-                            }
-                            Text(
-                                "Mc ${entry.mcNo}",
-                                style = TextStyle(fontSize = 12.5.sp, fontWeight = FontWeight.Black, color = Cyan400),
-                            )
-                            Text(corak, style = TextStyle(fontSize = 12.sp, color = colors.textSecondary))
-                            if (yard != null) {
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(5.dp))
-                                        .background(colors.bgElevated)
-                                        .border(1.dp, colors.border, RoundedCornerShape(5.dp))
-                                        .padding(horizontal = 5.dp, vertical = 1.dp),
-                                ) {
-                                    Text(
-                                        "${formatYard(yard)}y",
-                                        style = TextStyle(fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = colors.textFaint),
-                                    )
-                                }
-                            }
-                            if (ketCode.isNotEmpty()) {
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(5.dp))
-                                        .background(Amber400.copy(alpha = 0.15f))
-                                        .padding(horizontal = 6.dp, vertical = 1.5.dp),
-                                ) {
-                                    Text(
-                                        ketCode,
-                                        style = TextStyle(fontSize = 10.sp, fontWeight = FontWeight.Black, color = Amber400),
-                                    )
-                                }
-                            }
-                        }
-                        Row(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(colors.bgElevated)
-                                .border(1.dp, colors.border, RoundedCornerShape(6.dp))
-                                .padding(horizontal = 8.dp, vertical = 3.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        ) {
-                            Text(
-                                entry.jam,
-                                style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold, color = colors.textSecondary),
-                            )
-                            Icon(
-                                imageVector = Icons.Outlined.Edit,
-                                contentDescription = null,
-                                tint = colors.textFaint,
-                                modifier = Modifier.size(11.dp),
-                            )
-                        }
+                        // Shared with the Riwayat list so both read identically — see DoffEntryRow.kt.
+                        DoffEntryRowContent(
+                            num = index + 1,
+                            entry = entry,
+                            mesin = db[entry.mcNo],
+                            showEditHint = true,
+                        )
                     }
                 }
                 Spacer(Modifier.height(6.dp))

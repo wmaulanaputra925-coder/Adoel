@@ -1385,65 +1385,109 @@ button:disabled {
   background: var(--bg-elevated);
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
 }
-.doff-row .num {
-  width: 24px;
-  font-size: 13px;
-  font-weight: 800;
-  color: var(--text-muted);
-  flex-shrink: 0;
-  text-align: center;
+/* ---- Shared doff-entry row: Riwayat list + Statistik shift detail (DoffEntryRow.tsx). One chip
+   per field so mc number / corak / keterangan / time read apart instead of running together, all
+   on a single line — corak is the only flexible one, so it absorbs the squeeze; keterangan is
+   capped so a long free-typed note trails off rather than wrapping the row. ---- */
+.doff-entry-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+  min-width: 0;
 }
-.doff-row .tipe-icon {
-  width: 24px;
-  height: 24px;
+.der-num {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-faint);
+  font-size: 10px;
+  font-weight: 800;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+.der-tipe {
+  display: inline-flex;
+  align-items: center;
   flex-shrink: 0;
 }
-.doff-row .tipe-icon svg {
-  display: inline-block;
-  vertical-align: middle;
-}
-.doff-row .main {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 2px;
-}
-.doff-row .mcno {
-  font-size: 17px;
+.der-mcno {
+  font-size: 14px;
   font-weight: 800;
   color: var(--cyan-400);
-  line-height: 1.15;
-}
-.doff-row .sub {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-muted);
+  flex-shrink: 0;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+}
+.der-corak {
+  flex: 1 1 auto;
+  min-width: 0;
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  line-height: 1.2;
-}
-.doff-row .ket {
-  font-size: 12.5px;
+  font-size: 11.5px;
   font-weight: 700;
+  color: var(--text-secondary);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 5px;
+  padding: 2px 6px;
+}
+.der-corak svg {
+  flex-shrink: 0;
+  color: var(--text-faint);
+}
+.der-corak-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.der-yard {
+  flex-shrink: 0;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text-faint);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 5px;
+  padding: 2px 5px;
+  white-space: nowrap;
+}
+.der-ket {
+  flex-shrink: 0;
+  max-width: 104px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--amber-400);
+  background: rgba(245, 158, 11, 0.15);
+  border-radius: 5px;
+  padding: 2px 6px;
+}
+.der-time {
+  margin-left: auto;
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
-  padding: 2px 8px;
-  border-radius: 6px;
-  background: var(--bg-elevated-2);
+  gap: 4px;
+  font-size: 11.5px;
+  font-weight: 700;
   color: var(--text-secondary);
-  border: 1px solid var(--border);
-  line-height: 1.2;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 3px 7px;
+  white-space: nowrap;
 }
+.der-time svg {
+  color: var(--text-faint);
+}
+
 .doff-row .actions {
   display: flex;
   align-items: center;
@@ -1913,11 +1957,8 @@ button:disabled {
   color: var(--text-faint);
   font-style: italic;
 }
+/* Container only — the chips inside come from .doff-entry-row above. */
 .shift-detail-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
   padding: 8px 10px;
   border-radius: 8px;
   background: var(--bg-elevated-2);
@@ -1926,75 +1967,6 @@ button:disabled {
 }
 .shift-detail-row:hover {
   background: color-mix(in srgb, var(--cyan-500) 9%, var(--bg-elevated-2));
-}
-.shift-detail-row .row-left {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-  min-width: 0;
-}
-.shift-detail-row .row-num {
-  flex-shrink: 0;
-  width: 20px;
-  height: 20px;
-  border-radius: 5px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-subtle);
-  color: var(--text-faint);
-  font-size: 10px;
-  font-weight: 800;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-.shift-detail-row .row-tipe-icon {
-  display: inline-flex;
-  align-items: center;
-  flex-shrink: 0;
-}
-.shift-detail-row .row-mcno {
-  font-size: 12.5px;
-  font-weight: 800;
-  color: var(--cyan-400);
-  flex-shrink: 0;
-}
-.shift-detail-row .row-corak {
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-.shift-detail-row .row-yard-badge {
-  font-size: 10.5px;
-  font-weight: 700;
-  color: var(--text-faint);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-subtle);
-  border-radius: 5px;
-  padding: 1px 5px;
-}
-.shift-detail-row .row-ket-badge {
-  font-size: 10px;
-  font-weight: 800;
-  color: var(--amber-400);
-  background: rgba(245, 158, 11, 0.15);
-  border-radius: 5px;
-  padding: 1.5px 6px;
-}
-.shift-detail-row .row-time-badge {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text-secondary);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-subtle);
-  border-radius: 6px;
-  padding: 3px 8px;
-}
-.shift-detail-row .row-time-badge svg {
-  color: var(--text-faint);
 }
 .add-entry-btn {
   width: 100%;

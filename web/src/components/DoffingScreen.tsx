@@ -1,22 +1,19 @@
 import { useMemo, useState } from "react";
 import { useDoffStore } from "../store/DoffStore";
-import { TIPE_COLOR } from "../domain/mesinVisual";
 import { useConsoleHandlers } from "../hooks/useConsoleHandlers";
-import { formatYard, nowAbsMin } from "../domain/format";
+import { nowAbsMin } from "../domain/format";
 import { sortAktualChronological } from "../domain/aktualOrder";
 import type { AktualEntry } from "../domain/types";
+import { DoffEntryRowContent } from "./DoffEntryRow";
 import { EditAktualDialog } from "./EditAktualDialog";
 import {
-  CircleIcon,
   DeleteIcon,
   EditIcon,
   HistoryEmptyIllustration,
   HistoryIcon,
-  MesinTipeIcon,
   ScissorsIcon,
   SearchIcon,
   SpoolIcon,
-  TextureIcon,
 } from "./Icons";
 
 export function DoffingScreen() {
@@ -115,33 +112,11 @@ export function DoffingScreen() {
           ) : (
             filtered.map(({ entry, num }) => {
               const mesin = state.db[entry.mcNo];
-              const corak = entry.corakOverride ?? mesin?.corak ?? "—";
-              const sub =
-                entry.customYard != null
-                  ? `${corak} · ${formatYard(entry.customYard)}y`
-                  : mesin?.targetYard != null
-                    ? `${corak} · ${formatYard(mesin.targetYard)}y`
-                    : corak;
-              const tipeColor = mesin ? TIPE_COLOR[mesin.tipe] : "var(--text-faint)";
 
               return (
-                <div className="doff-row" key={entry.id}>
-                  <div className="num" title={`Urutan doff #${num}`}>
-                    {num}
-                  </div>
-                  <div className="tipe-icon" style={{ color: tipeColor }} title={mesin ? `Tipe ${mesin.tipe}` : ""}>
-                    {mesin ? <MesinTipeIcon tipe={mesin.tipe} size={15} /> : <CircleIcon size={14} />}
-                  </div>
-                  <div className="main">
-                    <div className="mcno">Mc {entry.mcNo}</div>
-                    <div className="sub">
-                      <span className="sub-kain-icon">
-                        <TextureIcon size={11} />
-                      </span>
-                      <span>{sub}</span>
-                    </div>
-                  </div>
-                  <div className="ket">{entry.ket}</div>
+                <div className="doff-row doff-entry-row" key={entry.id}>
+                  {/* Shared with Statistik's shift detail so both read identically — see DoffEntryRow.tsx. */}
+                  <DoffEntryRowContent num={num} entry={entry} mesin={mesin} showEditHint={false} />
                   <div className="actions">
                     <button
                       className="icon-btn"

@@ -237,10 +237,14 @@ internal fun DataTab(
                                     }
                                     .padding(horizontal = 6.dp, vertical = 2.dp),
                             ) {
-                                Icon(Icons.Outlined.Delete, contentDescription = null, tint = Red400, modifier = Modifier.size(12.dp))
-                                Text(
-                                    "Hapus Semua",
-                                    style = AppType.Caption.copy(color = Red400, fontWeight = FontWeight.Medium),
+                                // Icon only: the label never fit cleanly beside the count badge in
+                                // this header row. The confirm dialog spells the action out anyway,
+                                // so the wording lives there and in the content description.
+                                Icon(
+                                    Icons.Outlined.Delete,
+                                    contentDescription = "Hapus semua shortcut",
+                                    tint = Red400,
+                                    modifier = Modifier.size(14.dp),
                                 )
                             }
                         }
@@ -358,10 +362,14 @@ internal fun DataTab(
                                     }
                                     .padding(horizontal = 6.dp, vertical = 2.dp),
                             ) {
-                                Icon(Icons.Outlined.Delete, contentDescription = null, tint = Red400, modifier = Modifier.size(12.dp))
-                                Text(
-                                    "Hapus Semua",
-                                    style = AppType.Caption.copy(color = Red400, fontWeight = FontWeight.Medium),
+                                // Icon only: the label never fit cleanly beside the count badge in
+                                // this header row. The confirm dialog spells the action out anyway,
+                                // so the wording lives there and in the content description.
+                                Icon(
+                                    Icons.Outlined.Delete,
+                                    contentDescription = "Hapus semua shortcut",
+                                    tint = Red400,
+                                    modifier = Modifier.size(14.dp),
                                 )
                             }
                         }
@@ -479,10 +487,11 @@ internal fun DataTab(
                                     }
                                     .padding(horizontal = 6.dp, vertical = 2.dp),
                             ) {
-                                Icon(Icons.Outlined.RestartAlt, contentDescription = null, tint = colors.textFaint, modifier = Modifier.size(12.dp))
-                                Text(
-                                    "Setel ke Default",
-                                    style = AppType.Caption.copy(color = colors.textFaint, fontWeight = FontWeight.Medium),
+                                Icon(
+                                    Icons.Outlined.RestartAlt,
+                                    contentDescription = "Setel ke default",
+                                    tint = colors.textFaint,
+                                    modifier = Modifier.size(14.dp),
                                 )
                             }
                         }

@@ -8,7 +8,6 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Circle
 import androidx.compose.material.icons.outlined.ContentCut
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
@@ -26,16 +25,14 @@ import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jekael.adoel.data.*
+import com.jekael.adoel.ui.components.DoffEntryRowContent
 import com.jekael.adoel.ui.components.EmptyState
 import com.jekael.adoel.ui.components.EmptyStateArt
 import com.jekael.adoel.ui.components.InlineActionPillSubtitle
 import com.jekael.adoel.ui.components.SwipeableCard
-import com.jekael.adoel.ui.components.MesinTipeIcon
-import com.jekael.adoel.ui.components.mesinTipeColor
 import com.jekael.adoel.ui.theme.*
 
 /** RIWAYAT page's list content: empty state or the recorded-doff rows (newest first). Shift-wide
@@ -189,13 +186,6 @@ private fun DoffingRow(
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalAppColors.current
-    val corak = entry.corakOverride ?: mesin?.corak ?: "—"
-    val sub = when {
-        entry.customYard != null -> "$corak · ${formatYard(entry.customYard)}y"
-        mesin?.targetYard != null -> "$corak · ${formatYard(mesin.targetYard)}y"
-        else -> corak
-    }
-    val tipeColor = mesin?.tipe?.let(::mesinTipeColor) ?: colors.textFaint
     // Swipe right = edit, swipe left = hapus — matches RadarCard's swipe model.
     // Also tap directly opens edit.
     SwipeableCard(
@@ -216,51 +206,12 @@ private fun DoffingRow(
                         CustomAccessibilityAction("Hapus riwayat Mc ${entry.mcNo}") { onHapus(); true },
                     )
                 }
-                .padding(horizontal = 14.dp, vertical = 11.dp),
+                .padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Dimens.Space12),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Text(
-                text = "$num",
-                style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Black, color = colors.textMuted),
-                modifier = Modifier.width(22.dp),
-            )
-            if (mesin != null) {
-                MesinTipeIcon(tipe = mesin.tipe, tint = tipeColor, modifier = Modifier.size(14.dp))
-            } else {
-                Icon(
-                    imageVector = Icons.Outlined.Circle,
-                    contentDescription = null,
-                    tint = tipeColor,
-                    modifier = Modifier.size(14.dp),
-                )
-            }
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = entry.mcNo,
-                    style = AppType.NumberLarge.copy(color = Cyan500, letterSpacing = (-1).sp),
-                )
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Dimens.Space4)) {
-                    // Same kain marker as RadarCard's corak/yard line (see Icons.Outlined.Texture
-                    // there) — this history row shows the identical corak/yard pairing.
-                    Icon(
-                        imageVector = Icons.Outlined.Texture,
-                        contentDescription = null,
-                        tint = colors.textFaint,
-                        modifier = Modifier.size(11.dp),
-                    )
-                    Text(
-                        text = sub,
-                        style = AppType.LabelBold.copy(color = colors.textMuted),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
-            Text(
-                text = entry.ket,
-                style = AppType.TabLabel.copy(color = colors.textPrimary),
-            )
+            // Shared with Statistik's shift detail so both read identically — see DoffEntryRow.kt.
+            DoffEntryRowContent(num = num, entry = entry, mesin = mesin, showEditHint = false)
         }
     }
 }

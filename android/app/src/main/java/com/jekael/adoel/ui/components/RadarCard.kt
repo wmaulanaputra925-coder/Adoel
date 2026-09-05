@@ -63,6 +63,7 @@ import com.jekael.adoel.ui.theme.*
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 
 /** Which swipe direction triggered a doff completion — drives the celebration icon/color/exit
  * direction in RadarCard (see completingKind below). */
@@ -287,6 +288,17 @@ fun RadarCard(
     val swipeThresholdPx = with(density) { Dimens.SwipeThreshold.toPx() }
     val maxSwipePx = with(density) { Dimens.SwipeMax.toPx() }
     val offsetX = remember(est.mcNo) { Animatable(0f) }
+    // Raw finger travel for this drag. The card's offset is a compressed function of it
+    // (rubberBandSwipe), and feeding that compressed value back in would compound the curve and
+    // make dragging back toward centre feel sticky — so the uncompressed total is tracked here.
+    var rawDragX by remember(est.mcNo) { mutableFloatStateOf(0f) }
+    // One light tick the moment the drag crosses the commit point, and again if it's pulled back
+    // and re-crossed. Paired with the reveal panel's own armed state (see SwipeActionBackground)
+    // so an operator knows the swipe will fire before letting go, not after.
+    val swipeArmed = abs(offsetX.value) >= swipeThresholdPx
+    LaunchedEffect(swipeArmed) {
+        if (swipeArmed) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+    }
 
     fun triggerDoff(kind: DoffCompletionKind) {
         if (completing) return
@@ -422,6 +434,7 @@ fun RadarCard(
                 .pointerInput(completing, swipeEnabled, face) {
                     if (completing || !swipeEnabled || face != CardFace.FRONT) return@pointerInput
                     detectHorizontalDragGestures(
+                        onDragStart = { rawDragX = offsetX.value },
                         onDragEnd = { settleSwipe() },
                         onDragCancel = {
                             scope.launch {
@@ -430,8 +443,9 @@ fun RadarCard(
                         },
                         onHorizontalDrag = { change, dragAmount ->
                             change.consume()
+                            rawDragX += dragAmount
                             scope.launch {
-                                offsetX.snapTo((offsetX.value + dragAmount).coerceIn(-maxSwipePx, maxSwipePx))
+                                offsetX.snapTo(rubberBandSwipe(rawDragX, swipeThresholdPx, maxSwipePx))
                             }
                         },
                     )
