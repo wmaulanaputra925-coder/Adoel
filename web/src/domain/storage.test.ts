@@ -32,10 +32,14 @@ function fullState(): DoffState {
         estimasiRemaining: {
           "79": { mcNo: "79", estAbsMin: 29_726_600, startAbsMin: 29_726_000, corakOverride: null, yardOverride: null, pausedAtAbsMin: null },
         },
+        operatorNama: "Wahyu",
+        operatorGrup: "B",
       },
     ],
     nextShiftId: 4,
     onboardingSeen: false,
+    operatorNama: "Wahyu",
+    operatorGrup: "B",
     keteranganShortcuts: ["HB", "P.LP", "P.SN", "P.OH", "P.EL", "P.Sel"],
     corakShortcuts: ["4500", "5000"],
     corakPotonganAwal: ["80125", "21242", "66335"],
@@ -56,6 +60,10 @@ describe("parseBackupJson", () => {
     expect(p.nextShiftId).toBe(1);
     expect(p.onboardingSeen).toBe(true);
     expect(p.db["29"].targetYard).toBe(303);
+    // Backup sebelum ada pendataan operator: kosong, bukan undefined — teks bagikannya sekadar
+    // tidak mencetak baris operator.
+    expect(p.operatorNama).toBe("");
+    expect(p.operatorGrup).toBe("");
     expect(p.keteranganShortcuts).toEqual([]);
     expect(p.corakShortcuts).toEqual([]);
     // Beda dari corakShortcuts (default []): backup lama tanpa field ini masih dapat aturan

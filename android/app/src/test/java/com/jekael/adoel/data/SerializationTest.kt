@@ -45,10 +45,14 @@ class SerializationTest {
                 endedAtEpochMin = 29_726_441,
                 aktual = listOf(AktualEntry(id = 5, mcNo = "61", jam = "10.00", ket = "10.00")),
                 estimasiRemaining = mapOf("79" to Estimasi("79", 29_726_600, 29_726_000)),
+                operatorNama = "Wahyu",
+                operatorGrup = "B",
             ),
         ),
         nextShiftId = 4,
         onboardingSeen = false,
+        operatorNama = "Wahyu",
+        operatorGrup = "B",
     )
 
     @Test
@@ -70,6 +74,10 @@ class SerializationTest {
         assertEquals(1, parsed.nextShiftId)
         assertTrue(parsed.onboardingSeen)
         assertEquals(303.0, parsed.db["29"]?.targetYard)
+        // Backup sebelum ada pendataan operator: kosong, bukan null — teks bagikannya sekadar
+        // tidak mencetak baris operator.
+        assertEquals("", parsed.operatorNama)
+        assertEquals("", parsed.operatorGrup)
     }
 
     @Test
