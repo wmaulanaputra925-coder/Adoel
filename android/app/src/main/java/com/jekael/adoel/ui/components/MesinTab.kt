@@ -261,22 +261,19 @@ internal fun MesinTab(
                         .padding(Dimens.Space12),
                     verticalArrangement = Arrangement.spacedBy(Dimens.Space10),
                 ) {
-                    // One row, title left / badges right — matches web's .corak-summary-header
-                    // (display:flex, justify-content:space-between) exactly, rather than the
-                    // stacked title-then-badges layout this used to force unconditionally: that
-                    // spent an extra row's worth of height even when everything comfortably fits
-                    // on one line, which is exactly what web does when it fits. Badges wrap onto
-                    // their own second line via FlowRow only if the title leaves too little room
-                    // (mirrors .corak-summary-badges' own flex-wrap: wrap), not the title.
-                    Row(
+                    // Title and badges share one line whenever they fit and the badges drop to a
+                    // second line when they don't — as a fixed space-between Row the title was the
+                    // side that gave way instead, ellipsizing to "Corak Sedang Pr…" as soon as the
+                    // machine count grew a digit. The heading is the one part that should always
+                    // be readable, so it now takes its natural width and the badges wrap.
+                    FlowRow(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Dimens.Space8),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(Dimens.Space6),
-                            modifier = Modifier.weight(1f, fill = false),
                         ) {
                             Icon(
                                 imageVector = Icons.Outlined.Texture,
@@ -288,13 +285,12 @@ internal fun MesinTab(
                                 "Corak Sedang Produksi",
                                 style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary),
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
+                                softWrap = false,
                             )
                         }
                         FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.End),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
                             verticalArrangement = Arrangement.spacedBy(4.dp),
-                            modifier = Modifier.padding(start = Dimens.Space8),
                         ) {
                             Surface(
                                 shape = RoundedCornerShape(12.dp),
@@ -339,25 +335,49 @@ internal fun MesinTab(
                             style = AppType.BodySmall.copy(color = colors.textFaint),
                         )
                     } else {
-                        // Two-up grid, matching web's .corak-summary-grid — a single full-width
-                        // column read as a much longer scroll for the same 11 corak.
-                        Column(verticalArrangement = Arrangement.spacedBy(Dimens.Space8)) {
-                            activeCorakSummary.chunked(2).forEach { rowItems ->
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(Dimens.Space8),
+                        // Two columns filled independently, not fixed pairs. Pairing rows meant both
+                        // cards took the taller one's height, so a 30-machine corak next to a
+                        // 15-machine one left a hole the size of four pill rows under the short
+                        // card — and an odd count left a whole empty cell. Each card now goes to
+                        // whichever column is currently shorter, so the two sides stay level and
+                        // nothing is padded out to match a neighbour.
+                        val corakColumns = remember(activeCorakSummary) {
+                            val left = mutableListOf<CorakSummaryItem>()
+                            val right = mutableListOf<CorakSummaryItem>()
+                            var leftHeight = 0
+                            var rightHeight = 0
+                            activeCorakSummary.forEach { item ->
+                                // Height in rough lines: the corak name, plus however many rows its
+                                // mc pills wrap into (~4 fit across a half-width card). Only used to
+                                // decide which column to drop the card in, never to lay it out.
+                                val height = 1 + (item.machines.size + 3) / 4
+                                if (leftHeight <= rightHeight) {
+                                    left += item
+                                    leftHeight += height
+                                } else {
+                                    right += item
+                                    rightHeight += height
+                                }
+                            }
+                            listOf(left, right)
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(Dimens.Space8),
+                        ) {
+                            corakColumns.forEach { columnItems ->
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.spacedBy(Dimens.Space8),
                                 ) {
-                                    rowItems.forEach { item ->
+                                    columnItems.forEach { item ->
                                         CorakSummaryCard(
                                             item = item,
                                             isSelected = selectedCorak == item.corak,
                                             onToggleSelect = { selectedCorak = if (selectedCorak == item.corak) null else item.corak },
                                             onPillClick = { m -> loadFrom(m, state.db[m] ?: MesinData()) },
-                                            modifier = Modifier.weight(1f),
+                                            modifier = Modifier.fillMaxWidth(),
                                         )
-                                    }
-                                    if (rowItems.size == 1) {
-                                        Spacer(Modifier.weight(1f))
                                     }
                                 }
                             }
