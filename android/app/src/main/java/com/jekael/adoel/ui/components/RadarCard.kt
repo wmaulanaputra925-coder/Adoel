@@ -503,13 +503,23 @@ fun RadarCard(
                             onLongClick = { handleLongPressFlip(Offset.Zero) },
                         ),
                 ) {
-                    Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(Dimens.Space8)) {
+                    Row(
+                        verticalAlignment = Alignment.Bottom,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
                         Row(
                             verticalAlignment = Alignment.Bottom,
                             horizontalArrangement = Arrangement.spacedBy(Dimens.Space8),
-                            // Lets this cluster shrink instead of pushing the trailing badges (or
-                            // this whole row) wider than the card — see RadarStatusBar's own
-                            // weight(fill=false) fix for the same squeeze-vs-grow issue.
+                            // Lets this whole cluster — mcno/tipe/urgency AND Bentrok, which sits
+                            // adjacent to it just like web's .radar-clash-badge (no auto-margin of
+                            // its own) — shrink as one unit instead of overflowing the card. Only
+                            // OPERAN SHIFT lives outside this weight: it's the one item web pushes
+                            // flush right via margin-left:auto, mirrored here by SpaceBetween on
+                            // the outer Row instead of a second weight(1f) Spacer racing this one
+                            // for space — two weight(1f) siblings split 50/50 regardless of fill,
+                            // which was quietly capping this cluster's width in half and pushing
+                            // the tipe label into an ellipsis so tight it rendered as nothing at
+                            // all whenever a card carried both a tipe and OPERAN SHIFT together.
                             modifier = Modifier.weight(1f, fill = false),
                         ) {
                             Text(
@@ -562,22 +572,25 @@ fun RadarCard(
                                     modifier = Modifier.size(15.dp).padding(bottom = Dimens.Space4),
                                 )
                             }
+                            // Bentrok sits inside this same shrink-safe cluster, right after the
+                            // urgency icon — matches web's .radar-clash-badge, an ordinary sibling
+                            // in .radar-card-title-row with no margin-left:auto of its own (only
+                            // OPERAN SHIFT gets pushed to the far edge, below).
+                            if (clashingMcNos.isNotEmpty()) {
+                                RadarCardBadge(
+                                    icon = Icons.Filled.Warning,
+                                    text = "Bentrok Mc ${clashingMcNos.joinToString(", ")}",
+                                    accent = Amber400,
+                                    modifier = Modifier.padding(bottom = Dimens.Space4),
+                                )
+                            }
                         }
-                        // Bentrok/OPERAN SHIFT sit in this same title row (not their own stacked
-                        // rows below) so a card carrying either doesn't grow taller than one
-                        // without it — matches web's single nowrap .radar-card-title-row, where
-                        // the shift badge's margin-left:auto is mirrored here by the weight(1f)
-                        // spacer right before it.
-                        if (clashingMcNos.isNotEmpty()) {
-                            RadarCardBadge(
-                                icon = Icons.Filled.Warning,
-                                text = "Bentrok Mc ${clashingMcNos.joinToString(", ")}",
-                                accent = Amber400,
-                                modifier = Modifier.padding(bottom = Dimens.Space4),
-                            )
-                        }
+                        // OPERAN SHIFT is the one badge web pushes flush to the row's far right via
+                        // margin-left:auto — the outer Row's SpaceBetween does that here (see the
+                        // weight(fill=false) comment above for why this can't also be a weighted
+                        // Spacer). A card with no shift handover renders just the cluster above,
+                        // taking its natural width; SpaceBetween is a no-op with a single child.
                         if (shiftHandover) {
-                            Spacer(Modifier.weight(1f))
                             RadarCardBadge(
                                 icon = Icons.Outlined.SwapHoriz,
                                 text = "OPERAN SHIFT",
