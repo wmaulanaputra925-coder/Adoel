@@ -94,6 +94,7 @@ import com.jekael.adoel.ui.theme.Cyan400
 import com.jekael.adoel.ui.theme.Cyan500
 import com.jekael.adoel.ui.theme.Red500
 import com.jekael.adoel.ui.theme.Dimens
+import com.jekael.adoel.ui.theme.EdgeFadeScrim
 import com.jekael.adoel.ui.theme.LocalAppColors
 import com.jekael.adoel.ui.theme.Motion
 import com.jekael.adoel.ui.theme.elevatedListCard
@@ -195,6 +196,10 @@ fun StatistikScreen(
                     }
                 }
             }
+
+            // Same soft cut-off the other scrolling screens get where content passes behind the
+            // header. Top only — nothing floats at the bottom of this panel.
+            EdgeFadeScrim(atTop = true, height = 10.dp + headerHeight + Dimens.Space16)
 
             // Floating header — overlays the list (list scrolls behind it), matching
             // MainScreen's header/console bar look: shadow + rounded corners + a subtle border

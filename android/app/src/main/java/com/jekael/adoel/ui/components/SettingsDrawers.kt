@@ -93,6 +93,12 @@ private fun SlideOverPanel(
                 content(headerHeight)
             }
 
+            // Owned here rather than by each tab: every panel content scrolls behind the header
+            // below, so the fade belongs to the panel, not to whichever tab happens to be in it.
+            // Bottom fades stay with whatever floats there — MesinTab's search console draws its
+            // own; Pengaturan has nothing at the bottom to fade behind.
+            EdgeFadeScrim(atTop = true, height = 10.dp + headerHeight + Dimens.Space16)
+
             // Header — floating overlay, matching the header/console bar's look (tonal
             // background + a subtle border — see floatingHeaderCard's doc for why this isn't a
             // shadow).

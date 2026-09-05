@@ -633,7 +633,8 @@ internal fun MesinTab(
             item(key = "bottom_spacer") { Spacer(Modifier.height(consoleHeight + Dimens.Space16)) }
         }
 
-        EdgeFadeScrim(atTop = true, height = 10.dp + headerHeight + 16.dp)
+        // Top fade comes from SlideOverPanel, which owns the header this list scrolls behind —
+        // only the fade for this tab's own floating console belongs here.
         EdgeFadeScrim(atTop = false, height = consoleHeight + 16.dp)
 
         // Floating console bar for search & quick edit
