@@ -15,7 +15,7 @@ android {
         // CI passes VERSION_CODE (its own monotonically-increasing run number) so versionCode
         // always advances automatically; local builds fall back to a static value.
         versionCode (System.getenv("VERSION_CODE") != null ? System.getenv("VERSION_CODE").toInteger() : 14)
-        versionName "10.2.0"
+        versionName "10.3.0"
     }
 
     // Release signing reads the keystore + passwords from environment variables. In CI these come
