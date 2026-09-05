@@ -8,6 +8,11 @@ interface ToastState {
 interface ConfirmState {
   msg: string;
   onConfirm: () => void;
+  // Default ke "Ya, Lanjutkan"/"Batal" di ConfirmDialog.tsx kalau tidak diisi — dipakai satu-
+  // satunya oleh pengingat Tali Hijau setelah doff HB, yang butuh label aksi yang lebih
+  // spesifik daripada konfirmasi generik.
+  confirmLabel?: string;
+  cancelLabel?: string;
 }
 
 interface UiStore {
@@ -17,7 +22,7 @@ interface UiStore {
   showToast: (msg: string) => void;
   dismissToast: () => void;
   confirm: ConfirmState | null;
-  showConfirm: (msg: string, onConfirm: () => void) => void;
+  showConfirm: (msg: string, onConfirm: () => void, labels?: { confirmLabel?: string; cancelLabel?: string }) => void;
   dismissConfirm: () => void;
 }
 
@@ -35,8 +40,8 @@ export function UiStoreProvider({ children }: { children: ReactNode }) {
 
   const dismissToast = useCallback(() => setToast(null), []);
 
-  const showConfirm = useCallback((msg: string, onConfirm: () => void) => {
-    setConfirm({ msg, onConfirm });
+  const showConfirm = useCallback((msg: string, onConfirm: () => void, labels?: { confirmLabel?: string; cancelLabel?: string }) => {
+    setConfirm({ msg, onConfirm, confirmLabel: labels?.confirmLabel, cancelLabel: labels?.cancelLabel });
   }, []);
 
   const dismissConfirm = useCallback(() => setConfirm(null), []);

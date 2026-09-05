@@ -72,18 +72,28 @@ export function prosesBarisKondisiMesin(state: DoffState, ln: string, now: numbe
   }
 
   const existing = state.estimasi[mcNo];
+  // Tali Hijau: mcNo ini baru saja di-doff HB dan operator sudah menekan "Sudah Pasang & Tandai
+  // Matching" (lihat DoffState.pendingMatchingMcNos) — Estimasi baru ini adalah tempat pertama
+  // flag itu punya rumah, jadi konsumsi (dan hapus dari daftar tunggu) di sini.
+  const isPending = state.pendingMatchingMcNos?.includes(mcNo) ?? false;
   const newEst: Estimasi = {
     mcNo,
     estAbsMin: estAbs,
     startAbsMin: existing?.startAbsMin ?? now,
     corakOverride: existing?.corakOverride ?? null,
-    yardOverride: existing?.yardOverride ?? null,
+    // Sama seperti toggleEstimasiMatching manual: isi target yard ke sampel Matching (70y) kalau
+    // operator belum mengatur sendiri untuk mesin ini.
+    yardOverride: existing?.yardOverride ?? (isPending ? POTONGAN_AWAL_YARD : null),
     pausedAtAbsMin: null,
     // Tali Hijau menandai beam, bukan jam estimasi — koreksi durasi pada mesin yang sudah
     // ditandai tidak boleh diam-diam melepas penandaannya.
-    isMatching: existing?.isMatching ?? false,
+    isMatching: isPending || (existing?.isMatching ?? false),
   };
-  const newState: DoffState = { ...state, estimasi: { ...state.estimasi, [mcNo]: newEst } };
+  const newState: DoffState = {
+    ...state,
+    estimasi: { ...state.estimasi, [mcNo]: newEst },
+    pendingMatchingMcNos: isPending ? state.pendingMatchingMcNos!.filter((m) => m !== mcNo) : state.pendingMatchingMcNos,
+  };
 
   return {
     result: { ok: true, msg: `Mc ${mcNo} → ${absMinToTimeStr(estAbs)}`, mcNo, estAbs },

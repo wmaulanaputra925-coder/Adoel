@@ -44,6 +44,7 @@ function fullState(): DoffState {
     keteranganShortcuts: ["HB", "P.LP", "P.SN", "P.OH", "P.EL", "P.Sel"],
     corakShortcuts: ["4500", "5000"],
     corakPotonganAwal: ["80125", "21242", "66335"],
+    pendingMatchingMcNos: ["12"],
   };
 }
 
@@ -79,6 +80,11 @@ describe("parseBackupJson", () => {
     const json =
       '{"db":{"29":{"tipe":"TAPPET","corak":"34758"}},"estimasi":{"29":{"mcNo":"29","estAbsMin":100,"startAbsMin":50}},"aktual":[],"nextId":1}';
     expect(parseBackupJson(json)!.estimasi["29"].isMatching).toBe(false);
+  });
+
+  it("JSON lama tanpa pendingMatchingMcNos → default [], bukan undefined", () => {
+    const json = '{"db":{"29":{"tipe":"TAPPET","corak":"34758"}},"estimasi":{},"aktual":[],"nextId":1}';
+    expect(parseBackupJson(json)!.pendingMatchingMcNos).toEqual([]);
   });
 
   it("id aktual duplikat di-reassign, bukan dibuang", () => {

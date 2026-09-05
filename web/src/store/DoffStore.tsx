@@ -29,6 +29,7 @@ interface DoffStore {
   pauseEstimasi: (mcNo: string) => void;
   resumeEstimasi: (mcNo: string) => void;
   toggleEstimasiMatching: (mcNo: string) => void;
+  markPendingMatching: (mcNo: string) => void;
   hapusAktualById: (id: number) => void;
   restoreAktual: (entry: AktualEntry) => void;
   hapusShift: (id: number) => void;
@@ -177,6 +178,18 @@ export function DoffStoreProvider({ children }: { children: ReactNode }) {
       const next = !est.isMatching;
       const yardOverride = next && est.yardOverride === null ? POTONGAN_AWAL_YARD : est.yardOverride;
       return { ...s, estimasi: { ...s.estimasi, [mcNo]: { ...est, isMatching: next, yardOverride } } };
+    });
+  }, []);
+
+  // Tali Hijau: menandai mcNo agar Estimasi berikutnya untuk mesin itu otomatis isMatching (lihat
+  // DoffState.pendingMatchingMcNos) — dipanggil dari tombol "Sudah Pasang & Tandai Matching" pada
+  // pengingat setelah doff HB. Konsumsinya (dihapus dari daftar ini) terjadi di
+  // commands.ts prosesBarisKondisiMesin, begitu Estimasi baru untuk mcNo itu benar-benar dibuat.
+  const markPendingMatching = useCallback((mcNo: string) => {
+    setState((s) => {
+      const list = s.pendingMatchingMcNos ?? [];
+      if (list.includes(mcNo)) return s;
+      return { ...s, pendingMatchingMcNos: [...list, mcNo] };
     });
   }, []);
 
@@ -532,6 +545,7 @@ export function DoffStoreProvider({ children }: { children: ReactNode }) {
       pauseEstimasi,
       resumeEstimasi,
       toggleEstimasiMatching,
+      markPendingMatching,
       hapusAktualById,
       restoreAktual,
       hapusShift,
@@ -577,6 +591,7 @@ export function DoffStoreProvider({ children }: { children: ReactNode }) {
       pauseEstimasi,
       resumeEstimasi,
       toggleEstimasiMatching,
+      markPendingMatching,
       hapusAktualById,
       restoreAktual,
       hapusShift,

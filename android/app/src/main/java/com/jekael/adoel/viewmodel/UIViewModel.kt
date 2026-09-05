@@ -14,6 +14,11 @@ data class ConfirmState(
     val msg: String,
     val onConfirm: () -> Unit,
     val onCancel: (() -> Unit)? = null,
+    // Default ke "Ya"/"Batal" di ConfirmDialog.kt kalau tidak diisi — dipakai satu-satunya oleh
+    // pengingat Tali Hijau setelah doff HB, yang butuh label aksi yang lebih spesifik daripada
+    // konfirmasi generik.
+    val confirmLabel: String? = null,
+    val cancelLabel: String? = null,
 )
 
 class UIViewModel : ViewModel() {
@@ -34,8 +39,14 @@ class UIViewModel : ViewModel() {
         _toast.value = null
     }
 
-    fun showConfirm(msg: String, onCancel: (() -> Unit)? = null, onConfirm: () -> Unit) {
-        _confirm.value = ConfirmState(msg, onConfirm, onCancel)
+    fun showConfirm(
+        msg: String,
+        onCancel: (() -> Unit)? = null,
+        confirmLabel: String? = null,
+        cancelLabel: String? = null,
+        onConfirm: () -> Unit,
+    ) {
+        _confirm.value = ConfirmState(msg, onConfirm, onCancel, confirmLabel, cancelLabel)
     }
 
     fun dismissConfirm() {

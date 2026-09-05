@@ -125,7 +125,7 @@ fun ConfirmDialog(
                             modifier = Modifier.height(48.dp),
                             colors = ButtonDefaults.textButtonColors(contentColor = colors.textSecondary),
                         ) {
-                            Text("Batal")
+                            Text(current.cancelLabel ?: "Batal")
                         }
                         TextButton(
                             onClick = { requestClose { current.onConfirm() } },
@@ -133,7 +133,7 @@ fun ConfirmDialog(
                             shape = RoundedCornerShape(Dimens.RadiusControl),
                             colors = ButtonDefaults.textButtonColors(contentColor = Red400),
                         ) {
-                            Text("Ya", style = TextStyle(fontWeight = FontWeight.Bold))
+                            Text(current.confirmLabel ?: "Ya", style = TextStyle(fontWeight = FontWeight.Bold))
                         }
                     }
                 }

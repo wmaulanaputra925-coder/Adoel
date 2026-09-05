@@ -51,6 +51,7 @@ private data class SerialState(
     val keteranganShortcuts: List<String>? = null,
     val corakShortcuts: List<String>? = null,
     val corakPotonganAwal: List<String>? = null,
+    val pendingMatchingMcNos: List<String>? = null,
 )
 
 private data class SerialMesin(
@@ -210,6 +211,7 @@ class DoffRepository private constructor(private val context: Context) : DoffSta
                 keteranganShortcuts = serial.keteranganShortcuts,
                 corakShortcuts = serial.corakShortcuts,
                 corakPotonganAwal = serial.corakPotonganAwal,
+                pendingMatchingMcNos = serial.pendingMatchingMcNos,
             )
         } catch (e: Exception) {
             // Null is the correct contract for the caller (invalid backup / corrupt blob), but a
@@ -301,6 +303,7 @@ class DoffRepository private constructor(private val context: Context) : DoffSta
             keteranganShortcuts = state.keteranganShortcuts,
             corakShortcuts = state.corakShortcuts,
             corakPotonganAwal = state.corakPotonganAwal,
+            pendingMatchingMcNos = state.pendingMatchingMcNos,
         )
         return gson.toJson(serial)
     }

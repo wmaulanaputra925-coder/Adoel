@@ -110,17 +110,28 @@ class DoffViewModel @JvmOverloads constructor(
         }
 
         val existing = _state.value.estimasi[mcNo]
+        // Tali Hijau: mcNo ini baru saja di-doff HB dan operator sudah menekan "Sudah Pasang &
+        // Tandai Matching" (lihat DoffState.pendingMatchingMcNos) — Estimasi baru ini adalah
+        // tempat pertama flag itu punya rumah, jadi konsumsi (dan hapus dari daftar tunggu) di sini.
+        val isPending = _state.value.pendingMatchingMcNos?.contains(mcNo) ?: false
         val newEst = Estimasi(
             mcNo = mcNo,
             estAbsMin = estAbs,
             startAbsMin = existing?.startAbsMin ?: nowAbsMin,
             corakOverride = existing?.corakOverride,
-            yardOverride = existing?.yardOverride,
+            // Sama seperti toggleEstimasiMatching manual: isi target yard ke sampel Matching
+            // (70y) kalau operator belum mengatur sendiri untuk mesin ini.
+            yardOverride = existing?.yardOverride ?: (if (isPending) POTONGAN_AWAL_YARD else null),
             // Tali Hijau tags the beam, not the time estimate — re-timing an already-tagged
             // machine (mistyped duration, corrected reading) shouldn't silently untag it.
-            isMatching = existing?.isMatching ?: false,
+            isMatching = isPending || (existing?.isMatching ?: false),
         )
-        updateState { s -> s.copy(estimasi = s.estimasi + (mcNo to newEst)) }
+        updateState { s ->
+            s.copy(
+                estimasi = s.estimasi + (mcNo to newEst),
+                pendingMatchingMcNos = if (isPending) (s.pendingMatchingMcNos ?: emptyList()) - mcNo else s.pendingMatchingMcNos,
+            )
+        }
 
         return ProsesResult.Ok(
             msg = "Mc $mcNo → ${absMinToTimeStr(estAbs)}",
@@ -250,6 +261,15 @@ class DoffViewModel @JvmOverloads constructor(
         val next = !est.isMatching
         val yardOverride = if (next && est.yardOverride == null) POTONGAN_AWAL_YARD else est.yardOverride
         s.copy(estimasi = s.estimasi + (mcNo to est.copy(isMatching = next, yardOverride = yardOverride)))
+    }
+
+    /** Tali Hijau: menandai [mcNo] agar Estimasi berikutnya untuk mesin itu otomatis isMatching
+     * (lihat DoffState.pendingMatchingMcNos) — dipanggil dari tombol "Sudah Pasang & Tandai
+     * Matching" pada pengingat setelah doff HB. Konsumsinya (dihapus dari daftar ini) terjadi di
+     * prosesBarisKondisiMesin, begitu Estimasi baru untuk mcNo itu benar-benar dibuat. */
+    fun markPendingMatching(mcNo: String) = updateState { s ->
+        val list = s.pendingMatchingMcNos ?: emptyList()
+        if (list.contains(mcNo)) s else s.copy(pendingMatchingMcNos = list + mcNo)
     }
 
     fun hapusAktualById(id: Int) = updateState { s ->

@@ -22,6 +22,7 @@ export function useConsoleHandlers() {
     pauseEstimasi,
     resumeEstimasi,
     toggleEstimasiMatching,
+    markPendingMatching,
     hapusAktualById,
     restoreAktual,
     finishShift,
@@ -84,6 +85,19 @@ export function useConsoleHandlers() {
       });
       showToast(result.msg);
       onCleared?.();
+      // Tali Hijau: HB (Habis Beam) berarti beam lusi lama habis dan beam baru sudah naik — potongan
+      // pertama gulungan itu adalah sampel Matching, dan operator harus memasang tali hijau fisik di
+      // tepi kainnya. Tawarkan langsung menandai isMatching untuk siklus berikutnya, supaya nanti
+      // waktu doffingnya tiba operator tidak perlu memeriksa kain lagi. Cek pada string ket yang
+      // sudah dibakukan (bukan cmd mentah), sama seperti extra.includes("MATCHING") di
+      // commands.ts — ket selalu berbentuk "jam(HB)" persis, tidak pernah tergabung dengan token lain.
+      if (entry && entry.ket.includes("(HB)")) {
+        showConfirm(
+          `⚠️ Pengingat Beam Baru Mc ${entry.mcNo}: Pasangkan tali hijau pada tepi kain gulungan awal!`,
+          () => markPendingMatching(entry.mcNo),
+          { confirmLabel: "Sudah Pasang & Tandai Matching", cancelLabel: "Nanti / Lewati" },
+        );
+      }
     } else {
       showToast(`⚠ ${result.msg}`);
     }

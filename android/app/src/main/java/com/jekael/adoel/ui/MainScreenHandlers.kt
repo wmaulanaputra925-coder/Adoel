@@ -3,6 +3,7 @@ package com.jekael.adoel.ui
 import android.content.Context
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import com.jekael.adoel.data.AktualEntry
 import com.jekael.adoel.data.Estimasi
 import com.jekael.adoel.data.ProsesResult
 import com.jekael.adoel.data.effectiveRemaining
@@ -31,6 +32,24 @@ internal class MainScreenHandlers(
     private fun flashError(msg: String) {
         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
         uiVm.showToast("⚠ $msg")
+    }
+
+    /** Tali Hijau: HB (Habis Beam) berarti beam lusi lama habis dan beam baru sudah naik — potongan
+     * pertama gulungan itu adalah sampel Matching, dan operator harus memasang tali hijau fisik di
+     * tepi kainnya. Tawarkan langsung menandai isMatching untuk siklus berikutnya, supaya nanti
+     * waktu doffingnya tiba operator tidak perlu memeriksa kain lagi. Cek pada string ket yang
+     * sudah dibakukan (bukan cmd mentah) — ket selalu berbentuk "jam(HB)" persis, tidak pernah
+     * tergabung dengan token lain (lihat standarisasiKeterangan). */
+    private fun maybeShowMatchingReminder(entry: AktualEntry?) {
+        if (entry != null && entry.ket.contains("(HB)")) {
+            uiVm.showConfirm(
+                msg = "⚠️ Pengingat Beam Baru Mc ${entry.mcNo}: Pasangkan tali hijau pada tepi kain gulungan awal!",
+                confirmLabel = "Sudah Pasang & Tandai Matching",
+                cancelLabel = "Nanti / Lewati",
+            ) {
+                doffVm.markPendingMatching(entry.mcNo)
+            }
+        }
     }
 
     private fun submitEstimasi(cmd: String, onCleared: () -> Unit) {
@@ -88,6 +107,7 @@ internal class MainScreenHandlers(
                             ),
                         )
                         uiVm.showToast(result.msg)
+                        maybeShowMatchingReminder(result.entry)
                         onCleared()
                     }
                     is ProsesResult.Err -> flashError(result.msg)
@@ -123,6 +143,7 @@ internal class MainScreenHandlers(
                     ),
                 )
                 uiVm.showToast(result.msg)
+                maybeShowMatchingReminder(result.entry)
             }
             is ProsesResult.Err -> uiVm.showToast("⚠ ${result.msg}")
         }
