@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { prosesBarisKondisiMesin, prosesBarisUmum } from "../domain/commands";
 import { buildDefaultDb } from "../domain/defaultDb";
-import { getRepresentativeEpochMin, nowAbsMin } from "../domain/format";
+import { currentShiftStartAbsMin, getRepresentativeEpochMin, nowAbsMin } from "../domain/format";
 import { parseJam } from "../domain/parse";
 import { loadState, parseBackupJson, saveState, serializeState } from "../domain/storage";
 import { processScannedQr } from "../domain/sync";
@@ -308,12 +308,19 @@ export function DoffStoreProvider({ children }: { children: ReactNode }) {
 
       // Hanya buat arsip shift baru jika terdapat entri di halaman riwayat
       if (s.aktual.length > 0) {
+        // Arsip shift memakai jadwalnya (06/14/22 + 8 jam), bukan doff pertama dan detik operator
+        // menekan Selesai Shift — dua hal itu bergeser tergantung kapan beam pertama habis dan
+        // seberapa telat shift ditutup, sehingga shift yang sama tercatat dengan jam berbeda tiap
+        // kali. Doff paling awal (atau now kalau tidak ada timestamp) hanya dipakai untuk memilih
+        // shift MANA, jadi penutupan yang telat — bahkan melewati batas shift berikutnya — tetap
+        // masuk ke shift tempat pekerjaan itu dilakukan.
         const tsList = s.aktual.map((a) => a.tsEpochMin).filter((t): t is number => t !== null);
-        const started = Math.min(...(tsList.length > 0 ? tsList : [now]));
+        const anchor = Math.min(...(tsList.length > 0 ? tsList : [now]));
+        const started = currentShiftStartAbsMin(anchor);
         const record: ShiftRecord = {
           id: s.nextShiftId,
           startedAtEpochMin: started,
-          endedAtEpochMin: now,
+          endedAtEpochMin: started + 8 * 60,
           aktual: s.aktual,
           estimasiRemaining: {},
         };

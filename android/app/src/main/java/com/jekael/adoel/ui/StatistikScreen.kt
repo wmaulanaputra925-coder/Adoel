@@ -70,6 +70,7 @@ import com.jekael.adoel.data.MesinData
 import com.jekael.adoel.data.MesinTipe
 import com.jekael.adoel.data.ShiftRecord
 import com.jekael.adoel.data.buildShareShiftText
+import com.jekael.adoel.data.currentShiftStartAbsMin
 import com.jekael.adoel.data.formatDeltaMin
 import com.jekael.adoel.data.formatShiftDate
 import com.jekael.adoel.data.formatShiftShortDate
@@ -569,9 +570,15 @@ private fun ShiftRow(
     val context = LocalContext.current
     val representativeTime = remember(shift) { getRepresentativeEpochMin(shift) }
     val shiftNo = remember(representativeTime) { shiftNumberForEpochMin(representativeTime) }
-    val dateStr = remember(shift.startedAtEpochMin) { formatShiftDate(shift.startedAtEpochMin) }
-    val timeRange = remember(shift.startedAtEpochMin, shift.endedAtEpochMin) {
-        "${formatShiftTime(shift.startedAtEpochMin)}–${formatShiftTime(shift.endedAtEpochMin)}"
+    // Both the date and the range come off the shift's scheduled start rather than straight from
+    // the record, so shifts archived before finishShift started storing it that way (first doff →
+    // Selesai Shift tap) still read as the shift they actually were — a night shift whose first
+    // doff landed after midnight used to be dated the following day. A no-op for new records:
+    // their stored start is already a boundary, and a boundary maps to itself.
+    val scheduledStart = remember(shift.startedAtEpochMin) { currentShiftStartAbsMin(shift.startedAtEpochMin) }
+    val dateStr = remember(scheduledStart) { formatShiftDate(scheduledStart) }
+    val timeRange = remember(scheduledStart) {
+        "${formatShiftTime(scheduledStart)}–${formatShiftTime(scheduledStart + 480)}"
     }
     // +240 (4 jam setelah mulai) dipakai sebagai titik tengah yang aman dari pembungkusan
     // tanggal untuk shift 8 jam manapun — shift ini sudah diarsipkan, bisa dibuka

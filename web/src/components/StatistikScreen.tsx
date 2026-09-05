@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { useDoffStore } from "../store/DoffStore";
 import { useUiStore } from "../store/UiStore";
-import { formatDeltaMin, formatYard, getRepresentativeEpochMin, shiftNumberForEpochMin } from "../domain/format";
+import { currentShiftStartAbsMin, formatDeltaMin, formatYard, getRepresentativeEpochMin, shiftNumberForEpochMin } from "../domain/format";
 import { sortAktualChronological } from "../domain/aktualOrder";
 import { shareOrCopy, shareShiftText } from "../domain/share";
 import { TIPE_COLOR } from "../domain/mesinVisual";
@@ -342,10 +342,16 @@ function ShiftRow({
 }) {
   const representativeTime = useMemo(() => getRepresentativeEpochMin(shift), [shift]);
   const shiftNo = useMemo(() => shiftNumberForEpochMin(representativeTime), [representativeTime]);
-  const dateStr = useMemo(() => formatShiftDate(shift.startedAtEpochMin), [shift.startedAtEpochMin]);
+  // Tanggal dan rentang jam sama-sama diambil dari jam mulai terjadwal, bukan langsung dari
+  // record, supaya shift yang diarsipkan sebelum finishShift menyimpannya begitu (doff pertama →
+  // tap Selesai Shift) tetap terbaca sebagai shift yang sebenarnya — shift malam yang doff
+  // pertamanya lewat tengah malam dulu tertanggal hari berikutnya. Untuk record baru ini tidak
+  // mengubah apa pun: start-nya sudah berupa batas shift, dan batas shift memetakan ke dirinya.
+  const scheduledStart = useMemo(() => currentShiftStartAbsMin(shift.startedAtEpochMin), [shift.startedAtEpochMin]);
+  const dateStr = useMemo(() => formatShiftDate(scheduledStart), [scheduledStart]);
   const timeRange = useMemo(
-    () => `${formatShiftTime(shift.startedAtEpochMin)}–${formatShiftTime(shift.endedAtEpochMin)}`,
-    [shift.startedAtEpochMin, shift.endedAtEpochMin],
+    () => `${formatShiftTime(scheduledStart)}–${formatShiftTime(scheduledStart + 8 * 60)}`,
+    [scheduledStart],
   );
 
   const chronological = useMemo(

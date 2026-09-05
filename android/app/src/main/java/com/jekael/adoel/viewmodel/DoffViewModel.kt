@@ -292,11 +292,19 @@ class DoffViewModel @JvmOverloads constructor(
 
         // Only archive a shift record when there's doffing history to archive.
         if (s.aktual.isNotEmpty()) {
-            val started = s.aktual.mapNotNull { it.tsEpochMin }.minOrNull() ?: now
+            // A shift record spans its SCHEDULED window (06/14/22 + 8 hours), not the operator's
+            // first doff and the moment they tapped Selesai Shift — those drift by however early
+            // the first beam ran out or how late someone got around to closing the shift, which
+            // made two runs of the same shift archive different hours. The earliest doff (falling
+            // back to now when nothing is timestamped) only picks WHICH shift this is, so closing
+            // late — even past the next boundary — still files the work under the shift it was
+            // done in.
+            val anchor = s.aktual.mapNotNull { it.tsEpochMin }.minOrNull() ?: now
+            val started = currentShiftStartAbsMin(anchor)
             val record = ShiftRecord(
                 id = s.nextShiftId,
                 startedAtEpochMin = started,
-                endedAtEpochMin = now,
+                endedAtEpochMin = started + 480,
                 aktual = s.aktual,
                 estimasiRemaining = emptyMap(),
             )
