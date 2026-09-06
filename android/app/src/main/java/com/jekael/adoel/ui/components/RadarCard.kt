@@ -495,7 +495,16 @@ fun RadarCard(
                 // near-due threshold without any other recomposition key changing, and without
                 // this the running gesture coroutine would keep the stale pre-threshold value
                 // (captured at launch) instead of picking up the newly-allowed right-swipe.
-                .pointerInput(completing, canDoffBySwipe, face) {
+                //
+                // est.isMatching is a key for the same reason, and it's the one that actually
+                // bit: triggerDoff()/settleSwipe() are local functions that close over `est` from
+                // whichever recomposition last (re)launched this coroutine — without a key change,
+                // toggling the tag via swipe-left doesn't restart it, so a swipe-right right after
+                // could still animate/record against the pre-toggle est.isMatching, showing the
+                // Normal celebration for what DoffViewModel.prosesBarisUmum (which reads the
+                // ViewModel's own live state fresh, not this stale closure) correctly recorded as
+                // Matching. Restarting on the actual value fixes the celebration to match.
+                .pointerInput(completing, canDoffBySwipe, face, est.isMatching) {
                     if (completing || face != CardFace.FRONT) return@pointerInput
                     detectHorizontalDragGestures(
                         onDragStart = {
