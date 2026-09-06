@@ -1291,7 +1291,7 @@ button:disabled {
   vertical-align: middle;
 }
 /* Tali Hijau badge — still used on the PAUSED card front (see .radar-matching-toggle above for
-   why); the active card front relies on the bookmark tab (.radar-matching-bookmark) instead. */
+   why); the active card front relies on the corner ribbon (.radar-matching-ribbon) instead. */
 .radar-matching-badge {
   display: inline-flex;
   align-items: center;
@@ -1314,7 +1314,7 @@ button:disabled {
   vertical-align: middle;
 }
 /* Tali Hijau toggle — the active (non-paused) card front has moved this to the swipe-left
-   bookmark tab instead (see .radar-matching-bookmark below), to keep this title row from
+   corner ribbon instead (see .radar-matching-ribbon below), to keep this title row from
    crowding with Bentrok/OPERAN SHIFT. Still used by the PAUSED card front, which has no swipe
    gesture at all, so it needs its own reachable tap target here. */
 .radar-matching-toggle {
@@ -1339,37 +1339,42 @@ button:disabled {
   display: inline-block;
   vertical-align: middle;
 }
-/* Tali Hijau bookmark tab — the active card's swipe-left target and persistent status indicator,
-   anchored to the card's right edge. Sits outside the card's own 0–100% width box (see the
-   dynamic `right` set inline in RadarCard.tsx), so it's never covered by the card's own
-   translateX slide — it just becomes proportionally more "pulled out" as the operator drags
-   left, then settles into its resting peek (protruding when isMatching, flush/hidden otherwise)
-   once released. */
-.radar-matching-bookmark {
+/* Tali Hijau corner ribbon — a classic diagonal "corner ribbon" badge cut across the card's own
+   top-right corner, the active card's swipe-left target and persistent status indicator. Lives
+   inside .radar-card-front (not a sibling of .radar-card-swipe), so it translates along with the
+   card face during drag instead of staying fixed while the card slides out from under it, and is
+   clipped for free by that element's own overflow:hidden + border-radius — no clip-path of its
+   own needed, and it can never bleed outside the card's rounded corner. Replaces the old
+   right-edge bookmark tab, which needed real gutter space to poke into outside the card
+   (.scroll-area only has 12px of padding, not enough for a comfortable protrusion); sitting
+   entirely inside the card's own box sidesteps that limit completely. Fully invisible (opacity 0)
+   when untagged and not being dragged, so an untagged card's corner is completely clean — then
+   pops in (scale 0.75→1) as a preview during an active swipe-left, grey before the arm threshold
+   and green after, or stays permanently visible once Estimasi.isMatching is on. */
+.radar-matching-ribbon {
   position: absolute;
-  top: 50%;
-  /* Deliberately behind the card face (.radar-card-swipe is z-index:1) — tucked in from behind
-     like a ribbon slid between pages, so only the sliver that pokes out past the card's own right
-     edge is ever visible. That's what keeps it from overlapping card content (the countdown, corak
-     line, etc.): the card's own opaque surface masks the rest of the ribbon for free. */
-  z-index: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 32px;
-  /* A notch cut into the outer edge — the classic bookmark-ribbon silhouette — not a rounded
-     rect, which read as a floating button sitting on top of the card instead of a ribbon coming
-     out from behind it. */
-  clip-path: polygon(0% 0%, 100% 0%, calc(100% - 8px) 50%, 100% 100%, 0% 100%);
+  top: 13px;
+  right: -34px;
+  z-index: 2;
+  width: 110px;
+  padding: 3px 0;
+  text-align: center;
+  transform-origin: center;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #fff;
   background: var(--text-faint);
-  color: var(--bg-elevated);
-  transform: translateY(-50%);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  opacity: 0;
   pointer-events: none;
 }
-.radar-matching-bookmark.active {
+.radar-matching-ribbon.visible {
+  opacity: 1;
+}
+.radar-matching-ribbon.active {
   background: var(--emerald-500);
-  color: #fff;
 }
 .radar-card-corak {
   font-size: 12.5px;

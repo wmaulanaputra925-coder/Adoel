@@ -20,7 +20,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.AutoAwesome
-import androidx.compose.material.icons.outlined.Bookmark
 import androidx.compose.material.icons.outlined.ContentCut
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Pause
@@ -33,14 +32,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.GenericShape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -56,7 +53,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jekael.adoel.data.*
@@ -65,7 +61,6 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.abs
-import kotlin.math.roundToInt
 
 /** Which swipe direction triggered a doff completion — drives the celebration icon/color/exit
  * direction in RadarCard (see completingKind below). */
@@ -304,7 +299,7 @@ fun RadarCard(
     }
 
     // Swipe right = doff (Normal or Matching depending on est.isMatching), swipe left = toggle
-    // Tali Hijau (see MatchingBookmarkTab further down), long-press = hapus — the only ways to act
+    // Tali Hijau (see MatchingCornerRibbon further down), long-press = hapus — the only ways to act
     // on a card now that the always-visible buttons are gone (see SwipeActionBackground for the
     // right-side swipe reveal panel).
     val density = LocalDensity.current
@@ -316,9 +311,9 @@ fun RadarCard(
     // make dragging back toward centre feel sticky — so the uncompressed total is tracked here.
     var rawDragX by remember(est.mcNo) { mutableFloatStateOf(0f) }
     // True only between onDragStart and onDragEnd/onDragCancel — distinguishes an in-progress drag
-    // from offsetX/bookmarkPeekPx merely being mid-settle-animation after release, so the bookmark's
-    // "preview" color (see bookmarkPreviewActive below) reverts to the real committed state the
-    // instant the finger lifts, not only once the settle animation finishes.
+    // from offsetX merely being mid-settle-animation after release, so the bookmark's "preview"
+    // color (see bookmarkPreviewActive below) reverts to the real committed state the instant the
+    // finger lifts, not only once the settle animation finishes.
     var isDraggingCard by remember(est.mcNo) { mutableStateOf(false) }
     // One light tick the moment the drag crosses the commit point, and again if it's pulled back
     // and re-crossed. Paired with the reveal panel's own armed state (see SwipeActionBackground)
@@ -328,12 +323,11 @@ fun RadarCard(
         if (swipeArmed) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
     }
 
-    // Tali Hijau bookmark tab — how many px it currently pokes out past the card's right edge.
-    // Lives at its resting peek (protruding when isMatching, flush otherwise) except while
-    // actively dragging left, when onHorizontalDrag below snaps it to track the finger directly.
-    val bookmarkRestPeekPx = with(density) { 10.dp.toPx() }
-    val bookmarkDragPeekPx = with(density) { 26.dp.toPx() }
-    val bookmarkPeekPx = remember(est.mcNo) { Animatable(if (est.isMatching) bookmarkRestPeekPx else 0f) }
+    // Tali Hijau corner ribbon — pops in (scale 0.75->1) as a preview while actively dragging
+    // left, fully visible/settled once released or when isMatching is permanently on. No
+    // Animatable/peek-tracking needed here (unlike the old right-edge bookmark tab this replaced):
+    // animateFloatAsState below just reacts to isDraggingCard/offsetX as they're driven by the
+    // drag handlers further down.
     val bookmarkDraggingLeft = isDraggingCard && offsetX.value < 0f
     val bookmarkLeftDragFraction = if (bookmarkDraggingLeft) (abs(offsetX.value) / swipeThresholdPx).coerceIn(0f, 1f) else 0f
     val bookmarkArmed = bookmarkLeftDragFraction >= 1f
@@ -342,6 +336,11 @@ fun RadarCard(
     // warnanya berpindah ke status baru (bukan status saat ini), supaya operator tahu apa yang akan
     // terjadi sebelum benar-benar melepas.
     val bookmarkPreviewActive = if (bookmarkDraggingLeft && bookmarkArmed) !est.isMatching else est.isMatching
+    val bookmarkScale by animateFloatAsState(
+        targetValue = if (bookmarkDraggingLeft) 0.75f + bookmarkLeftDragFraction * 0.25f else 1f,
+        animationSpec = if (bookmarkDraggingLeft) snap() else spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+        label = "bookmarkScale",
+    )
 
     fun triggerDoff() {
         if (completing) return
@@ -379,24 +378,13 @@ fun RadarCard(
         when {
             value <= -swipeThresholdPx -> {
                 // Swipe left: tandai/lepas Tali Hijau — bukan doff, jadi kartu tidak pernah
-                // meninggalkan layar, cuma memicu toggle lalu kembali ke posisi netral. est.isMatching
-                // belum berubah di komposisi ini (baru berubah setelah state di ViewModel benar-benar
-                // update), jadi targetkan kebalikannya di sini supaya bookmark langsung settle ke
-                // posisi barunya, bukan posisi lama lalu lompat lagi begitu recompose.
+                // meninggalkan layar, cuma memicu toggle lalu kembali ke posisi netral.
                 onToggleMatching()
-                val newRestPeek = if (!est.isMatching) bookmarkRestPeekPx else 0f
                 scope.launch { offsetX.animateTo(0f, spring(dampingRatio = Spring.DampingRatioMediumBouncy)) }
-                scope.launch { bookmarkPeekPx.animateTo(newRestPeek, spring(dampingRatio = Spring.DampingRatioMediumBouncy)) }
             }
             value >= swipeThresholdPx && canDoffBySwipe -> triggerDoff() // exitProgress takes over from here
             else -> {
                 scope.launch { offsetX.animateTo(0f, spring(dampingRatio = Spring.DampingRatioMediumBouncy)) }
-                scope.launch {
-                    bookmarkPeekPx.animateTo(
-                        if (est.isMatching) bookmarkRestPeekPx else 0f,
-                        spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                    )
-                }
             }
         }
     }
@@ -424,9 +412,9 @@ fun RadarCard(
     }
 
     Box(modifier = modifier.fillMaxWidth()) {
-        // Swipe kiri sekarang bukan aksi doff lagi (lihat MatchingBookmarkTab di bawah, bukan panel
-        // ini) — SwipeActionBackground (dipakai bersama SwipeableCard) hanya dipanggil untuk sisi
-        // kanan, jadi leftIcon/leftColor di bawah tidak pernah benar-benar dirender. Isi kanan
+        // Swipe kiri sekarang bukan aksi doff lagi (lihat MatchingCornerRibbon di bawah, bukan
+        // panel ini) — SwipeActionBackground (dipakai bersama SwipeableCard) hanya dipanggil untuk
+        // sisi kanan, jadi leftIcon/leftColor di bawah tidak pernah benar-benar dirender. Isi kanan
         // bergantung status penanda: mesin bertali hijau menampilkan Doffing Matching, bukan Normal.
         if (offsetX.value > 0f) {
             SwipeActionBackground(
@@ -440,11 +428,6 @@ fun RadarCard(
                 rightDescription = if (est.isMatching) "Sampel beam baru · Uji kualitas" else "Target yard selesai",
             )
         }
-        MatchingBookmarkTab(
-            peekPx = bookmarkPeekPx.value,
-            visible = bookmarkVisible,
-            active = bookmarkPreviewActive,
-        )
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -524,12 +507,6 @@ fun RadarCard(
                         onDragCancel = {
                             isDraggingCard = false
                             scope.launch { offsetX.animateTo(0f, spring(dampingRatio = Spring.DampingRatioMediumBouncy)) }
-                            scope.launch {
-                                bookmarkPeekPx.animateTo(
-                                    if (est.isMatching) bookmarkRestPeekPx else 0f,
-                                    spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                                )
-                            }
                         },
                         onHorizontalDrag = { change, dragAmount ->
                             change.consume()
@@ -542,9 +519,6 @@ fun RadarCard(
                             rawDragX = if (nextRaw > 0f && !canDoffBySwipe) 0f else nextRaw
                             scope.launch {
                                 offsetX.snapTo(rubberBandSwipe(rawDragX, swipeThresholdPx, maxSwipePx))
-                                val frac = if (offsetX.value < 0f) (abs(offsetX.value) / swipeThresholdPx).coerceIn(0f, 1f) else 0f
-                                val base = if (est.isMatching) bookmarkRestPeekPx else 0f
-                                bookmarkPeekPx.snapTo(if (offsetX.value < 0f) base + frac * (bookmarkDragPeekPx - base) else base)
                             }
                         },
                     )
@@ -800,6 +774,9 @@ fun RadarCard(
                     }
                 }
             }
+            // Declared last so it paints on top of the accent strip and content above — a corner
+            // ribbon badge, not a background layer.
+            MatchingCornerRibbon(scale = bookmarkScale, visible = bookmarkVisible, active = bookmarkPreviewActive)
           }
 
           // Back of the card — only composed once the flip has passed the halfway point, sized via
@@ -1079,50 +1056,43 @@ private fun PausedRadarCardFront(
     }
 }
 
-/** Tali Hijau's swipe-left target and persistent status indicator — a classic bookmark-ribbon
- * shape (a rectangle with a notch cut into its outer edge, not a rounded pill) anchored to the
- * card's right edge. Deliberately left at the default z-order (no explicit zIndex), same as
- * [SwipeActionBackground] right above it in the same Box — both are declared *before* the card's
- * own content Box, so the card (which has no explicit zIndex of its own either) naturally paints
- * over them in declaration order. That's what makes this read as a ribbon tucked in from behind
- * the card and poking out to the right, rather than a button floating on top of it: the card's own
- * opaque surface masks whatever part of the ribbon would otherwise sit "under" it, so only the
- * sliver that actually extends past the card's right edge (driven by the live [peekPx] offset the
- * caller drives from its drag gesture) is ever visible — it can never cover card content like the
- * countdown or corak line, however this is positioned vertically. Icon-only by design (no label)
- * so it stays a small tab, not a full reveal panel like the doff side. */
+/** Tali Hijau's swipe-left target and persistent status indicator — a classic diagonal "corner
+ * ribbon" badge cut across the card's top-right corner, replacing the old right-edge bookmark tab
+ * (which needed real gutter space outside the card to poke into, and this card's list only leaves
+ * 8dp of padding around it — not enough for a comfortable protrusion). Declared last among this
+ * front face's children (see the call site) so it paints on top of the accent strip and content,
+ * and lives inside the same clipped/translating Box as the rest of the front face, so it's clipped
+ * for free by the card's own rounded corner (no custom [GenericShape] needed here, unlike the tab
+ * this replaced) and slides together with the card during drag instead of staying fixed in place.
+ * Fully invisible (alpha 0) when untagged and not being dragged, so an untagged card's corner is
+ * completely clean; [scale] pops it in (0.75→1) as a preview while actively dragging left. Text
+ * label, not an icon — "MATCHING" reads unambiguously at this size where an icon alone wouldn't. */
 @Composable
-private fun BoxScope.MatchingBookmarkTab(peekPx: Float, visible: Boolean, active: Boolean) {
+private fun BoxScope.MatchingCornerRibbon(scale: Float, visible: Boolean, active: Boolean) {
     val colors = LocalAppColors.current
-    val density = LocalDensity.current
-    val notchPx = with(density) { 8.dp.toPx() }
-    // The notch — a V cut into the outer (right) edge — is what makes this read as a ribbon
-    // instead of a plain tab: two points at top-right/bottom-right with the cut between them.
-    val ribbonShape = remember(notchPx) {
-        GenericShape { size, _ ->
-            moveTo(0f, 0f)
-            lineTo(size.width, 0f)
-            lineTo(size.width - notchPx, size.height / 2f)
-            lineTo(size.width, size.height)
-            lineTo(0f, size.height)
-            close()
-        }
-    }
     Box(
         modifier = Modifier
-            .align(Alignment.CenterEnd)
-            .offset { IntOffset(peekPx.roundToInt(), 0) }
-            .size(width = 26.dp, height = 32.dp)
-            .clip(ribbonShape)
-            .background(if (active) Emerald500 else colors.textFaint)
-            .alpha(if (visible) 1f else 0f),
+            .align(Alignment.TopEnd)
+            .offset(x = 34.dp, y = 13.dp)
+            .width(110.dp)
+            .graphicsLayer {
+                rotationZ = 45f
+                alpha = if (visible) 1f else 0f
+                scaleX = scale
+                scaleY = scale
+            }
+            .background(if (active) Emerald500 else colors.textFaint),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(
-            imageVector = Icons.Outlined.Bookmark,
-            contentDescription = null,
-            tint = if (active) Color.White else colors.bgElevated,
-            modifier = Modifier.size(14.dp),
+        Text(
+            text = "MATCHING",
+            style = TextStyle(
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Black,
+                letterSpacing = 1.sp,
+                color = Color.White,
+            ),
+            modifier = Modifier.padding(vertical = 3.dp),
         )
     }
 }

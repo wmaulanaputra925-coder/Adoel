@@ -17,7 +17,6 @@ import {
   CloseIcon,
   ShiftExchangeIcon,
   TagIcon,
-  BookmarkIcon,
 } from "./Icons";
 
 const REMINDER_LEAD_MIN = 5;
@@ -249,17 +248,15 @@ export function RadarCard({
     action();
   }
 
-  // Penanda buku Tali Hijau: menonjol sedikit dari sisi kanan kartu saat isMatching aktif (indikator
-  // status yang selalu terlihat, menggantikan lencana/tombol yang dulu ada di title row), dan
-  // mengikuti drag secara langsung (tanpa transisi) saat operator menyeret ke kiri — makin jauh
-  // diseret, makin menonjol, sampai mentok di titik "armed" tempat melepas jari akan men-toggle.
+  // Pita Tali Hijau: badge diagonal kecil di pojok kanan-atas kartu, indikator status yang selalu
+  // terlihat saat isMatching aktif (menggantikan lencana/tombol yang dulu ada di title row, dan
+  // sebelum itu tab bookmark yang menonjol dari sisi kanan — dipindah ke sini karena sisi kanan
+  // butuh ruang gutter di luar kartu yang tidak selalu cukup; pojok ini sepenuhnya di dalam batas
+  // kartu, jadi otomatis ter-clip bersih oleh .radar-card-front sendiri). Saat digeser ke kiri,
+  // pita "pop in" (scale dari kecil ke penuh) makin jelas makin jauh diseret, sampai mentok di
+  // titik "armed" tempat melepas jari akan men-toggle.
   const leftDragFraction = offsetX < 0 ? Math.min(1, Math.abs(offsetX) / SWIPE_THRESHOLD_PX) : 0;
   const bookmarkArmed = leftDragFraction >= 1;
-  const BOOKMARK_REST_PEEK = 10;
-  const BOOKMARK_DRAG_PEEK = 26;
-  const bookmarkBaseRest = est.isMatching ? BOOKMARK_REST_PEEK : 0;
-  const bookmarkPeek =
-    dragging && offsetX < 0 ? bookmarkBaseRest + leftDragFraction * (BOOKMARK_DRAG_PEEK - bookmarkBaseRest) : bookmarkBaseRest;
   const bookmarkVisible = est.isMatching || (dragging && offsetX < 0);
   // Pratinjau status yang AKAN terjadi kalau jari dilepas sekarang — begitu melewati titik armed,
   // warnanya berpindah ke status baru (bukan status saat ini), supaya operator tahu apa yang akan
@@ -386,20 +383,6 @@ export function RadarCard({
           </div>
         </div>
       )}
-      {!completing && (
-        <div
-          className={`radar-matching-bookmark${bookmarkPreviewActive ? " active" : ""}`}
-          style={{
-            right: `${-bookmarkPeek}px`,
-            opacity: bookmarkVisible ? 1 : 0,
-            transition: dragging
-              ? "none"
-              : "right 0.32s cubic-bezier(0.34,1.56,0.64,1), opacity 0.2s ease, background 0.2s ease, color 0.2s ease",
-          }}
-        >
-          <BookmarkIcon size={16} />
-        </div>
-      )}
       <div
         className="radar-card-swipe"
         style={{
@@ -425,6 +408,19 @@ export function RadarCard({
           {charging && <div className="radar-card-charge-bar" />}
           <div className="radar-card-charge-overlay" />
           <div className="radar-card-accent" />
+          {!completing && (
+            <div
+              className={`radar-matching-ribbon${bookmarkVisible ? " visible" : ""}${bookmarkPreviewActive ? " active" : ""}`}
+              style={{
+                transform: `rotate(45deg) scale(${dragging && offsetX < 0 ? 0.75 + leftDragFraction * 0.25 : 1})`,
+                transition: dragging
+                  ? "none"
+                  : "opacity 0.2s ease, transform 0.28s cubic-bezier(0.34,1.56,0.64,1), background 0.2s ease, color 0.2s ease",
+              }}
+            >
+              Matching
+            </div>
+          )}
           <div className="radar-card-body">
             <div className="radar-card-main" onClick={() => handleZoneClick(onQuickEdit)} role="button">
               <div className="radar-card-title-row">
