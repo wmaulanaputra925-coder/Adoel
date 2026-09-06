@@ -63,6 +63,27 @@ class ShareTextTest {
     }
 
     @Test
+    fun buildShareHistoryText_runningEstimasiTaggedMatchingIsNoted() {
+        val db = mapOf("76" to MesinData(MesinTipe.CAM, "21242", targetYard = 165.0))
+        val state = DoffState(
+            db = db,
+            estimasi = mapOf(
+                "76" to Estimasi(
+                    "76",
+                    estAbsMin = epochMin(2026, 1, 15, 13, 20),
+                    startAbsMin = epochMin(2026, 1, 15, 12, 0),
+                    isMatching = true,
+                ),
+            ),
+        )
+        val nowMillis = epochMin(2026, 1, 15, 12, 0) * 60000L
+
+        val text = buildShareHistoryText(state, nowMillis, wib)
+
+        assertTrue(text.contains("*Sedang berjalan (1 mc)*\n• Mc 76 – 21242 (165y) · Matching · Est. 13.20"))
+    }
+
+    @Test
     fun buildShareHistoryText_finishedOnlyOmitsRunningBlock() {
         val db = mapOf("29" to MesinData(MesinTipe.TAPPET, "34758"))
         val state = DoffState(
