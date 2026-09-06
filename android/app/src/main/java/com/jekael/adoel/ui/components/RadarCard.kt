@@ -566,7 +566,13 @@ fun RadarCard(
           // own tap zones disabled then too, so an invisible front can't still swallow taps meant
           // for the back's buttons.
           val frontVisible = flipRotation.value <= 90f
-          Box(modifier = Modifier.graphicsLayer { alpha = if (frontVisible) 1f else 0f }) {
+          // height(IntrinsicSize.Min) matters here, not just style: a LazyColumn item's incoming
+          // height constraint is unbounded, so without this the accent Box's fillMaxHeight() below
+          // silently no-ops (Compose's own guard against filling to Infinity) and it collapses to
+          // 0dp tall — invisible, while the Row right next to it still gets a real height from its
+          // own text content. Pinning this Box's height to its children's intrinsic minimum gives
+          // fillMaxHeight() something bounded to actually fill.
+          Box(modifier = Modifier.graphicsLayer { alpha = if (frontVisible) 1f else 0f }.height(IntrinsicSize.Min)) {
             // Left accent — a flush flat strip, no independent clip/rounding of its own, so its
             // top/bottom corners aren't hand-matched to the card's curve — they're just cropped by
             // it for free, since the outer elevatedListCard above already clips everything to
@@ -975,6 +981,10 @@ private fun PausedRadarCardFront(
     Box(
         modifier = modifier
             .fillMaxWidth()
+            // Same fix as the active card's front (see its own height(IntrinsicSize.Min) comment):
+            // a LazyColumn item's height is unbounded, so without this the amber accent Box below
+            // (fillMaxHeight() with no content of its own) collapses to 0dp tall and never paints.
+            .height(IntrinsicSize.Min)
             .graphicsLayer {
                 alpha = entranceAlpha
                 translationY = entranceOffsetY
