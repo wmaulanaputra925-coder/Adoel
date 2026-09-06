@@ -1,8 +1,8 @@
 import { useState } from "react";
 import {
-  ArrowLeftIcon,
   ArrowRightIcon,
   BookOpenIcon,
+  BookmarkIcon,
   CheckIcon,
   CloseIcon,
   ForwardIcon,
@@ -195,11 +195,12 @@ export function OnboardingDialog({ onClose }: { onClose: () => void }) {
                     className="guide-gesture-badge"
                     style={{ background: "color-mix(in srgb, var(--emerald-500) 15%, transparent)", color: "var(--emerald-400)" }}
                   >
-                    Doffing Normal
+                    Doffing
                   </span>
                 </div>
                 <div className="guide-row-desc">
-                  Usap kartu ke kanan untuk mencatat <strong>Doffing Normal</strong> saat kain selesai sesuai target yard standar.
+                  Usap kartu ke kanan untuk mencatat Doffing — otomatis <strong>Normal</strong>, atau <strong>Matching</strong> kalau
+                  mesin sedang bertanda 🔖 Tali Hijau. Hanya aktif saat mendekati jam doffing.
                 </div>
               </div>
 
@@ -207,20 +208,22 @@ export function OnboardingDialog({ onClose }: { onClose: () => void }) {
               <div className="guide-gesture-card">
                 <div className="guide-gesture-head">
                   <div className="guide-gesture-action">
-                    <span style={{ color: "var(--sky-400)", display: "flex", alignItems: "center" }}>
-                      <ArrowLeftIcon size={18} />
+                    <span style={{ color: "var(--emerald-400)", display: "flex", alignItems: "center" }}>
+                      <BookmarkIcon size={16} />
                     </span>
                     <span>Geser ke Kiri</span>
                   </div>
                   <span
                     className="guide-gesture-badge"
-                    style={{ background: "color-mix(in srgb, var(--sky-500) 15%, transparent)", color: "var(--sky-400)" }}
+                    style={{ background: "color-mix(in srgb, var(--emerald-500) 15%, transparent)", color: "var(--emerald-400)" }}
                   >
-                    Doffing Matching
+                    Tandai Tali Hijau
                   </span>
                 </div>
                 <div className="guide-row-desc">
-                  Usap kartu ke kiri untuk mencatat <strong>Doffing Matching</strong> (doffing awal pada beam lusi baru untuk potong sampel &amp; cek kualitas kain).
+                  Usap kartu ke kiri untuk menandai/melepas 🔖 <strong>Tali Hijau · Matching</strong> — beam lusi baru yang gulungan
+                  pertamanya perlu dipotong sebagai sampel uji kualitas. Bisa kapan saja, tidak perlu menunggu jam doffing; begitu
+                  ditandai, Doffing berikutnya (geser kanan) otomatis tercatat Matching.
                 </div>
               </div>
 
