@@ -2,7 +2,6 @@ import { useState } from "react";
 import {
   ArrowRightIcon,
   BookOpenIcon,
-  BookmarkIcon,
   CheckIcon,
   CloseIcon,
   ForwardIcon,
@@ -10,6 +9,7 @@ import {
   ScheduleIcon,
   ScissorsIcon,
   SwipeIcon,
+  TagIcon,
   TextureIcon,
   TouchAppIcon,
   UndoIcon,
@@ -182,34 +182,37 @@ export function OnboardingDialog({ onClose }: { onClose: () => void }) {
                 </div>
               </div>
 
-              {/* Gesture 1: Geser Kanan */}
+              {/* Gesture 1: Geser Kanan — Cyan (netral), bukan warna Normal (Sky) atau Matching
+                  (Emerald) tertentu, karena hasilnya memang kondisional tergantung penanda. */}
               <div className="guide-gesture-card">
                 <div className="guide-gesture-head">
                   <div className="guide-gesture-action">
-                    <span style={{ color: "var(--emerald-400)", display: "flex", alignItems: "center" }}>
+                    <span style={{ color: "var(--cyan-400)", display: "flex", alignItems: "center" }}>
                       <ArrowRightIcon size={18} />
                     </span>
                     <span>Geser ke Kanan</span>
                   </div>
                   <span
                     className="guide-gesture-badge"
-                    style={{ background: "color-mix(in srgb, var(--emerald-500) 15%, transparent)", color: "var(--emerald-400)" }}
+                    style={{ background: "color-mix(in srgb, var(--cyan-500) 15%, transparent)", color: "var(--cyan-400)" }}
                   >
                     Doffing
                   </span>
                 </div>
                 <div className="guide-row-desc">
                   Usap kartu ke kanan untuk mencatat Doffing — otomatis <strong>Normal</strong>, atau <strong>Matching</strong> kalau
-                  mesin sedang bertanda 🔖 Tali Hijau. Hanya aktif saat mendekati jam doffing.
+                  mesin sedang bertanda 🏷️ Tali Hijau. Hanya aktif saat mendekati jam doffing.
                 </div>
               </div>
 
-              {/* Gesture 2: Geser Kiri */}
+              {/* Gesture 2: Geser Kiri — ikon tag/label, bukan bookmark, mengikuti desain pita
+                  pojok kanan-atas kartu yang sekarang bertuliskan "MATCHING" (bukan lagi ikon
+                  bookmark). */}
               <div className="guide-gesture-card">
                 <div className="guide-gesture-head">
                   <div className="guide-gesture-action">
                     <span style={{ color: "var(--emerald-400)", display: "flex", alignItems: "center" }}>
-                      <BookmarkIcon size={16} />
+                      <TagIcon size={16} />
                     </span>
                     <span>Geser ke Kiri</span>
                   </div>
@@ -221,7 +224,7 @@ export function OnboardingDialog({ onClose }: { onClose: () => void }) {
                   </span>
                 </div>
                 <div className="guide-row-desc">
-                  Usap kartu ke kiri untuk menandai/melepas 🔖 <strong>Tali Hijau · Matching</strong> — beam lusi baru yang gulungan
+                  Usap kartu ke kiri untuk menandai/melepas 🏷️ <strong>Tali Hijau · Matching</strong> — beam lusi baru yang gulungan
                   pertamanya perlu dipotong sebagai sampel uji kualitas. Bisa kapan saja, tidak perlu menunggu jam doffing; begitu
                   ditandai, Doffing berikutnya (geser kanan) otomatis tercatat Matching.
                 </div>

@@ -308,25 +308,27 @@ private fun RadarGestureGuide() {
             )
         }
 
-        // Gesture 1: Geser ke Kanan
+        // Gesture 1: Geser ke Kanan — Cyan (netral), bukan warna Normal (Sky) atau Matching
+        // (Emerald) tertentu, karena hasilnya memang kondisional tergantung penanda.
         GestureItem(
             icon = Icons.AutoMirrored.Outlined.ArrowForward,
-            iconTint = Emerald400,
+            iconTint = Cyan400,
             actionLabel = "Geser ke Kanan",
             badgeText = "Doffing",
-            badgeColor = Emerald400,
+            badgeColor = Cyan400,
             description = "Usap kartu ke kanan untuk mencatat Doffing — otomatis Normal, atau Matching kalau mesin sedang " +
-                "bertanda 🔖 Tali Hijau. Hanya aktif saat mendekati jam doffing.",
+                "bertanda 🏷️ Tali Hijau. Hanya aktif saat mendekati jam doffing.",
         )
 
-        // Gesture 2: Geser ke Kiri
+        // Gesture 2: Geser ke Kiri — ikon tag/label, bukan bookmark, mengikuti desain pita pojok
+        // kanan-atas kartu yang sekarang bertuliskan "MATCHING" (bukan lagi ikon bookmark).
         GestureItem(
-            icon = Icons.Outlined.Bookmark,
+            icon = Icons.Outlined.Sell,
             iconTint = Emerald400,
             actionLabel = "Geser ke Kiri",
             badgeText = "Tandai Tali Hijau",
             badgeColor = Emerald400,
-            description = "Usap kartu ke kiri untuk menandai/melepas 🔖 Tali Hijau · Matching — beam lusi baru yang " +
+            description = "Usap kartu ke kiri untuk menandai/melepas 🏷️ Tali Hijau · Matching — beam lusi baru yang " +
                 "gulungan pertamanya perlu dipotong sebagai sampel uji kualitas. Bisa kapan saja, tidak perlu menunggu jam " +
                 "doffing; begitu ditandai, Doffing berikutnya (geser kanan) otomatis tercatat Matching.",
         )

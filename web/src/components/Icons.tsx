@@ -669,12 +669,4 @@ export function HistoryEmptyIllustration() {
   );
 }
 
-export function BookmarkIcon({ size = 16 }: IconProps) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
-      <path d="M6 2.5h12a1.5 1.5 0 0 1 1.5 1.5v17.25a.75.75 0 0 1-1.16.63L12 17.14l-6.34 4.74A.75.75 0 0 1 4.5 21.25V4a1.5 1.5 0 0 1 1.5-1.5Z" />
-    </svg>
-  );
-}
-
 
