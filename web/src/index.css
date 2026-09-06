@@ -963,14 +963,14 @@ button:disabled {
   z-index: 0;
   display: flex;
   border-radius: 14px;
+  /* Static regardless of urgency level — urgency reads entirely off .radar-card-accent (the left
+     strip) now, including OVERDUE's pulse, so the card face itself never shifts color/hue as time
+     ticks down. */
   background: var(--bg-elevated);
   box-shadow: 0 5px 14px rgba(0, 0, 0, 0.35);
   overflow: hidden;
   transform: scale(1);
   transition: transform 0.15s ease;
-}
-.radar-card-front.overdue {
-  animation: pulse-bg 0.9s ease-in-out infinite alternate;
 }
 .radar-card-front.charging {
   transform: scale(0.975);
@@ -1012,18 +1012,26 @@ button:disabled {
   transition: opacity 0.45s linear;
 }
 
-@keyframes pulse-bg {
-  from {
-    background: var(--bg-elevated);
-  }
-  to {
-    background: color-mix(in srgb, var(--red-500) 18%, var(--bg-elevated));
-  }
-}
+/* The left urgency strip — a flush flat rectangle with no rounding of its own; its own left
+   corners are cropped for free by .radar-card-front's overflow:hidden + border-radius above,
+   so it naturally follows the card's curve without needing to hand-match it. Sole carrier of the
+   urgency signal now that the card face itself is static (see .radar-card-front above), so
+   OVERDUE's attention-grabbing pulse lives here too instead of washing the whole card. */
 .radar-card-accent {
   width: 6px;
   flex-shrink: 0;
   background: var(--urgency-accent, var(--text-faint));
+}
+.radar-card-front.overdue .radar-card-accent {
+  animation: radar-accent-pulse 0.9s ease-in-out infinite alternate;
+}
+@keyframes radar-accent-pulse {
+  from {
+    box-shadow: none;
+  }
+  to {
+    box-shadow: 2px 0 10px 1px var(--red-500);
+  }
 }
 
 /* Paused Card (Tampil langsung di sisi depan) */

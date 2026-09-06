@@ -83,24 +83,15 @@ private data class UrgencyStyle(
     val labelColor: Color,
     val pulse: Boolean,
     val icon: ImageVector?,
-    // Tonal elevation, not shadow: how far the card's face tints from bgElevated toward its own
-    // accent color climbs with urgency — the flat/minimal "raised = urgent" cue, but as a color mix
-    // (no Modifier.shadow RenderNode, so it can never visibly lag a frame behind the card's content
-    // the way a shadow can on a freshly-composed LazyColumn item). OVERDUE ignores this and pulses
-    // instead (see faceBg in RadarCard below).
-    val tintFraction: Float,
 )
 
 private fun urgency(remaining: Long): UrgencyStyle = when (urgencyLevel(remaining)) {
-    UrgencyLevel.CALM -> UrgencyStyle(Cyan500, Cyan500, Cyan400, Cyan700, false, null, 0f)
-    // tintFraction kept modest — Amber600 already drives both this background wash AND the
-    // progress bar fill below; stacking a strong wash on top of that read as too dominant/orange
-    // for a card that isn't overdue yet (see clr.barColor/clr.accent usage further down).
-    UrgencyLevel.SOON -> UrgencyStyle(Amber500, Amber400, Amber400, Amber400, false, Icons.Outlined.Schedule, 0.06f)
+    UrgencyLevel.CALM -> UrgencyStyle(Cyan500, Cyan500, Cyan400, Cyan700, false, null)
+    UrgencyLevel.SOON -> UrgencyStyle(Amber500, Amber400, Amber400, Amber400, false, Icons.Outlined.Schedule)
     // textColor is Orange400, not Amber — the last-10-minutes countdown needs to read as visibly
     // hotter than Segera's amber at a glance, not just a slightly darker shade of the same color.
-    UrgencyLevel.IMMINENT -> UrgencyStyle(Amber600, Amber600, Orange400, Amber500, false, Icons.Outlined.Warning, 0.10f)
-    UrgencyLevel.OVERDUE -> UrgencyStyle(Red500, Red500, Red400, Red400, true, Icons.Filled.Warning, 0f)
+    UrgencyLevel.IMMINENT -> UrgencyStyle(Amber600, Amber600, Orange400, Amber500, false, Icons.Outlined.Warning)
+    UrgencyLevel.OVERDUE -> UrgencyStyle(Red500, Red500, Red400, Red400, true, Icons.Filled.Warning)
 }
 
 @Composable
@@ -157,12 +148,19 @@ fun RadarCard(
     // "actionable" the way it once could.
     val canDoffBySwipe = remaining <= REMINDER_LEAD_MIN
 
+    // Static regardless of urgency level — urgency reads entirely off the left accent strip now
+    // (accentWidthDp below), including OVERDUE's pulse, so the card face itself never shifts
+    // color/hue as time ticks down.
+    val faceBg = colors.bgElevated
+
     // Only OVERDUE cards actually render the pulse, so only they should pay for it — an
     // unconditional rememberInfiniteTransition here would tick a frame-by-frame animation for
     // every card on screen (CALM/SOON/IMMINENT included) for the entire shift, for no visible effect.
     // Ambient alert breathing, not a micro-interaction — deliberately outside the 150-250ms range
     // (see PingDot's comment above for why a loop this fast would read as flickering, not calm).
-    val faceBg = if (clr.pulse) {
+    // Sole carrier of the urgency signal now that the card face is static — breathes 4dp↔8dp
+    // instead of washing the whole card, so it stays legible without the card itself flickering.
+    val accentWidthDp = if (clr.pulse) {
         val criticalPulse = rememberInfiniteTransition(label = "criticalPulse")
         val pulseFraction by criticalPulse.animateFloat(
             initialValue = 0f,
@@ -170,9 +168,9 @@ fun RadarCard(
             animationSpec = infiniteRepeatable(tween(800, easing = LinearEasing), RepeatMode.Reverse),
             label = "pulseFraction",
         )
-        lerp(colors.bgElevated, colors.criticalPulseTarget, pulseFraction)
+        4f + pulseFraction * 4f
     } else {
-        lerp(colors.bgElevated, clr.accent, clr.tintFraction)
+        4f
     }
 
     // Celebrate completion — card slides out + an icon pops before the state is actually mutated.
@@ -558,16 +556,16 @@ fun RadarCard(
           // for the back's buttons.
           val frontVisible = flipRotation.value <= 90f
           Box(modifier = Modifier.graphicsLayer { alpha = if (frontVisible) 1f else 0f }) {
-            // Left accent — reverted back to a flush flat strip (the pre-redesign look) instead
-            // of the inset "twisted thread" capsule this had grown into: no independent clip/
-            // rounding of its own here, so its top/bottom corners aren't hand-matched to the
-            // card's curve — they're just cropped by it for free, since the outer elevatedListCard
-            // above already clips everything to RoundedCornerShape(Dimens.RadiusCard).
+            // Left accent — a flush flat strip, no independent clip/rounding of its own, so its
+            // top/bottom corners aren't hand-matched to the card's curve — they're just cropped by
+            // it for free, since the outer elevatedListCard above already clips everything to
+            // RoundedCornerShape(Dimens.RadiusCard). Sole carrier of the urgency signal (accent
+            // color + the OVERDUE breathing width above) now that the card face itself is static.
             Box(
                 modifier = Modifier
                     .align(Alignment.CenterStart)
                     .fillMaxHeight()
-                    .width(4.dp)
+                    .width(accentWidthDp.dp)
                     .background(clr.accent),
             )
 
