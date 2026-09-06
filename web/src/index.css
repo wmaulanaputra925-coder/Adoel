@@ -1345,16 +1345,22 @@ button:disabled {
 .radar-matching-bookmark {
   position: absolute;
   top: 50%;
-  z-index: 2;
+  /* Deliberately behind the card face (.radar-card-swipe is z-index:1) — tucked in from behind
+     like a ribbon slid between pages, so only the sliver that pokes out past the card's own right
+     edge is ever visible. That's what keeps it from overlapping card content (the countdown, corak
+     line, etc.): the card's own opaque surface masks the rest of the ribbon for free. */
+  z-index: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 34px;
-  border-radius: 6px 10px 10px 6px;
+  width: 26px;
+  height: 32px;
+  /* A notch cut into the outer edge — the classic bookmark-ribbon silhouette — not a rounded
+     rect, which read as a floating button sitting on top of the card instead of a ribbon coming
+     out from behind it. */
+  clip-path: polygon(0% 0%, 100% 0%, calc(100% - 8px) 50%, 100% 100%, 0% 100%);
   background: var(--text-faint);
   color: var(--bg-elevated);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
   transform: translateY(-50%);
   pointer-events: none;
 }

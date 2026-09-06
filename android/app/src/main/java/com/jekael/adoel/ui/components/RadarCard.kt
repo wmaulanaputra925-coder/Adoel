@@ -40,6 +40,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.GenericShape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -58,7 +59,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.zIndex
 import com.jekael.adoel.data.*
 import com.jekael.adoel.ui.theme.*
 import kotlinx.coroutines.coroutineScope
@@ -325,8 +325,8 @@ fun RadarCard(
     // Tali Hijau bookmark tab — how many px it currently pokes out past the card's right edge.
     // Lives at its resting peek (protruding when isMatching, flush otherwise) except while
     // actively dragging left, when onHorizontalDrag below snaps it to track the finger directly.
-    val bookmarkRestPeekPx = with(density) { 8.dp.toPx() }
-    val bookmarkDragPeekPx = with(density) { 24.dp.toPx() }
+    val bookmarkRestPeekPx = with(density) { 10.dp.toPx() }
+    val bookmarkDragPeekPx = with(density) { 26.dp.toPx() }
     val bookmarkPeekPx = remember(est.mcNo) { Animatable(if (est.isMatching) bookmarkRestPeekPx else 0f) }
     val bookmarkDraggingLeft = isDraggingCard && offsetX.value < 0f
     val bookmarkLeftDragFraction = if (bookmarkDraggingLeft) (abs(offsetX.value) / swipeThresholdPx).coerceIn(0f, 1f) else 0f
@@ -1054,22 +1054,41 @@ private fun PausedRadarCardFront(
     }
 }
 
-/** Tali Hijau's swipe-left target and persistent status indicator, anchored to the card's right
- * edge. Sits outside the card's own 0–100% width box (via the live [peekPx] offset the caller
- * drives from its drag gesture), so it's never covered by the card's own translateX slide — it
- * just becomes proportionally more "pulled out" as the operator drags left, then settles into its
- * resting peek (protruding when tagged, flush/hidden otherwise) once released. Icon-only by
- * design (no label) so it stays a small tab, not a full reveal panel like the doff side. */
+/** Tali Hijau's swipe-left target and persistent status indicator — a classic bookmark-ribbon
+ * shape (a rectangle with a notch cut into its outer edge, not a rounded pill) anchored to the
+ * card's right edge. Deliberately left at the default z-order (no explicit zIndex), same as
+ * [SwipeActionBackground] right above it in the same Box — both are declared *before* the card's
+ * own content Box, so the card (which has no explicit zIndex of its own either) naturally paints
+ * over them in declaration order. That's what makes this read as a ribbon tucked in from behind
+ * the card and poking out to the right, rather than a button floating on top of it: the card's own
+ * opaque surface masks whatever part of the ribbon would otherwise sit "under" it, so only the
+ * sliver that actually extends past the card's right edge (driven by the live [peekPx] offset the
+ * caller drives from its drag gesture) is ever visible — it can never cover card content like the
+ * countdown or corak line, however this is positioned vertically. Icon-only by design (no label)
+ * so it stays a small tab, not a full reveal panel like the doff side. */
 @Composable
 private fun BoxScope.MatchingBookmarkTab(peekPx: Float, visible: Boolean, active: Boolean) {
     val colors = LocalAppColors.current
+    val density = LocalDensity.current
+    val notchPx = with(density) { 8.dp.toPx() }
+    // The notch — a V cut into the outer (right) edge — is what makes this read as a ribbon
+    // instead of a plain tab: two points at top-right/bottom-right with the cut between them.
+    val ribbonShape = remember(notchPx) {
+        GenericShape { size, _ ->
+            moveTo(0f, 0f)
+            lineTo(size.width, 0f)
+            lineTo(size.width - notchPx, size.height / 2f)
+            lineTo(size.width, size.height)
+            lineTo(0f, size.height)
+            close()
+        }
+    }
     Box(
         modifier = Modifier
             .align(Alignment.CenterEnd)
             .offset { IntOffset(peekPx.roundToInt(), 0) }
-            .zIndex(2f)
             .size(width = 26.dp, height = 32.dp)
-            .clip(RoundedCornerShape(topStart = 6.dp, bottomStart = 6.dp, topEnd = 10.dp, bottomEnd = 10.dp))
+            .clip(ribbonShape)
             .background(if (active) Emerald500 else colors.textFaint)
             .alpha(if (visible) 1f else 0f),
         contentAlignment = Alignment.Center,
@@ -1078,7 +1097,7 @@ private fun BoxScope.MatchingBookmarkTab(peekPx: Float, visible: Boolean, active
             imageVector = Icons.Outlined.Bookmark,
             contentDescription = null,
             tint = if (active) Color.White else colors.bgElevated,
-            modifier = Modifier.size(16.dp),
+            modifier = Modifier.size(14.dp),
         )
     }
 }

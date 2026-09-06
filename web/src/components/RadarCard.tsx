@@ -255,8 +255,8 @@ export function RadarCard({
   // diseret, makin menonjol, sampai mentok di titik "armed" tempat melepas jari akan men-toggle.
   const leftDragFraction = offsetX < 0 ? Math.min(1, Math.abs(offsetX) / SWIPE_THRESHOLD_PX) : 0;
   const bookmarkArmed = leftDragFraction >= 1;
-  const BOOKMARK_REST_PEEK = 8;
-  const BOOKMARK_DRAG_PEEK = 24;
+  const BOOKMARK_REST_PEEK = 10;
+  const BOOKMARK_DRAG_PEEK = 26;
   const bookmarkBaseRest = est.isMatching ? BOOKMARK_REST_PEEK : 0;
   const bookmarkPeek =
     dragging && offsetX < 0 ? bookmarkBaseRest + leftDragFraction * (BOOKMARK_DRAG_PEEK - bookmarkBaseRest) : bookmarkBaseRest;
