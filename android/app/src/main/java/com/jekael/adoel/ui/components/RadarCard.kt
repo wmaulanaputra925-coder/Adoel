@@ -158,8 +158,10 @@ fun RadarCard(
     // every card on screen (CALM/SOON/IMMINENT included) for the entire shift, for no visible effect.
     // Ambient alert breathing, not a micro-interaction — deliberately outside the 150-250ms range
     // (see PingDot's comment above for why a loop this fast would read as flickering, not calm).
-    // Sole carrier of the urgency signal now that the card face is static — breathes 4dp↔8dp
+    // Sole carrier of the urgency signal now that the card face is static — breathes 6dp↔10dp
     // instead of washing the whole card, so it stays legible without the card itself flickering.
+    // 6dp base (not the original 4dp) to match web's 6px strip and read clearly on its own now
+    // that there's no background tint backing it up.
     val accentWidthDp = if (clr.pulse) {
         val criticalPulse = rememberInfiniteTransition(label = "criticalPulse")
         val pulseFraction by criticalPulse.animateFloat(
@@ -168,9 +170,9 @@ fun RadarCard(
             animationSpec = infiniteRepeatable(tween(800, easing = LinearEasing), RepeatMode.Reverse),
             label = "pulseFraction",
         )
-        4f + pulseFraction * 4f
+        6f + pulseFraction * 4f
     } else {
-        4f
+        6f
     }
 
     // Celebrate completion — card slides out + an icon pops before the state is actually mutated.
