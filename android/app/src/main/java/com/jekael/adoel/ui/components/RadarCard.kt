@@ -392,11 +392,11 @@ fun RadarCard(
                 // Swipe left: tandai/lepas Tali Hijau — bukan doff, jadi kartu tidak pernah
                 // meninggalkan layar, cuma memicu toggle lalu kembali ke posisi netral.
                 onToggleMatching()
-                scope.launch { offsetX.animateTo(0f, spring(dampingRatio = Spring.DampingRatioMediumBouncy)) }
+                scope.launch { offsetX.animateTo(0f, spring(dampingRatio = Spring.DampingRatioNoBouncy)) }
             }
             value >= swipeThresholdPx && canDoffBySwipe -> triggerDoff() // exitProgress takes over from here
             else -> {
-                scope.launch { offsetX.animateTo(0f, spring(dampingRatio = Spring.DampingRatioMediumBouncy)) }
+                scope.launch { offsetX.animateTo(0f, spring(dampingRatio = Spring.DampingRatioNoBouncy)) }
             }
         }
     }
@@ -428,6 +428,14 @@ fun RadarCard(
         // panel ini) — SwipeActionBackground (dipakai bersama SwipeableCard) hanya dipanggil untuk
         // sisi kanan, jadi leftIcon/leftColor di bawah tidak pernah benar-benar dirender. Isi kanan
         // bergantung status penanda: mesin bertali hijau menampilkan Doffing Matching, bukan Normal.
+        //
+        // > 0f di sini bergantung sepenuhnya pada offsetX TIDAK PERNAH overshoot ke sisi positif
+        // saat kembali ke nol dari sebuah swipe kiri (lihat settleSwipe/onDragCancel — makanya
+        // animateTo(0f, ...) di sana dipaksa DampingRatioNoBouncy, bukan MediumBouncy). Spring yang
+        // bouncy akan melewati 0 sekilas sebelum menetap, dan kalau itu terjadi panel doff kanan
+        // ini sempat ikut ter-render sesaat — persis bug "reveal kiri sedikit terlihat" yang
+        // dilaporkan: sebenarnya bukan reveal kiri, tapi panel kanan ini bocor tampil sesaat karena
+        // offsetX numerik sempat positif akibat pantulan spring, bukan gerakan jari yang sebenarnya.
         if (offsetX.value > 0f) {
             SwipeActionBackground(
                 offsetX = offsetX.value,
@@ -518,7 +526,7 @@ fun RadarCard(
                         },
                         onDragCancel = {
                             isDraggingCard = false
-                            scope.launch { offsetX.animateTo(0f, spring(dampingRatio = Spring.DampingRatioMediumBouncy)) }
+                            scope.launch { offsetX.animateTo(0f, spring(dampingRatio = Spring.DampingRatioNoBouncy)) }
                         },
                         onHorizontalDrag = { change, dragAmount ->
                             change.consume()
