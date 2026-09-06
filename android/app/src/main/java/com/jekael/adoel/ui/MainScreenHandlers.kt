@@ -116,11 +116,10 @@ internal class MainScreenHandlers(
         }
     }
 
-    // "MATCHING" doffs from the radar card's swipe gesture are gated one layer up, via
-    // RadarCard's guardDoffMatching (wired from MainScreen through RadarSection) — that has to
-    // run *before* the swipe's slide-out animation starts, not here after it's already played.
-    // GuidedDoffingSheet's Matching pick gates itself the same way, in its own composable. This
-    // function's own keterangan is trusted as already-confirmed by the time it's called.
+    // RadarCard's swipe-right always resolves its own Normal/Matching kind from Estimasi.isMatching
+    // before calling this (see triggerDoff there) — this function's own keterangan is trusted as
+    // already-decided. GuidedDoffingSheet's own Matching pick still gates itself against the
+    // potongan-awal-70y reminder independently, in its own composable.
     fun handleDoff(mcNo: String, keterangan: String? = null) {
         val cmd = if (keterangan != null) "$mcNo $keterangan" else mcNo
         val result = doffVm.prosesBarisUmum(cmd)

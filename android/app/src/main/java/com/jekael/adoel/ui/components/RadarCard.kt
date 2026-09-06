@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.Bookmark
 import androidx.compose.material.icons.outlined.ContentCut
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Pause
@@ -32,6 +33,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
@@ -53,14 +55,17 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import com.jekael.adoel.data.*
 import com.jekael.adoel.ui.theme.*
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.abs
+import kotlin.math.roundToInt
 
 /** Which swipe direction triggered a doff completion — drives the celebration icon/color/exit
  * direction in RadarCard (see completingKind below). */
@@ -103,20 +108,15 @@ fun RadarCard(
     est: Estimasi,
     mesin: MesinData?,
     nowAbs: Long,
-    // Swipe right: doffing normal. Swipe left: doffing dengan keterangan "Matching" (cek kualitas
-    // kain dari beam baru) — same instant-commit shape as onDoff, just a different keterangan
-    // token, so Teks and Terpandu behave identically here (no confirmation sheet either way; the
-    // full Ada-keterangan/kendala flow is only reached from the Doffing console's own entry point).
+    // Swipe right = doff — Normal or Matching depending on est.isMatching (see triggerDoff), not
+    // on which direction fired the swipe any more. Same instant-commit shape as onDoff either way,
+    // so Teks and Terpandu behave identically here (no confirmation sheet either way; the full
+    // Ada-keterangan/kendala flow is only reached from the Doffing console's own entry point).
     onDoff: () -> Unit,
     onDoffMatching: () -> Unit,
-    // Called instead of animating straight into onDoffMatching when non-null — lets the caller
-    // show a confirm dialog first (the "potongan awal 70y" reminder) and only invoke the passed
-    // lambda to actually start the slide-out once the operator confirms. Swipe-right (Normal) has
-    // no such gate, only Matching does.
-    guardDoffMatching: ((() -> Unit) -> Unit)? = null,
-    // Hapus moved off the swipe gesture (which now means Matching, not delete) onto long-press —
-    // long-press now flips the card to reveal Jeda/Hapus as two explicit buttons instead of
-    // hapus firing directly, so an accidental long-press can no longer delete an estimate outright.
+    // Hapus moved off the swipe gesture onto long-press — long-press now flips the card to reveal
+    // Jeda/Hapus as two explicit buttons instead of hapus firing directly, so an accidental
+    // long-press can no longer delete an estimate outright.
     onHapus: () -> Unit,
     onJeda: () -> Unit,
     onLanjutkan: () -> Unit,
@@ -125,8 +125,8 @@ fun RadarCard(
     // rather than one tap target guessing which the operator meant (Master Blueprint v9.2 §2).
     onQuickEdit: () -> Unit,
     onEditWaktu: () -> Unit,
-    // Tali Hijau: one-tap toggle for Estimasi.isMatching, always reachable from the type row
-    // regardless of urgency/badge state (see the toggle icon further down).
+    // Tali Hijau: toggle for Estimasi.isMatching — reachable via swipe-left (see the bookmark tab
+    // further down), always available regardless of urgency/time-to-doff.
     onToggleMatching: () -> Unit,
     modifier: Modifier = Modifier,
     entranceDelayMs: Long = 0L,
@@ -148,12 +148,14 @@ fun RadarCard(
     val showDot = remaining <= 5
     val colors = LocalAppColors.current
     val haptic = LocalHapticFeedback.current
-    // Doffing before a machine is actually near due doesn't make sense operationally — swipe (and
-    // its screen-reader equivalent) only turns on once the card's within the same lead time as the
-    // reminder notification/physical warning light. The topmost card in Menunggu always renders
-    // wide regardless of this (see groupMenungguRowsForGrid), so wide-ness alone can no longer be
-    // used as a stand-in for "actionable" the way it once could.
-    val swipeEnabled = remaining <= REMINDER_LEAD_MIN
+    // Doffing before a machine is actually near due doesn't make sense operationally — swipe-right
+    // (doff) and its screen-reader equivalent only turn on once the card's within the same lead
+    // time as the reminder notification/physical warning light. Swipe-left (Tali Hijau toggle, see
+    // the bookmark tab further down) has no such gate: it's not a doff, so it's always reachable.
+    // The topmost card in Menunggu always renders wide regardless of this (see
+    // groupMenungguRowsForGrid), so wide-ness alone can no longer be used as a stand-in for
+    // "actionable" the way it once could.
+    val canDoffBySwipe = remaining <= REMINDER_LEAD_MIN
 
     // Only OVERDUE cards actually render the pulse, so only they should pay for it — an
     // unconditional rememberInfiniteTransition here would tick a frame-by-frame animation for
@@ -297,9 +299,10 @@ fun RadarCard(
         entranceOffsetY.animateTo(0f, tween(220, easing = FastOutSlowInEasing))
     }
 
-    // Swipe right = doffing normal, swipe left = doffing dengan keterangan Matching, long-press =
-    // hapus — the only ways to act on a card now that the always-visible buttons are gone (see
-    // SwipeActionBackground for the swipe reveal panel).
+    // Swipe right = doff (Normal or Matching depending on est.isMatching), swipe left = toggle
+    // Tali Hijau (see MatchingBookmarkTab further down), long-press = hapus — the only ways to act
+    // on a card now that the always-visible buttons are gone (see SwipeActionBackground for the
+    // right-side swipe reveal panel).
     val density = LocalDensity.current
     val swipeThresholdPx = with(density) { Dimens.SwipeThreshold.toPx() }
     val maxSwipePx = with(density) { Dimens.SwipeMax.toPx() }
@@ -308,6 +311,11 @@ fun RadarCard(
     // (rubberBandSwipe), and feeding that compressed value back in would compound the curve and
     // make dragging back toward centre feel sticky — so the uncompressed total is tracked here.
     var rawDragX by remember(est.mcNo) { mutableFloatStateOf(0f) }
+    // True only between onDragStart and onDragEnd/onDragCancel — distinguishes an in-progress drag
+    // from offsetX/bookmarkPeekPx merely being mid-settle-animation after release, so the bookmark's
+    // "preview" color (see bookmarkPreviewActive below) reverts to the real committed state the
+    // instant the finger lifts, not only once the settle animation finishes.
+    var isDraggingCard by remember(est.mcNo) { mutableStateOf(false) }
     // One light tick the moment the drag crosses the commit point, and again if it's pulled back
     // and re-crossed. Paired with the reveal panel's own armed state (see SwipeActionBackground)
     // so an operator knows the swipe will fire before letting go, not after.
@@ -316,62 +324,76 @@ fun RadarCard(
         if (swipeArmed) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
     }
 
-    fun triggerDoff(rawKind: DoffCompletionKind) {
+    // Tali Hijau bookmark tab — how many px it currently pokes out past the card's right edge.
+    // Lives at its resting peek (protruding when isMatching, flush otherwise) except while
+    // actively dragging left, when onHorizontalDrag below snaps it to track the finger directly.
+    val bookmarkRestPeekPx = with(density) { 8.dp.toPx() }
+    val bookmarkDragPeekPx = with(density) { 24.dp.toPx() }
+    val bookmarkPeekPx = remember(est.mcNo) { Animatable(if (est.isMatching) bookmarkRestPeekPx else 0f) }
+    val bookmarkDraggingLeft = isDraggingCard && offsetX.value < 0f
+    val bookmarkLeftDragFraction = if (bookmarkDraggingLeft) (abs(offsetX.value) / swipeThresholdPx).coerceIn(0f, 1f) else 0f
+    val bookmarkArmed = bookmarkLeftDragFraction >= 1f
+    val bookmarkVisible = est.isMatching || bookmarkDraggingLeft
+    // Pratinjau status yang AKAN terjadi kalau jari dilepas sekarang — begitu melewati titik armed,
+    // warnanya berpindah ke status baru (bukan status saat ini), supaya operator tahu apa yang akan
+    // terjadi sebelum benar-benar melepas.
+    val bookmarkPreviewActive = if (bookmarkDraggingLeft && bookmarkArmed) !est.isMatching else est.isMatching
+
+    fun triggerDoff() {
         if (completing) return
-
-        // Tali Hijau: a machine tagged isMatching always doffs as Matching, no matter which
-        // direction actually fired the swipe (or which button) — the operator already decided
-        // this back at shift start, so nothing here should ask them to choose again.
-        val kind = if (est.isMatching) DoffCompletionKind.MATCHING else rawKind
-
-        fun startAnim() {
-            completingKind = kind
-            // Distinct haptic per kind (Master Blueprint §3A/§3B): Normal gets one deep tap — the
-            // cutter closing on a taut roll of finished cloth; Matching gets two sharp ones — a
-            // scissor snipping a quick quality-check sample.
+        // Swipe right is now the only doff direction — its result depends on the tag, not on
+        // which direction fired the swipe: a machine tagged isMatching always doffs as Matching,
+        // the operator already decided this back at shift start.
+        val kind = if (est.isMatching) DoffCompletionKind.MATCHING else DoffCompletionKind.NORMAL
+        completingKind = kind
+        // Distinct haptic per kind (Master Blueprint §3A/§3B): Normal gets one deep tap — the
+        // cutter closing on a taut roll of finished cloth; Matching gets two sharp ones — a
+        // scissor snipping a quick quality-check sample.
+        when (kind) {
+            DoffCompletionKind.NORMAL -> haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            DoffCompletionKind.MATCHING -> scope.launch {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                delay(90)
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            }
+        }
+        scope.launch {
+            // 950ms, matching web's own triggerDoff (RadarCard.tsx) — the card needs to sit on
+            // the celebration text long enough to actually read it, not just flash it. Was
+            // 420ms, cut short with no text on the celebration at all (see below); that combo
+            // read as a glitch, especially for Matching.
+            delay(950)
             when (kind) {
-                DoffCompletionKind.NORMAL -> haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                DoffCompletionKind.MATCHING -> scope.launch {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    delay(90)
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                }
-            }
-            scope.launch {
-                // 950ms, matching web's own triggerDoff (RadarCard.tsx) — the card needs to sit on
-                // the celebration text long enough to actually read it, not just flash it. Was
-                // 420ms, cut short with no text on the celebration at all (see below); that combo
-                // read as a glitch, especially for Matching.
-                delay(950)
-                when (kind) {
-                    DoffCompletionKind.NORMAL -> onDoff()
-                    DoffCompletionKind.MATCHING -> onDoffMatching()
-                }
+                DoffCompletionKind.NORMAL -> onDoff()
+                DoffCompletionKind.MATCHING -> onDoffMatching()
             }
         }
-
-        // The potongan-awal-70y reminder only makes sense when the operator is choosing Matching
-        // right now, in front of the machine — skip it for a Tali Hijau tag, since that choice
-        // (and its yard) was already made and prepared back at tag time (see
-        // DoffViewModel.toggleEstimasiMatching).
-        if (kind == DoffCompletionKind.MATCHING && guardDoffMatching != null && !est.isMatching) {
-            // Snap the card back to neutral right away instead of optimistically sliding it off —
-            // guardDoffMatching may show a confirm dialog, and if the operator cancels there'd be
-            // nothing left to undo the slide-out with. startAnim only runs if/when the guard calls
-            // proceed(), same pattern as web's RadarCard.tsx.
-            scope.launch { offsetX.animateTo(0f, spring(dampingRatio = Spring.DampingRatioMediumBouncy)) }
-            guardDoffMatching { startAnim() }
-            return
-        }
-        startAnim()
     }
 
     fun settleSwipe() {
         val value = offsetX.value
         when {
-            value >= swipeThresholdPx -> triggerDoff(DoffCompletionKind.NORMAL) // exitProgress takes over from here
-            value <= -swipeThresholdPx -> triggerDoff(DoffCompletionKind.MATCHING)
-            else -> scope.launch { offsetX.animateTo(0f, spring(dampingRatio = Spring.DampingRatioMediumBouncy)) }
+            value <= -swipeThresholdPx -> {
+                // Swipe left: tandai/lepas Tali Hijau — bukan doff, jadi kartu tidak pernah
+                // meninggalkan layar, cuma memicu toggle lalu kembali ke posisi netral. est.isMatching
+                // belum berubah di komposisi ini (baru berubah setelah state di ViewModel benar-benar
+                // update), jadi targetkan kebalikannya di sini supaya bookmark langsung settle ke
+                // posisi barunya, bukan posisi lama lalu lompat lagi begitu recompose.
+                onToggleMatching()
+                val newRestPeek = if (!est.isMatching) bookmarkRestPeekPx else 0f
+                scope.launch { offsetX.animateTo(0f, spring(dampingRatio = Spring.DampingRatioMediumBouncy)) }
+                scope.launch { bookmarkPeekPx.animateTo(newRestPeek, spring(dampingRatio = Spring.DampingRatioMediumBouncy)) }
+            }
+            value >= swipeThresholdPx && canDoffBySwipe -> triggerDoff() // exitProgress takes over from here
+            else -> {
+                scope.launch { offsetX.animateTo(0f, spring(dampingRatio = Spring.DampingRatioMediumBouncy)) }
+                scope.launch {
+                    bookmarkPeekPx.animateTo(
+                        if (est.isMatching) bookmarkRestPeekPx else 0f,
+                        spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                    )
+                }
+            }
         }
     }
 
@@ -398,19 +420,26 @@ fun RadarCard(
     }
 
     Box(modifier = modifier.fillMaxWidth()) {
-        SwipeActionBackground(
-            offsetX = offsetX.value,
-            thresholdPx = swipeThresholdPx,
-            // Same scissors/sparkle icon pair as ConsoleBar's Doffing button and the completion
-            // celebration below — one consistent "cut" vs "matching" icon vocabulary app-wide.
-            rightIcon = Icons.Outlined.ContentCut,
-            leftIcon = Icons.Outlined.AutoAwesome,
-            rightColor = Emerald500,
-            leftColor = Sky500,
-            rightLabel = "Doffing Normal",
-            leftLabel = "Doffing Matching",
-            rightDescription = "Target yard selesai",
-            leftDescription = "Sampel beam baru · Uji kualitas",
+        // Swipe kiri sekarang bukan aksi doff lagi (lihat MatchingBookmarkTab di bawah, bukan panel
+        // ini) — SwipeActionBackground (dipakai bersama SwipeableCard) hanya dipanggil untuk sisi
+        // kanan, jadi leftIcon/leftColor di bawah tidak pernah benar-benar dirender. Isi kanan
+        // bergantung status penanda: mesin bertali hijau menampilkan Doffing Matching, bukan Normal.
+        if (offsetX.value > 0f) {
+            SwipeActionBackground(
+                offsetX = offsetX.value,
+                thresholdPx = swipeThresholdPx,
+                rightIcon = if (est.isMatching) Icons.Outlined.AutoAwesome else Icons.Outlined.ContentCut,
+                leftIcon = Icons.Outlined.ContentCut,
+                rightColor = if (est.isMatching) Sky500 else Emerald500,
+                leftColor = Emerald500,
+                rightLabel = if (est.isMatching) "Doffing Matching" else "Doffing Normal",
+                rightDescription = if (est.isMatching) "Sampel beam baru · Uji kualitas" else "Target yard selesai",
+            )
+        }
+        MatchingBookmarkTab(
+            peekPx = bookmarkPeekPx.value,
+            visible = bookmarkVisible,
+            active = bookmarkPreviewActive,
         )
         Box(
             modifier = Modifier
@@ -440,13 +469,20 @@ fun RadarCard(
                     // TalkBack gets these as direct actions regardless of which face is showing —
                     // it can't perform the flip gesture at all, so it shouldn't need to.
                     customActions = buildList {
-                        if (swipeEnabled && face == CardFace.FRONT) {
-                            add(CustomAccessibilityAction("Doff mesin ${est.mcNo}") { triggerDoff(DoffCompletionKind.NORMAL); true })
+                        if (face == CardFace.FRONT) {
+                            // Doff is still gated to near-due; the Tali Hijau toggle right below it
+                            // is not — matches swipe-right/swipe-left's own gating split above.
+                            if (canDoffBySwipe) {
+                                if (est.isMatching) {
+                                    add(CustomAccessibilityAction("Doff mesin ${est.mcNo} dengan Matching") { triggerDoff(); true })
+                                } else {
+                                    add(CustomAccessibilityAction("Doff mesin ${est.mcNo}") { triggerDoff(); true })
+                                }
+                            }
                             add(
-                                CustomAccessibilityAction("Doff mesin ${est.mcNo} dengan keterangan Matching") {
-                                    triggerDoff(DoffCompletionKind.MATCHING)
-                                    true
-                                },
+                                CustomAccessibilityAction(
+                                    if (est.isMatching) "Lepas penanda Matching Mc ${est.mcNo}" else "Tandai Mc ${est.mcNo} Matching",
+                                ) { onToggleMatching(); true },
                             )
                         }
                         // No isPaused branch here — a paused estimate returns from this composable
@@ -456,21 +492,46 @@ fun RadarCard(
                         add(CustomAccessibilityAction("Hapus estimasi Mc ${est.mcNo}") { onHapus(); true })
                     }
                 }
-                .pointerInput(completing, swipeEnabled, face) {
-                    if (completing || !swipeEnabled || face != CardFace.FRONT) return@pointerInput
+                // canDoffBySwipe stays a key (not just read inside the lambda) even though the
+                // body no longer bails out on it — a card sitting on screen ticks past the
+                // near-due threshold without any other recomposition key changing, and without
+                // this the running gesture coroutine would keep the stale pre-threshold value
+                // (captured at launch) instead of picking up the newly-allowed right-swipe.
+                .pointerInput(completing, canDoffBySwipe, face) {
+                    if (completing || face != CardFace.FRONT) return@pointerInput
                     detectHorizontalDragGestures(
-                        onDragStart = { rawDragX = offsetX.value },
-                        onDragEnd = { settleSwipe() },
+                        onDragStart = {
+                            rawDragX = offsetX.value
+                            isDraggingCard = true
+                        },
+                        onDragEnd = {
+                            isDraggingCard = false
+                            settleSwipe()
+                        },
                         onDragCancel = {
+                            isDraggingCard = false
+                            scope.launch { offsetX.animateTo(0f, spring(dampingRatio = Spring.DampingRatioMediumBouncy)) }
                             scope.launch {
-                                offsetX.animateTo(0f, spring(dampingRatio = Spring.DampingRatioMediumBouncy))
+                                bookmarkPeekPx.animateTo(
+                                    if (est.isMatching) bookmarkRestPeekPx else 0f,
+                                    spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                                )
                             }
                         },
                         onHorizontalDrag = { change, dragAmount ->
                             change.consume()
-                            rawDragX += dragAmount
+                            // Kanan (doff) tetap dibatasi mendekati waktu doff; kiri (tandai Tali
+                            // Hijau) selalu boleh — rawDragX sendiri (bukan cuma offsetX yang
+                            // ditampilkan) dijepit ke 0 begitu mencoba maju ke kanan saat tidak
+                            // diizinkan, supaya tidak ada akumulasi "utang" yang bikin baliknya ke
+                            // kiri terasa nyangkut.
+                            val nextRaw = rawDragX + dragAmount
+                            rawDragX = if (nextRaw > 0f && !canDoffBySwipe) 0f else nextRaw
                             scope.launch {
                                 offsetX.snapTo(rubberBandSwipe(rawDragX, swipeThresholdPx, maxSwipePx))
+                                val frac = if (offsetX.value < 0f) (abs(offsetX.value) / swipeThresholdPx).coerceIn(0f, 1f) else 0f
+                                val base = if (est.isMatching) bookmarkRestPeekPx else 0f
+                                bookmarkPeekPx.snapTo(if (offsetX.value < 0f) base + frac * (bookmarkDragPeekPx - base) else base)
                             }
                         },
                     )
@@ -570,13 +631,13 @@ fun RadarCard(
                             modifier = Modifier.weight(1f),
                             verticalArrangement = Arrangement.spacedBy(3.dp),
                         ) {
-                            if (clashingMcNos.isNotEmpty() || shiftHandover || est.isMatching) {
+                            if (clashingMcNos.isNotEmpty() || shiftHandover) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     // Bentrok is the only weighted child here, so it gets the room
                                     // it actually needs (ellipsizing only when a long clash list
-                                    // genuinely won't fit) while SpaceBetween keeps the right-side
-                                    // badges flush right — web's margin-left:auto for those badges.
+                                    // genuinely won't fit) while SpaceBetween keeps OPERAN SHIFT
+                                    // flush right — web's margin-left:auto for that badge.
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
@@ -589,28 +650,16 @@ fun RadarCard(
                                         )
                                     } else {
                                         // Zero-width stand-in: SpaceBetween needs two children to
-                                        // have anything to push apart, or the right-side badges would
+                                        // have anything to push apart, or a lone shift badge would
                                         // sit at the start instead of the far edge.
                                         Spacer(Modifier)
                                     }
-                                    Row(horizontalArrangement = Arrangement.spacedBy(Dimens.Space4)) {
-                                        // Tali Hijau: tagged well before doffing time, so it needs to
-                                        // stay visible at a glance the whole time it's set — not just
-                                        // flash at doff, like the swipe-direction celebration does.
-                                        if (est.isMatching) {
-                                            RadarCardBadge(
-                                                icon = Icons.Outlined.AutoAwesome,
-                                                text = "TALI HIJAU · MATCHING",
-                                                accent = Emerald500,
-                                            )
-                                        }
-                                        if (shiftHandover) {
-                                            RadarCardBadge(
-                                                icon = Icons.Outlined.SwapHoriz,
-                                                text = "OPERAN SHIFT",
-                                                accent = Orange400,
-                                            )
-                                        }
+                                    if (shiftHandover) {
+                                        RadarCardBadge(
+                                            icon = Icons.Outlined.SwapHoriz,
+                                            text = "OPERAN SHIFT",
+                                            accent = Orange400,
+                                        )
                                     }
                                 }
                             }
@@ -652,31 +701,6 @@ fun RadarCard(
                                         contentDescription = null,
                                         tint = clr.labelColor,
                                         modifier = Modifier.size(15.dp).padding(bottom = Dimens.Space4),
-                                    )
-                                }
-                                // Tali Hijau: always reachable in one tap, unlike the badge above
-                                // (which only appears once the tag is on) — this is where the
-                                // operator actually sets/clears the tag while walking the floor.
-                                Box(
-                                    modifier = Modifier
-                                        .padding(bottom = Dimens.Space4)
-                                        .size(20.dp)
-                                        .clip(CircleShape)
-                                        .clickable(
-                                            onClickLabel = if (est.isMatching) {
-                                                "Lepas penanda Tali Hijau Mc ${est.mcNo}"
-                                            } else {
-                                                "Tandai Mc ${est.mcNo} Tali Hijau · Matching"
-                                            },
-                                            onClick = onToggleMatching,
-                                        ),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Outlined.AutoAwesome,
-                                        contentDescription = null,
-                                        tint = if (est.isMatching) Emerald500 else colors.textFaint,
-                                        modifier = Modifier.size(14.dp),
                                     )
                                 }
                             }
@@ -1029,6 +1053,35 @@ private fun PausedRadarCardFront(
                 DeleteIconButton(onClick = onHapus)
             }
         }
+    }
+}
+
+/** Tali Hijau's swipe-left target and persistent status indicator, anchored to the card's right
+ * edge. Sits outside the card's own 0–100% width box (via the live [peekPx] offset the caller
+ * drives from its drag gesture), so it's never covered by the card's own translateX slide — it
+ * just becomes proportionally more "pulled out" as the operator drags left, then settles into its
+ * resting peek (protruding when tagged, flush/hidden otherwise) once released. Icon-only by
+ * design (no label) so it stays a small tab, not a full reveal panel like the doff side. */
+@Composable
+private fun BoxScope.MatchingBookmarkTab(peekPx: Float, visible: Boolean, active: Boolean) {
+    val colors = LocalAppColors.current
+    Box(
+        modifier = Modifier
+            .align(Alignment.CenterEnd)
+            .offset { IntOffset(peekPx.roundToInt(), 0) }
+            .zIndex(2f)
+            .size(width = 26.dp, height = 32.dp)
+            .clip(RoundedCornerShape(topStart = 6.dp, bottomStart = 6.dp, topEnd = 10.dp, bottomEnd = 10.dp))
+            .background(if (active) Emerald500 else colors.textFaint)
+            .alpha(if (visible) 1f else 0f),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.Bookmark,
+            contentDescription = null,
+            tint = if (active) Color.White else colors.bgElevated,
+            modifier = Modifier.size(16.dp),
+        )
     }
 }
 

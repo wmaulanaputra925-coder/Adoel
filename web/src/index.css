@@ -749,19 +749,17 @@ button:disabled {
   background: linear-gradient(135deg, #059669 0%, #10b981 100%);
   box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.15);
 }
-.radar-card-swipe-bg.left {
-  justify-content: flex-end;
+/* Doffing Matching wash — swipe-right doffs Matching instead of Normal whenever Estimasi.isMatching
+   is on, so the reveal needs its own color for that case (same blue previously used for the old
+   swipe-left Matching gesture, before swipe-left became the Tali Hijau toggle). */
+.radar-card-swipe-bg.right.matching {
   background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 100%);
-  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.15);
 }
 .radar-swipe-hint-content {
   display: inline-flex;
   align-items: center;
   gap: 12px;
   max-width: 85%;
-}
-.radar-swipe-hint-content.left {
-  flex-direction: row;
 }
 .radar-swipe-hint-icon {
   width: 42px;
@@ -783,9 +781,6 @@ button:disabled {
   flex-direction: column;
   gap: 2px;
   text-align: left;
-}
-.radar-swipe-hint-text.right-align {
-  text-align: right;
 }
 .radar-swipe-hint-title {
   font-size: 13.5px;
@@ -1284,8 +1279,8 @@ button:disabled {
   display: inline-block;
   vertical-align: middle;
 }
-/* Tali Hijau badge — visible whenever Estimasi.isMatching is on, the whole time it's on (unlike
-   the swipe-direction celebration, which only flashes at doff). */
+/* Tali Hijau badge — still used on the PAUSED card front (see .radar-matching-toggle above for
+   why); the active card front relies on the bookmark tab (.radar-matching-bookmark) instead. */
 .radar-matching-badge {
   display: inline-flex;
   align-items: center;
@@ -1307,9 +1302,10 @@ button:disabled {
   display: inline-block;
   vertical-align: middle;
 }
-/* Tali Hijau toggle — always present in the title row (unlike the badge above, which only
-   renders once the tag is on) so the operator can set/clear it in one tap while walking the
-   floor, well before doffing time. */
+/* Tali Hijau toggle — the active (non-paused) card front has moved this to the swipe-left
+   bookmark tab instead (see .radar-matching-bookmark below), to keep this title row from
+   crowding with Bentrok/OPERAN SHIFT. Still used by the PAUSED card front, which has no swipe
+   gesture at all, so it needs its own reachable tap target here. */
 .radar-matching-toggle {
   display: inline-flex;
   align-items: center;
@@ -1331,6 +1327,32 @@ button:disabled {
 .radar-matching-toggle svg {
   display: inline-block;
   vertical-align: middle;
+}
+/* Tali Hijau bookmark tab — the active card's swipe-left target and persistent status indicator,
+   anchored to the card's right edge. Sits outside the card's own 0–100% width box (see the
+   dynamic `right` set inline in RadarCard.tsx), so it's never covered by the card's own
+   translateX slide — it just becomes proportionally more "pulled out" as the operator drags
+   left, then settles into its resting peek (protruding when isMatching, flush/hidden otherwise)
+   once released. */
+.radar-matching-bookmark {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 34px;
+  border-radius: 6px 10px 10px 6px;
+  background: var(--text-faint);
+  color: var(--bg-elevated);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+.radar-matching-bookmark.active {
+  background: var(--emerald-500);
+  color: #fff;
 }
 .radar-card-corak {
   font-size: 12.5px;
