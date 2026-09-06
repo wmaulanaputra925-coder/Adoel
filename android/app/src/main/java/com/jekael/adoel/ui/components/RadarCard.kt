@@ -177,7 +177,9 @@ fun RadarCard(
 
     // Celebrate completion — card slides out + an icon pops before the state is actually mutated.
     // Normal and Matching get different icon/color/exit-direction so the two feel distinguishable
-    // at a glance (Emerald checkmark sliding right vs Sky "verified" badge sliding left). Hapus
+    // at a glance (Sky checkmark sliding right vs Emerald "verified" badge sliding left — Emerald
+    // is reserved for Matching/Tali Hijau specifically now, matching the bookmark tab's own always-
+    // green marker, so a green flash no longer means two different things at once). Hapus
     // deliberately does NOT get this treatment: it's gated by a ConfirmDialog (see handleHapusEst
     // in MainScreen.kt), so animating the card away before the user has even confirmed would hide
     // it during the dialog and leave it stuck gone after Batal, since nothing would reset it.
@@ -215,10 +217,12 @@ fun RadarCard(
         }
     }
     val isMatchingCompletion = completingKind == DoffCompletionKind.MATCHING
-    val completionColor = if (isMatchingCompletion) Sky500 else Emerald500
+    // Emerald = Matching, Sky = Normal — Emerald is the bookmark tab's own always-green Tali
+    // Hijau marker color, so Matching's completion wash reuses it instead of colliding with it.
+    val completionColor = if (isMatchingCompletion) Emerald500 else Sky500
     // Deeper end of the same hue — the wash is a gradient between the two rather than one flat
     // fill, matching web's linear-gradient celebrate panel.
-    val completionColorDeep = if (isMatchingCompletion) Sky600 else Emerald600
+    val completionColorDeep = if (isMatchingCompletion) Emerald600 else Sky600
     // Same icon pair as the swipe-in-progress reveal above — one consistent "cut"/"matching" icon
     // vocabulary from the first drag pixel through to the completion pop, not a switch mid-gesture.
     val completionIcon = if (completingKind == DoffCompletionKind.MATCHING) Icons.Outlined.AutoAwesome else Icons.Outlined.ContentCut
@@ -430,7 +434,7 @@ fun RadarCard(
                 thresholdPx = swipeThresholdPx,
                 rightIcon = if (est.isMatching) Icons.Outlined.AutoAwesome else Icons.Outlined.ContentCut,
                 leftIcon = Icons.Outlined.ContentCut,
-                rightColor = if (est.isMatching) Sky500 else Emerald500,
+                rightColor = if (est.isMatching) Emerald500 else Sky500,
                 leftColor = Emerald500,
                 rightLabel = if (est.isMatching) "Doffing Matching" else "Doffing Normal",
                 rightDescription = if (est.isMatching) "Sampel beam baru · Uji kualitas" else "Target yard selesai",

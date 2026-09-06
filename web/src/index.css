@@ -746,14 +746,15 @@ button:disabled {
 }
 .radar-card-swipe-bg.right {
   justify-content: flex-start;
-  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 100%);
   box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.15);
 }
 /* Doffing Matching wash — swipe-right doffs Matching instead of Normal whenever Estimasi.isMatching
-   is on, so the reveal needs its own color for that case (same blue previously used for the old
-   swipe-left Matching gesture, before swipe-left became the Tali Hijau toggle). */
+   is on, so the reveal needs its own color for that case. Emerald here, reused from the bookmark
+   tab's own always-green Tali Hijau marker, so a green flash doesn't mean two different things at
+   once (it used to be Normal's color, which collided with the marker). */
 .radar-card-swipe-bg.right.matching {
-  background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 100%);
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
 }
 .radar-swipe-hint-content {
   display: inline-flex;
@@ -825,15 +826,17 @@ button:disabled {
    tidak terbaca sebagai aksi yang berbeda. Sapuan 0.28s, tahan, lalu pudar tepat sebelum
    timer 950ms triggerDoff menyerahkan barisnya ke store dan kartunya keluar dari daftar. */
 .radar-card-celebrate.normal {
-  background: linear-gradient(135deg, rgba(5, 150, 105, 0.92) 0%, rgba(16, 185, 129, 0.92) 100%);
+  background: linear-gradient(135deg, rgba(2, 132, 199, 0.92) 0%, rgba(14, 165, 233, 0.92) 100%);
   backdrop-filter: blur(6px);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
   animation:
     celebrate-wipe-from-left 0.28s ease-out forwards,
     celebrate-dismiss 0.19s ease-in 0.76s forwards;
 }
+/* Emerald here, reused from the bookmark tab's own always-green Tali Hijau marker — used to be
+   Normal's color above, which collided with the marker now that it's always green too. */
 .radar-card-celebrate.matching {
-  background: linear-gradient(135deg, rgba(2, 132, 199, 0.92) 0%, rgba(14, 165, 233, 0.92) 100%);
+  background: linear-gradient(135deg, rgba(5, 150, 105, 0.92) 0%, rgba(16, 185, 129, 0.92) 100%);
   backdrop-filter: blur(6px);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
   animation:
