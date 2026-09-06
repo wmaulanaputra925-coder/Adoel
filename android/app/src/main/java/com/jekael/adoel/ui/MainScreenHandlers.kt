@@ -43,9 +43,10 @@ internal class MainScreenHandlers(
     private fun maybeShowMatchingReminder(entry: AktualEntry?) {
         if (entry != null && entry.ket.contains("(HB)")) {
             uiVm.showConfirm(
-                msg = "⚠️ Pengingat Beam Baru Mc ${entry.mcNo}: Pasangkan tali hijau pada tepi kain gulungan awal!",
-                confirmLabel = "Sudah Pasang & Tandai Matching",
-                cancelLabel = "Nanti / Lewati",
+                msg = "⚠️ Beam baru Mc ${entry.mcNo} — pasang tali hijau di tepi kain gulungan awal.",
+                confirmLabel = "Tandai Matching",
+                cancelLabel = "Lewati",
+                isDestructive = false,
             ) {
                 doffVm.markPendingMatching(entry.mcNo)
             }

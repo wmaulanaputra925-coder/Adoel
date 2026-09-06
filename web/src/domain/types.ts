@@ -97,8 +97,8 @@ export interface DoffState {
   keteranganShortcuts?: string[];
   corakShortcuts?: string[];
   corakPotonganAwal?: string[];
-  /** Mc yang habis di-doff HB (Habis Beam) dan operator sudah menekan "Sudah Pasang & Tandai
-   * Matching" pada pengingat tali-hijau (lihat matchingRules.ts) — belum bertemu Estimasi baru,
+  /** Mc yang habis di-doff HB (Habis Beam) dan operator sudah menekan "Tandai Matching" pada
+   * pengingat tali-hijau (lihat matchingRules.ts) — belum bertemu Estimasi baru,
    * jadi flag isMatching-nya belum ada tempat untuk hinggap. Dikonsumsi (dihapus dari daftar ini)
    * begitu Estimasi berikutnya untuk mcNo itu benar-benar dibuat (commands.ts
    * prosesBarisKondisiMesin), yang saat itu langsung disetel isMatching: true. Absen = tidak ada

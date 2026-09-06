@@ -44,7 +44,12 @@ export function ConfirmDialog() {
               shown.onConfirm();
               dismissConfirm();
             }}
-            style={{ display: "inline-flex", alignItems: "center", gap: 5 }}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 5,
+              ...(shown.confirmColor ? { background: shown.confirmColor } : null),
+            }}
           >
             <CheckIcon size={14} />
             <span>{shown.confirmLabel ?? "Ya, Lanjutkan"}</span>

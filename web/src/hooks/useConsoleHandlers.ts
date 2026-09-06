@@ -92,10 +92,12 @@ export function useConsoleHandlers() {
       // sudah dibakukan (bukan cmd mentah), sama seperti extra.includes("MATCHING") di
       // commands.ts — ket selalu berbentuk "jam(HB)" persis, tidak pernah tergabung dengan token lain.
       if (entry && entry.ket.includes("(HB)")) {
+        // Bukan aksi destruktif (menandai Matching, bukan menghapus apa pun) — confirmColor hijau
+        // menggantikan merah default showConfirm, yang di sini akan menyesatkan.
         showConfirm(
-          `⚠️ Pengingat Beam Baru Mc ${entry.mcNo}: Pasangkan tali hijau pada tepi kain gulungan awal!`,
+          `Beam baru Mc ${entry.mcNo} — pasang tali hijau di tepi kain gulungan awal.`,
           () => markPendingMatching(entry.mcNo),
-          { confirmLabel: "Sudah Pasang & Tandai Matching", cancelLabel: "Nanti / Lewati" },
+          { confirmLabel: "Tandai Matching", cancelLabel: "Lewati", confirmColor: "var(--emerald-500)" },
         );
       }
     } else {

@@ -274,8 +274,8 @@ class DoffViewModel @JvmOverloads constructor(
     }
 
     /** Tali Hijau: menandai [mcNo] agar Estimasi berikutnya untuk mesin itu otomatis isMatching
-     * (lihat DoffState.pendingMatchingMcNos) — dipanggil dari tombol "Sudah Pasang & Tandai
-     * Matching" pada pengingat setelah doff HB. Konsumsinya (dihapus dari daftar ini) terjadi di
+     * (lihat DoffState.pendingMatchingMcNos) — dipanggil dari tombol "Tandai Matching" pada
+     * pengingat setelah doff HB. Konsumsinya (dihapus dari daftar ini) terjadi di
      * prosesBarisKondisiMesin, begitu Estimasi baru untuk mcNo itu benar-benar dibuat. */
     fun markPendingMatching(mcNo: String) = updateState { s ->
         val list = s.pendingMatchingMcNos ?: emptyList()

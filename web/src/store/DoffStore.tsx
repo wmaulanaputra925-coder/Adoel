@@ -185,8 +185,8 @@ export function DoffStoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Tali Hijau: menandai mcNo agar Estimasi berikutnya untuk mesin itu otomatis isMatching (lihat
-  // DoffState.pendingMatchingMcNos) — dipanggil dari tombol "Sudah Pasang & Tandai Matching" pada
-  // pengingat setelah doff HB. Konsumsinya (dihapus dari daftar ini) terjadi di
+  // DoffState.pendingMatchingMcNos) — dipanggil dari tombol "Tandai Matching" pada pengingat
+  // setelah doff HB. Konsumsinya (dihapus dari daftar ini) terjadi di
   // commands.ts prosesBarisKondisiMesin, begitu Estimasi baru untuk mcNo itu benar-benar dibuat.
   const markPendingMatching = useCallback((mcNo: string) => {
     setState((s) => {

@@ -19,6 +19,12 @@ data class ConfirmState(
     // konfirmasi generik.
     val confirmLabel: String? = null,
     val cancelLabel: String? = null,
+    // Tombol konfirmasi defaultnya merah (lihat ConfirmDialog.kt) — cocok untuk mayoritas
+    // pemakaian showConfirm yang memang destruktif (Hapus, Reset). false dipakai satu-satunya
+    // oleh pengingat Tali Hijau di atas, yang aksinya menandai Matching — positif, bukan
+    // destruktif, jadi merah di sana justru menyesatkan. Boolean semantik (bukan Color mentah)
+    // supaya ViewModel ini tetap tidak bergantung pada tipe Compose UI.
+    val isDestructive: Boolean = true,
 )
 
 class UIViewModel : ViewModel() {
@@ -44,9 +50,10 @@ class UIViewModel : ViewModel() {
         onCancel: (() -> Unit)? = null,
         confirmLabel: String? = null,
         cancelLabel: String? = null,
+        isDestructive: Boolean = true,
         onConfirm: () -> Unit,
     ) {
-        _confirm.value = ConfirmState(msg, onConfirm, onCancel, confirmLabel, cancelLabel)
+        _confirm.value = ConfirmState(msg, onConfirm, onCancel, confirmLabel, cancelLabel, isDestructive)
     }
 
     fun dismissConfirm() {

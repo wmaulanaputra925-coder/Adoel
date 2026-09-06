@@ -117,8 +117,8 @@ data class DoffState(
     val keteranganShortcuts: List<String>? = null,
     val corakShortcuts: List<String>? = null,
     val corakPotonganAwal: List<String>? = null,
-    /** Mc yang habis di-doff HB (Habis Beam) dan operator sudah menekan "Sudah Pasang & Tandai
-     * Matching" pada pengingat tali-hijau (lihat matchingRules.kt) — belum bertemu Estimasi baru,
+    /** Mc yang habis di-doff HB (Habis Beam) dan operator sudah menekan "Tandai Matching" pada
+     * pengingat tali-hijau (lihat matchingRules.kt) — belum bertemu Estimasi baru,
      * jadi flag isMatching-nya belum ada tempat untuk hinggap. Dikonsumsi (dihapus dari daftar ini)
      * begitu Estimasi berikutnya untuk mcNo itu benar-benar dibuat (DoffViewModel
      * prosesBarisKondisiMesin), yang saat itu langsung disetel isMatching = true. Null/kosong =

@@ -72,8 +72,8 @@ export function prosesBarisKondisiMesin(state: DoffState, ln: string, now: numbe
   }
 
   const existing = state.estimasi[mcNo];
-  // Tali Hijau: mcNo ini baru saja di-doff HB dan operator sudah menekan "Sudah Pasang & Tandai
-  // Matching" (lihat DoffState.pendingMatchingMcNos) — Estimasi baru ini adalah tempat pertama
+  // Tali Hijau: mcNo ini baru saja di-doff HB dan operator sudah menekan "Tandai Matching" (lihat
+  // DoffState.pendingMatchingMcNos) — Estimasi baru ini adalah tempat pertama
   // flag itu punya rumah, jadi konsumsi (dan hapus dari daftar tunggu) di sini.
   const isPending = state.pendingMatchingMcNos?.includes(mcNo) ?? false;
   const willBeMatching = isPending || (existing?.isMatching ?? false);
