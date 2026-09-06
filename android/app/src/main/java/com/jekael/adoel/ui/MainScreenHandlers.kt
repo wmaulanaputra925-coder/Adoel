@@ -219,7 +219,7 @@ internal class MainScreenHandlers(
                 redo = { doffVm.toggleEstimasiMatching(mcNo) },
             ),
         )
-        uiVm.showToast(if (nowMatching) "Mc $mcNo ditandai Tali Hijau" else "Penanda Tali Hijau Mc $mcNo dilepas")
+        uiVm.showToast(if (nowMatching) "Mc $mcNo ditandai Matching" else "Penanda Matching Mc $mcNo dilepas")
     }
 
     fun handleHapusAktual(id: Int, onCleared: () -> Unit) {

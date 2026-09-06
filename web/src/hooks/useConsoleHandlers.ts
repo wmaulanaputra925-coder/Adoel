@@ -165,7 +165,7 @@ export function useConsoleHandlers() {
       redo: () => toggleEstimasiMatching(mcNo),
     });
     const nowMatching = !prevEst.isMatching;
-    showToast(nowMatching ? `Mc ${mcNo} ditandai Tali Hijau` : `Penanda Tali Hijau Mc ${mcNo} dilepas`);
+    showToast(nowMatching ? `Mc ${mcNo} ditandai Matching` : `Penanda Matching Mc ${mcNo} dilepas`);
   }
 
   function handleHapusAktual(id: number, onCleared?: () => void) {
