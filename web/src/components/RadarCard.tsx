@@ -410,8 +410,14 @@ export function RadarCard({
           <div className="radar-card-accent" />
           {!completing && (
             <div
-              className={`radar-matching-ribbon${bookmarkVisible ? " visible" : ""}${bookmarkPreviewActive ? " active" : ""}`}
+              className={`radar-matching-ribbon${bookmarkPreviewActive ? " active" : ""}`}
               style={{
+                // Digeser: makin ditarik ke kiri, makin besar & makin nampak — tapi opacity-nya
+                // dipercepat (penuh di 35% jarak pertama menuju ambang) sementara scale terus
+                // tumbuh sampai selesai. Tanpa ini, pita langsung 100% terlihat di piksel pertama
+                // geseran padahal ukurannya masih kecil (0.75), jadi kemunculannya terasa "muncul
+                // lalu membesar" alih-alih satu gerakan menyatu "tumbuh sambil memudar masuk".
+                opacity: dragging && offsetX < 0 ? Math.min(1, leftDragFraction / 0.35) : bookmarkVisible ? 1 : 0,
                 transform: `rotate(45deg) scale(${dragging && offsetX < 0 ? 0.75 + leftDragFraction * 0.25 : 1})`,
                 transition: dragging
                   ? "none"

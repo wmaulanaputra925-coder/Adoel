@@ -341,6 +341,18 @@ fun RadarCard(
         animationSpec = if (bookmarkDraggingLeft) snap() else spring(dampingRatio = Spring.DampingRatioMediumBouncy),
         label = "bookmarkScale",
     )
+    // Ramped by drag fraction (full opacity by 35% of the way to the threshold) rather than a
+    // hard on/off flip, so the ribbon fades in smoothly as the drag starts instead of popping to
+    // full opacity on the very first pixel of a left-drag while it's still tiny (scale 0.75).
+    val bookmarkOpacity by animateFloatAsState(
+        targetValue = when {
+            bookmarkDraggingLeft -> (bookmarkLeftDragFraction / 0.35f).coerceIn(0f, 1f)
+            bookmarkVisible -> 1f
+            else -> 0f
+        },
+        animationSpec = if (bookmarkDraggingLeft) snap() else spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+        label = "bookmarkOpacity",
+    )
 
     fun triggerDoff() {
         if (completing) return
@@ -776,7 +788,7 @@ fun RadarCard(
             }
             // Declared last so it paints on top of the accent strip and content above — a corner
             // ribbon badge, not a background layer.
-            MatchingCornerRibbon(scale = bookmarkScale, visible = bookmarkVisible, active = bookmarkPreviewActive)
+            MatchingCornerRibbon(scale = bookmarkScale, opacity = bookmarkOpacity, active = bookmarkPreviewActive)
           }
 
           // Back of the card — only composed once the flip has passed the halfway point, sized via
@@ -1064,11 +1076,13 @@ private fun PausedRadarCardFront(
  * and lives inside the same clipped/translating Box as the rest of the front face, so it's clipped
  * for free by the card's own rounded corner (no custom [GenericShape] needed here, unlike the tab
  * this replaced) and slides together with the card during drag instead of staying fixed in place.
- * Fully invisible (alpha 0) when untagged and not being dragged, so an untagged card's corner is
- * completely clean; [scale] pops it in (0.75→1) as a preview while actively dragging left. Text
- * label, not an icon — "MATCHING" reads unambiguously at this size where an icon alone wouldn't. */
+ * Fully invisible ([opacity] 0) when untagged and not being dragged, so an untagged card's corner
+ * is completely clean; [scale] pops it in (0.75→1) as a preview while actively dragging left, and
+ * [opacity] ramps in over the first 35% of that same drag (see bookmarkOpacity at the call site)
+ * so it fades in smoothly instead of snapping to fully opaque while still tiny. Text label, not an
+ * icon — "MATCHING" reads unambiguously at this size where an icon alone wouldn't. */
 @Composable
-private fun BoxScope.MatchingCornerRibbon(scale: Float, visible: Boolean, active: Boolean) {
+private fun BoxScope.MatchingCornerRibbon(scale: Float, opacity: Float, active: Boolean) {
     val colors = LocalAppColors.current
     Box(
         modifier = Modifier
@@ -1077,7 +1091,7 @@ private fun BoxScope.MatchingCornerRibbon(scale: Float, visible: Boolean, active
             .width(110.dp)
             .graphicsLayer {
                 rotationZ = 45f
-                alpha = if (visible) 1f else 0f
+                alpha = opacity
                 scaleX = scale
                 scaleY = scale
             }
