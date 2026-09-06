@@ -57,7 +57,13 @@ export function DoffEntryRowContent({
             redundant, not the reason anyone found the affordance. */}
         <span className="der-time">{entry.jam}</span>
       </span>
-      {ketCode.length > 0 && <span className="der-ket">{ketCode}</span>}
+      {ketCode.length > 0 && (
+        <span
+          className={`der-ket${ketCode === "MATCHING" ? " ket-matching" : ketCode === "HB" ? " ket-hb" : ""}`}
+        >
+          {ketCode}
+        </span>
+      )}
     </>
   );
 }

@@ -74,7 +74,10 @@ data class ShiftRecord(
     val operatorGrup: String = "",
 )
 
-val DEFAULT_KETERANGAN_SHORTCUTS = emptyList<String>()
+// HB (Habis Beam) is common enough on every shift that it's worth shipping as a built-in
+// shortcut rather than making every install's operator add it by hand — the other codes
+// (P.LP/P.SN/etc.) are floor-specific enough that they stay opt-in via Pengaturan.
+val DEFAULT_KETERANGAN_SHORTCUTS = listOf("HB")
 val DEFAULT_CORAK_SHORTCUTS = emptyList<String>()
 
 /** Corak dengan aturan "potongan awal 70 yard" — begitu beam lusi baru naik, kain di awal jalan

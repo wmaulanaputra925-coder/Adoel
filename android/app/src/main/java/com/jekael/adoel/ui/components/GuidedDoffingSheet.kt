@@ -161,8 +161,9 @@ private fun ChooseStep(
 ) {
     val colors = LocalAppColors.current
     // Same preview shortcuts (state.keteranganShortcuts, whatever the user has actually
-    // configured) as web's ChooseStep — matches DEFAULT_KETERANGAN_SHORTCUTS being empty on
-    // both platforms rather than showing a fixed example list that's never what's really there.
+    // configured — starting from DEFAULT_KETERANGAN_SHORTCUTS, just "HB", until they add their
+    // own) as web's ChooseStep, rather than showing a fixed example list that's never what's
+    // really there.
     val shortcuts = keteranganShortcuts ?: DEFAULT_KETERANGAN_SHORTCUTS
     val shortcutsPreview = shortcuts.take(5).joinToString(", ") + (if (shortcuts.size > 5) ", ..." else "")
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {

@@ -1635,6 +1635,20 @@ button:disabled {
   border-radius: 5px;
   padding: 3px 6px;
 }
+/* MATCHING and HB are common/meaningful enough entries to pick out from ordinary free-typed
+   keterangan (P.LP, GANTI BEAM, etc, which stay the default amber) at a glance while scanning
+   Riwayat/Statistik — Emerald matches every other Matching indicator in the app (the corner
+   ribbon, the doff celebration); Purple is otherwise-unused by any status/urgency color here, so
+   HB doesn't borrow meaning from something else (Teal/Violet/Indigo/Fuchsia are all already
+   machine-type identity colors — see TIPE_COLOR in mesinVisual.ts). */
+.der-ket.ket-matching {
+  color: var(--emerald-400, #34d399);
+  background: rgba(16, 185, 129, 0.15);
+}
+.der-ket.ket-hb {
+  color: var(--purple-400, #c084fc);
+  background: rgba(192, 132, 252, 0.15);
+}
 .der-time {
   flex-shrink: 0;
   display: inline-flex;

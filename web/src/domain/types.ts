@@ -58,7 +58,10 @@ export interface ShiftRecord {
 
 export type ThemeMode = "SYSTEM" | "LIGHT" | "DARK";
 
-export const DEFAULT_KETERANGAN_SHORTCUTS: string[] = [];
+// HB (Habis Beam) is common enough on every shift that it's worth shipping as a built-in
+// shortcut rather than making every install's operator add it by hand — the other codes
+// (P.LP/P.SN/etc.) are floor-specific enough that they stay opt-in via Pengaturan.
+export const DEFAULT_KETERANGAN_SHORTCUTS: string[] = ["HB"];
 export const DEFAULT_CORAK_SHORTCUTS: string[] = [];
 
 /** Corak yang berlaku aturan "potongan awal 70 yard" — begitu beam lusi baru naik, kain di

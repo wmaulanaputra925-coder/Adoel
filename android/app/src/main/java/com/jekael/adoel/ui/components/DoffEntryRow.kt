@@ -30,7 +30,9 @@ import com.jekael.adoel.data.MesinData
 import com.jekael.adoel.data.formatYard
 import com.jekael.adoel.ui.theme.Amber400
 import com.jekael.adoel.ui.theme.Cyan400
+import com.jekael.adoel.ui.theme.Emerald400
 import com.jekael.adoel.ui.theme.LocalAppColors
+import com.jekael.adoel.ui.theme.Purple400
 
 /**
  * The one row layout for a recorded doff, shared by Riwayat and by Statistik's shift detail so the
@@ -161,16 +163,28 @@ fun DoffEntryRowContent(
         }
 
         if (ketCode.isNotEmpty()) {
+            // MATCHING and HB are common/meaningful enough entries to pick out from ordinary
+            // free-typed keterangan (P.LP, GANTI BEAM, etc, which stay the default amber) at a
+            // glance while scanning Riwayat/Statistik — Emerald matches every other Matching
+            // indicator in the app (the corner ribbon, the doff celebration); Purple is otherwise
+            // unused by any status/urgency color here, so HB doesn't borrow meaning from
+            // something else (Teal/Violet/Indigo/Fuchsia are all already machine-type identity
+            // colors — see mesinTipeColor in Icons.kt).
+            val ketColor = when (ketCode) {
+                "MATCHING" -> Emerald400
+                "HB" -> Purple400
+                else -> Amber400
+            }
             Box(
                 modifier = Modifier
                     .widthIn(max = 130.dp)
                     .clip(RoundedCornerShape(5.dp))
-                    .background(Amber400.copy(alpha = 0.15f))
+                    .background(ketColor.copy(alpha = 0.15f))
                     .padding(horizontal = 6.dp, vertical = 3.dp),
             ) {
                 Text(
                     ketCode,
-                    style = TextStyle(fontSize = 10.sp, fontWeight = FontWeight.Black, color = Amber400),
+                    style = TextStyle(fontSize = 10.sp, fontWeight = FontWeight.Black, color = ketColor),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
