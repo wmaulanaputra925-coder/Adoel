@@ -1548,24 +1548,24 @@ button:disabled {
   background: var(--bg-elevated);
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
 }
-/* ---- Shared doff-entry row: Riwayat list + Statistik shift detail (DoffEntryRow.tsx). Two
-   zones instead of one straight line of chips, which is what used to clip corak mid-word the
-   moment a shift had a long-ish corak or a keterangan: .der-left wraps its own chips onto a
-   second line on its own (the row's height simply grows) instead of squeezing corak's text down
-   to fit, while .der-ket sits pinned on the right as a plain sibling, no longer fighting the
-   same single line for space. ---- */
+/* ---- Shared doff-entry row: Riwayat list + Statistik shift detail (DoffEntryRow.tsx). Fixed
+   two-row layout — the old single wrapping line let content length (a long keterangan or corak)
+   decide where the wrap fell, so row height and vertical alignment varied unpredictably while
+   scrolling. Now always exactly two rows: .der-row1 (identity: No/tipe/Mc/corak), .der-row2
+   (result: yard/jam/keterangan) — each a fixed flex row of its own, never wrapping onto a third
+   line; overlong content ellipsizes within its own chip instead. ---- */
 .doff-entry-row {
   display: flex;
-  align-items: flex-start;
-  gap: 6px;
-  min-width: 0;
-}
-.der-left {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+  flex-direction: column;
   gap: 6px;
   flex: 1 1 auto;
+  min-width: 0;
+}
+.der-row1,
+.der-row2 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   min-width: 0;
 }
 .der-num {
@@ -1595,11 +1595,11 @@ button:disabled {
   white-space: nowrap;
 }
 .der-corak {
-  /* Yard is folded straight into this chip's text ("88357 (308y)") instead of its own separate
-     chip — one less fixed-width box competing for room on the line is what actually frees up
-     enough space for corak to stop truncating. */
-  flex-shrink: 0;
-  max-width: 170px;
+  /* flex: 0 1 auto — hugs a short corak instead of always stretching to fill der-row1, but still
+     shrinks (with .der-corak-text's ellipsis) rather than pushing the row wider than its
+     container when a free-typed corak runs long. Yard moved to its own chip on row 2 — appending
+     "(303y)" to this one just made a single already-long chip wider still. */
+  flex: 0 1 auto;
   min-width: 0;
   display: inline-flex;
   align-items: center;
@@ -1621,13 +1621,26 @@ button:disabled {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.der-ket {
+.der-yard {
   flex-shrink: 0;
-  max-width: 130px;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  display: inline-flex;
+  align-items: center;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: var(--bg-elevated-2);
+  border-radius: 5px;
+  padding: 3px 7px;
+  white-space: nowrap;
+}
+.der-ket {
+  /* flex: 0 1 auto — same hug-then-ellipsize behavior as .der-corak; single line now (was a
+     2-line clamp), matching the fixed row height the rest of this layout guarantees. */
+  flex: 0 1 auto;
+  min-width: 0;
+  white-space: nowrap;
   overflow: hidden;
+  text-overflow: ellipsis;
   font-size: 10px;
   font-weight: 800;
   color: var(--amber-400);
@@ -1653,6 +1666,7 @@ button:disabled {
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
+  gap: 4px;
   font-size: 11.5px;
   font-weight: 700;
   color: var(--text-secondary);
@@ -1661,6 +1675,10 @@ button:disabled {
   border-radius: 6px;
   padding: 3px 7px;
   white-space: nowrap;
+}
+.der-time svg {
+  flex-shrink: 0;
+  color: var(--text-faint);
 }
 
 .doff-row .actions {

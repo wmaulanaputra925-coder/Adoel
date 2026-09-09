@@ -4,15 +4,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Circle
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Texture
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -41,15 +40,15 @@ import com.jekael.adoel.ui.theme.Purple400
  * inline). Each caller still supplies its own container: Riwayat wraps this in a swipeable list
  * card, Statistik in a flat tappable strip inside the shift card.
  *
- * Two zones instead of one straight line of chips, which is what used to clip corak mid-word the
- * moment a shift had a long-ish corak or a keterangan: a [FlowRow] on the left holds num/tipe
- * icon/mc number/corak(+yard folded in)/waktu and wraps onto a second line on its own — the row's
- * height simply grows instead of anything getting squeezed — while keterangan sits pinned on the
- * right, no longer fighting the same single line for space. Owns its own root layout (not a
- * `RowScope` extension like before) precisely so the two zones can size and wrap independently.
+ * Fixed two-row layout instead of a wrapping FlowRow — the wrap point used to depend on content
+ * length (a long keterangan or corak could push time onto its own line unpredictably, so card
+ * height and vertical alignment varied row to row while scrolling). Now every row is exactly two
+ * lines, always: identity (No/tipe/Mc/corak) on top, result (yard/jam/keterangan) below. Corak and
+ * yard are also no longer folded into one pill — corak alone can already run long, and appending
+ * "(303y)" to it just made the single pill wider still; each gets its own chip so neither one's
+ * length affects the other's legibility.
  */
 @Composable
-@OptIn(ExperimentalLayoutApi::class)
 fun DoffEntryRowContent(
     num: Int,
     entry: AktualEntry,
@@ -60,24 +59,29 @@ fun DoffEntryRowContent(
     val corak = entry.corakOverride ?: mesin?.corak ?: "—"
     val yard = entry.customYard ?: mesin?.targetYard
     // entry.ket is "$jam($extra)" when the doff carried a keterangan, or bare "$jam" when it
-    // didn't (see DoffViewModel.prosesBarisUmum). The time has its own chip on the left, so strip
-    // it back off here and keep only the code — otherwise the row prints the clock twice.
+    // didn't (see DoffViewModel.prosesBarisUmum). The time has its own chip below, so strip it
+    // back off here and keep only the code — otherwise the row prints the clock twice.
     val ketCode = entry.ket.removePrefix(entry.jam).removeSurrounding("(", ")")
-    // Yard folded straight into the corak chip text ("88357 (308y)") instead of its own separate
-    // box — one less fixed-width box competing for room on the left is what actually freed up
-    // enough space for corak to stop truncating; DoffEntryRowContent's old layout had it as a
-    // sibling chip fighting corak, time, AND keterangan all on the same line.
-    val corakText = if (yard != null) "$corak (${formatYard(yard)}y)" else corak
+    // MATCHING and HB are common/meaningful enough entries to pick out from ordinary free-typed
+    // keterangan (P.LP, GANTI BEAM, etc, which stay the default amber) at a glance while scanning
+    // Riwayat/Statistik — Emerald matches every other Matching indicator in the app (the corner
+    // ribbon, the doff celebration); Purple is otherwise unused by any status/urgency color here,
+    // so HB doesn't borrow meaning from something else (Teal/Violet/Indigo/Fuchsia are all already
+    // machine-type identity colors — see mesinTipeColor in Icons.kt).
+    val ketColor = when (ketCode) {
+        "MATCHING" -> Emerald400
+        "HB" -> Purple400
+        else -> Amber400
+    }
 
-    Row(
+    Column(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalAlignment = Alignment.Top,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        FlowRow(
-            modifier = Modifier.weight(1f),
+        // Baris 1: identitas — No urut, tipe + nomor mesin, corak.
+        Row(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
                 modifier = Modifier
@@ -106,22 +110,19 @@ fun DoffEntryRowContent(
                 }
             }
 
-            // Just the number — the surrounding chips already make it obvious this is the machine.
-            Box(modifier = Modifier.padding(top = 3.dp)) {
-                Text(
-                    entry.mcNo,
-                    style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Black, color = Cyan400),
-                    maxLines = 1,
-                    softWrap = false,
-                )
-            }
+            Text(
+                entry.mcNo,
+                style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Black, color = Cyan400),
+                maxLines = 1,
+                softWrap = false,
+            )
 
+            // weight(fill = false): pill hugs short corak instead of always stretching, but still
+            // gets capped to whatever room is actually left in the row so a pathological free-typed
+            // corak ellipsizes in place instead of pushing the row wider than its container.
             Row(
                 modifier = Modifier
-                    // Generous but not unbounded — a truly pathological free-typed corak still
-                    // can't blow out the row, it just ellipsizes on its own instead of the whole
-                    // layout breaking.
-                    .widthIn(max = 170.dp)
+                    .weight(1f, fill = false)
                     .clip(RoundedCornerShape(5.dp))
                     .background(colors.bgElevated)
                     .border(1.dp, colors.border, RoundedCornerShape(5.dp))
@@ -136,23 +137,53 @@ fun DoffEntryRowContent(
                     modifier = Modifier.size(11.dp),
                 )
                 Text(
-                    corakText,
+                    corak,
                     style = TextStyle(fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = colors.textSecondary),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
+        }
+
+        // Baris 2: hasil — panjang yard, jam, keterangan (kalau ada).
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (yard != null) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(5.dp))
+                        .background(colors.bgElevated2)
+                        .padding(horizontal = 7.dp, vertical = 3.dp),
+                ) {
+                    Text(
+                        "${formatYard(yard)}y",
+                        style = TextStyle(fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = colors.textMuted),
+                        maxLines = 1,
+                        softWrap = false,
+                    )
+                }
+            }
 
             // No more edit-pencil here — the row itself is the tap target (Statistik even prints
             // "Ketuk baris untuk edit" once above the list), so a second per-row hint was
             // redundant, not the reason anyone found the affordance.
-            Box(
+            Row(
                 modifier = Modifier
                     .clip(RoundedCornerShape(6.dp))
                     .background(colors.bgElevated)
                     .border(1.dp, colors.border, RoundedCornerShape(6.dp))
                     .padding(horizontal = 7.dp, vertical = 3.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
+                Icon(
+                    imageVector = Icons.Outlined.Schedule,
+                    contentDescription = null,
+                    tint = colors.textFaint,
+                    modifier = Modifier.size(11.dp),
+                )
                 Text(
                     entry.jam,
                     style = TextStyle(fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = colors.textSecondary),
@@ -160,34 +191,22 @@ fun DoffEntryRowContent(
                     softWrap = false,
                 )
             }
-        }
 
-        if (ketCode.isNotEmpty()) {
-            // MATCHING and HB are common/meaningful enough entries to pick out from ordinary
-            // free-typed keterangan (P.LP, GANTI BEAM, etc, which stay the default amber) at a
-            // glance while scanning Riwayat/Statistik — Emerald matches every other Matching
-            // indicator in the app (the corner ribbon, the doff celebration); Purple is otherwise
-            // unused by any status/urgency color here, so HB doesn't borrow meaning from
-            // something else (Teal/Violet/Indigo/Fuchsia are all already machine-type identity
-            // colors — see mesinTipeColor in Icons.kt).
-            val ketColor = when (ketCode) {
-                "MATCHING" -> Emerald400
-                "HB" -> Purple400
-                else -> Amber400
-            }
-            Box(
-                modifier = Modifier
-                    .widthIn(max = 130.dp)
-                    .clip(RoundedCornerShape(5.dp))
-                    .background(ketColor.copy(alpha = 0.15f))
-                    .padding(horizontal = 6.dp, vertical = 3.dp),
-            ) {
-                Text(
-                    ketCode,
-                    style = TextStyle(fontSize = 10.sp, fontWeight = FontWeight.Black, color = ketColor),
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
+            if (ketCode.isNotEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f, fill = false)
+                        .clip(RoundedCornerShape(5.dp))
+                        .background(ketColor.copy(alpha = 0.15f))
+                        .padding(horizontal = 6.dp, vertical = 3.dp),
+                ) {
+                    Text(
+                        ketCode,
+                        style = TextStyle(fontSize = 10.sp, fontWeight = FontWeight.Black, color = ketColor),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
         }
     }

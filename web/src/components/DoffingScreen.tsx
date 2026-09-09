@@ -114,9 +114,14 @@ export function DoffingScreen() {
               const mesin = state.db[entry.mcNo];
 
               return (
-                <div className="doff-row doff-entry-row" key={entry.id}>
-                  {/* Shared with Statistik's shift detail so both read identically — see DoffEntryRow.tsx. */}
-                  <DoffEntryRowContent num={num} entry={entry} mesin={mesin} />
+                <div className="doff-row" key={entry.id}>
+                  {/* Shared with Statistik's shift detail so both read identically — see
+                      DoffEntryRow.tsx. Its own div (not .doff-row directly) so .doff-entry-row's
+                      column layout only stacks its two internal rows, not this whole card
+                      including the actions buttons below. */}
+                  <div className="doff-entry-row">
+                    <DoffEntryRowContent num={num} entry={entry} mesin={mesin} />
+                  </div>
                   <div className="actions">
                     <button
                       className="icon-btn"
