@@ -38,26 +38,36 @@ export function DoffEntryRowContent({
 
   return (
     <>
+      {/* Identitas (No/tipe/Mc) rapat di kiri, corak didorong ke ujung kanan lewat
+          justify-content: space-between pada .der-row1 — bukan cuma menumpuk semua di kiri lalu
+          membiarkan sisa lebar kartu kosong begitu saja. */}
       <span className="der-row1">
-        <span className="der-num">{num}</span>
-        <span className="der-tipe" style={{ color: mesin ? TIPE_COLOR[mesin.tipe] : "var(--text-faint)" }}>
-          {mesin ? <MesinTipeIcon tipe={mesin.tipe} size={13} /> : <CircleIcon size={13} />}
+        <span className="der-row1-left">
+          <span className="der-num">{num}</span>
+          <span className="der-tipe" style={{ color: mesin ? TIPE_COLOR[mesin.tipe] : "var(--text-faint)" }}>
+            {mesin ? <MesinTipeIcon tipe={mesin.tipe} size={13} /> : <CircleIcon size={13} />}
+          </span>
+          {/* Just the number — the surrounding chips already make it obvious this is the machine. */}
+          <span className="der-mcno">{entry.mcNo}</span>
         </span>
-        {/* Just the number — the surrounding chips already make it obvious this is the machine. */}
-        <span className="der-mcno">{entry.mcNo}</span>
         <span className="der-corak">
           <TextureIcon size={11} />
           <span className="der-corak-text">{corak}</span>
         </span>
       </span>
+      {/* Yard + jam rapat di kiri, keterangan (kalau ada) didorong ke ujung kanan — simetris
+          dengan baris 1. Tanpa keterangan, space-between dengan satu anak saja otomatis rapat
+          kiri (tidak ada elemen kedua untuk didorong ke kanan). */}
       <span className="der-row2">
-        {yard != null && <span className="der-yard">{formatYard(yard)}y</span>}
-        {/* No more edit-pencil here — the row itself is the tap target (Statistik even prints
-            "Ketuk baris untuk edit" once above the list), so a second per-row hint was
-            redundant, not the reason anyone found the affordance. */}
-        <span className="der-time">
-          <ScheduleIcon size={11} />
-          {entry.jam}
+        <span className="der-row2-left">
+          {yard != null && <span className="der-yard">{formatYard(yard)}y</span>}
+          {/* No more edit-pencil here — the row itself is the tap target (Statistik even prints
+              "Ketuk baris untuk edit" once above the list), so a second per-row hint was
+              redundant, not the reason anyone found the affordance. */}
+          <span className="der-time">
+            <ScheduleIcon size={11} />
+            {entry.jam}
+          </span>
         </span>
         {ketCode.length > 0 && (
           <span

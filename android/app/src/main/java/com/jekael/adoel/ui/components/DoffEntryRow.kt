@@ -6,8 +6,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Circle
@@ -78,51 +80,59 @@ fun DoffEntryRowContent(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        // Baris 1: identitas — No urut, tipe + nomor mesin, corak.
+        // Baris 1: identitas (No, tipe, Mc) rapat di kiri, corak didorong ke ujung kanan lewat
+        // SpaceBetween — bukan cuma menumpuk semua di kiri lalu membiarkan sisa lebar kartu kosong
+        // begitu saja, kartu jadi terasa penuh dan seimbang dari tepi ke tepi.
         Row(
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(
-                modifier = Modifier
-                    .size(20.dp)
-                    .clip(RoundedCornerShape(5.dp))
-                    .background(colors.bgElevated)
-                    .border(1.dp, colors.border, RoundedCornerShape(5.dp)),
-                contentAlignment = Alignment.Center,
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
+                Box(
+                    modifier = Modifier
+                        .size(20.dp)
+                        .clip(RoundedCornerShape(5.dp))
+                        .background(colors.bgElevated)
+                        .border(1.dp, colors.border, RoundedCornerShape(5.dp)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        "$num",
+                        style = TextStyle(fontSize = 10.sp, fontWeight = FontWeight.Black, color = colors.textFaint),
+                    )
+                }
+
+                Box(modifier = Modifier.size(20.dp), contentAlignment = Alignment.Center) {
+                    if (mesin != null) {
+                        MesinTipeIcon(tipe = mesin.tipe, tint = mesinTipeColor(mesin.tipe), modifier = Modifier.size(13.dp))
+                    } else {
+                        Icon(
+                            imageVector = Icons.Outlined.Circle,
+                            contentDescription = null,
+                            tint = colors.textFaint,
+                            modifier = Modifier.size(13.dp),
+                        )
+                    }
+                }
+
                 Text(
-                    "$num",
-                    style = TextStyle(fontSize = 10.sp, fontWeight = FontWeight.Black, color = colors.textFaint),
+                    entry.mcNo,
+                    style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Black, color = Cyan400),
+                    maxLines = 1,
+                    softWrap = false,
                 )
             }
 
-            Box(modifier = Modifier.size(20.dp), contentAlignment = Alignment.Center) {
-                if (mesin != null) {
-                    MesinTipeIcon(tipe = mesin.tipe, tint = mesinTipeColor(mesin.tipe), modifier = Modifier.size(13.dp))
-                } else {
-                    Icon(
-                        imageVector = Icons.Outlined.Circle,
-                        contentDescription = null,
-                        tint = colors.textFaint,
-                        modifier = Modifier.size(13.dp),
-                    )
-                }
-            }
-
-            Text(
-                entry.mcNo,
-                style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Black, color = Cyan400),
-                maxLines = 1,
-                softWrap = false,
-            )
-
-            // weight(fill = false): pill hugs short corak instead of always stretching, but still
-            // gets capped to whatever room is actually left in the row so a pathological free-typed
-            // corak ellipsizes in place instead of pushing the row wider than its container.
+            // Capped (bukan weight) — sekarang berdiri sendiri di ujung kanan, bukan lagi
+            // berbagi baris dengan elemen lain, jadi lebar sisa baris tidak relevan lagi; batas
+            // ini semata mencegah corak yang diketik bebas terlalu panjang mendorong baris melebar.
             Row(
                 modifier = Modifier
-                    .weight(1f, fill = false)
+                    .widthIn(max = 160.dp)
                     .clip(RoundedCornerShape(5.dp))
                     .background(colors.bgElevated)
                     .border(1.dp, colors.border, RoundedCornerShape(5.dp))
@@ -145,57 +155,65 @@ fun DoffEntryRowContent(
             }
         }
 
-        // Baris 2: hasil — panjang yard, jam, keterangan (kalau ada).
+        // Baris 2: yard + jam rapat di kiri, keterangan (kalau ada) didorong ke ujung kanan —
+        // simetris dengan baris 1. Tanpa keterangan, SpaceBetween dengan satu grup saja otomatis
+        // rapat kiri (tidak ada elemen kedua untuk didorong ke kanan).
         Row(
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            if (yard != null) {
-                Box(
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (yard != null) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(5.dp))
+                            .background(colors.bgElevated2)
+                            .padding(horizontal = 7.dp, vertical = 3.dp),
+                    ) {
+                        Text(
+                            "${formatYard(yard)}y",
+                            style = TextStyle(fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = colors.textMuted),
+                            maxLines = 1,
+                            softWrap = false,
+                        )
+                    }
+                }
+
+                // No more edit-pencil here — the row itself is the tap target (Statistik even
+                // prints "Ketuk baris untuk edit" once above the list), so a second per-row hint
+                // was redundant, not the reason anyone found the affordance.
+                Row(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(5.dp))
-                        .background(colors.bgElevated2)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(colors.bgElevated)
+                        .border(1.dp, colors.border, RoundedCornerShape(6.dp))
                         .padding(horizontal = 7.dp, vertical = 3.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Schedule,
+                        contentDescription = null,
+                        tint = colors.textFaint,
+                        modifier = Modifier.size(11.dp),
+                    )
                     Text(
-                        "${formatYard(yard)}y",
-                        style = TextStyle(fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = colors.textMuted),
+                        entry.jam,
+                        style = TextStyle(fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = colors.textSecondary),
                         maxLines = 1,
                         softWrap = false,
                     )
                 }
             }
 
-            // No more edit-pencil here — the row itself is the tap target (Statistik even prints
-            // "Ketuk baris untuk edit" once above the list), so a second per-row hint was
-            // redundant, not the reason anyone found the affordance.
-            Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(colors.bgElevated)
-                    .border(1.dp, colors.border, RoundedCornerShape(6.dp))
-                    .padding(horizontal = 7.dp, vertical = 3.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Schedule,
-                    contentDescription = null,
-                    tint = colors.textFaint,
-                    modifier = Modifier.size(11.dp),
-                )
-                Text(
-                    entry.jam,
-                    style = TextStyle(fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = colors.textSecondary),
-                    maxLines = 1,
-                    softWrap = false,
-                )
-            }
-
             if (ketCode.isNotEmpty()) {
                 Box(
                     modifier = Modifier
-                        .weight(1f, fill = false)
+                        .widthIn(max = 130.dp)
                         .clip(RoundedCornerShape(5.dp))
                         .background(ketColor.copy(alpha = 0.15f))
                         .padding(horizontal = 6.dp, vertical = 3.dp),
