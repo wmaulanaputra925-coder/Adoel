@@ -64,13 +64,25 @@ function AppInner() {
   // tanpa nama.
   const showOperatorAsk = !shouldShowAutoQr && !state.operatorAsked;
 
-  // Tema: SYSTEM mengikuti preferensi OS, DARK/LIGHT dipaksa lewat atribut di <html>.
+  // Tema: SYSTEM mengikuti preferensi OS, DARK/LIGHT dipaksa lewat atribut di <html>. Meta
+  // theme-color ikut disesuaikan supaya status bar Safari/PWA menyatu dengan warna latar,
+  // bukan cuma warna gelap bawaan (index.html) yang tidak pernah berubah walau tema-nya terang.
   useEffect(() => {
     const root = document.documentElement;
+    const isDark =
+      state.themeMode === "SYSTEM"
+        ? typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
+        : state.themeMode === "DARK";
+
     if (state.themeMode === "SYSTEM") {
       root.removeAttribute("data-theme");
     } else {
       root.setAttribute("data-theme", state.themeMode === "DARK" ? "dark" : "light");
+    }
+
+    const themeMeta = document.querySelector('meta[name="theme-color"]');
+    if (themeMeta) {
+      themeMeta.setAttribute("content", isDark ? "#09090b" : "#fafafa");
     }
   }, [state.themeMode]);
 

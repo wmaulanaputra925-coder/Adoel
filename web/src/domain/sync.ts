@@ -110,10 +110,36 @@ function decodeSyncPayload(encoded: string): SyncPayload | null {
  * spasi — jadi ini aman dibuang seluruhnya. Tanpa ini, satu newline yang tersisip saat teks
  * datanya diteruskan lewat aplikasi pesan pihak ketiga (di-reflow, disalin ulang dari tampilan
  * yang sudah word-wrap, dst.) sudah cukup membuat atob()/JSON.parse gagal total dan menampilkan
- * "Format QR Sync tidak valid" walau datanya sendiri sebenarnya utuh. Sama persis dengan
+ * "Format QR Sync tidak valid" walau datanya sendiri sebenarnya utuh.
+ *
+ * Diperkeras lebih jauh untuk sumber salin-tempel lain yang juga dilaporkan gagal: teks yang
+ * terbungkus tanda kutip ekstra (tersalin sebagai string JSON, bukan isinya), teks yang
+ * ter-URL-encode (%7B/%22), tanda kutip yang ter-escape (\\"), atau karakter nyasar
+ * sebelum/sesudah objek JSON-nya sendiri -- diselesaikan dengan memotong tepat dari '{'
+ * pertama sampai '}' terakhir setelah semua pembersihan di atas. Sama persis dengan
  * sanitizeSyncText di DoffRepository.kt (Android). */
 function sanitizeSyncText(raw: string): string {
-  return raw.replace(/[\s\u200B\u200C\u200D\uFEFF]/g, "");
+  let cleaned = raw.trim();
+  if (cleaned.length >= 2 && cleaned.startsWith('"') && cleaned.endsWith('"')) {
+    cleaned = cleaned.slice(1, -1);
+  }
+  if (cleaned.includes("%7B") || cleaned.includes("%22")) {
+    try {
+      cleaned = decodeURIComponent(cleaned);
+    } catch {
+      // Bukan URL-encoded sungguhan -- biarkan apa adanya.
+    }
+  }
+  if (cleaned.includes('\\"')) {
+    cleaned = cleaned.replace(/\\"/g, '"');
+  }
+  const stripped = cleaned.replace(/[\s\u200B\u200C\u200D\uFEFF]/g, "");
+  const firstBrace = stripped.indexOf("{");
+  const lastBrace = stripped.lastIndexOf("}");
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+    return stripped.slice(firstBrace, lastBrace + 1);
+  }
+  return stripped;
 }
 
 export function getNextShiftEstimasiEntries(state: DoffState, nowAbs: number = nowAbsMin()): [string, Estimasi][] {
@@ -243,8 +269,12 @@ function parseMesinMap(
 
   // Parse compact array format (cDb)
   if (Array.isArray(cDb)) {
-    for (const [mcNo, tipe, corak, targetYard, speed, koreksi, isActive] of cDb) {
-      if (!mcNo) continue;
+    for (const [rawMcNo, tipe, corak, targetYard, speed, koreksi, isActive] of cDb) {
+      if (!rawMcNo) continue;
+      // Sisi Android men-serialize elemen array generik lewat Gson, jadi mcNo yang murni angka
+      // ("55") kadang lolos sebagai 55.0 — strip akhiran itu di sini biar ID mesinnya konsisten
+      // di kedua platform. Sama persis dengan parseMesinMap di DoffRepository.kt (Android).
+      const mcNo = String(rawMcNo).replace(/\.0$/, "");
       result[mcNo] = {
         tipe: validTipes[tipe ?? ""] ?? "TAPPET",
         corak: corak ?? "-",
@@ -259,8 +289,9 @@ function parseMesinMap(
 
   // Backward-compatibility: parse legacy object format
   if (serialDb) {
-    for (const [mcNo, v] of Object.entries(serialDb)) {
+    for (const [rawMcNo, v] of Object.entries(serialDb)) {
       if (!v) continue;
+      const mcNo = String(rawMcNo).replace(/\.0$/, "");
       result[mcNo] = {
         tipe: validTipes[v.tipe ?? ""] ?? "TAPPET",
         corak: v.corak ?? "-",
