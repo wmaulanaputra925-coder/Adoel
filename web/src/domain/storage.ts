@@ -55,7 +55,6 @@ export function parseBackupJson(json: string): DoffState | null {
       corakOverride: v?.corakOverride ?? null,
       yardOverride: typeof v?.yardOverride === "number" ? v.yardOverride : null,
       pausedAtAbsMin: typeof v?.pausedAtAbsMin === "number" ? v.pausedAtAbsMin : null,
-      isMatching: typeof v?.isMatching === "boolean" ? v.isMatching : false,
     };
   }
 
@@ -68,8 +67,6 @@ export function parseBackupJson(json: string): DoffState | null {
     startedAtEpochMin: Number(r?.startedAtEpochMin) || 0,
     endedAtEpochMin: Number(r?.endedAtEpochMin) || 0,
     aktual: dedupeIds(Array.isArray(r?.aktual) ? r.aktual : []),
-    operatorNama: typeof r?.operatorNama === "string" ? r.operatorNama : "",
-    operatorGrup: typeof r?.operatorGrup === "string" ? r.operatorGrup : "",
     estimasiRemaining: Object.fromEntries(
       Object.entries((r?.estimasiRemaining as Record<string, any>) ?? {}).map(([mcNo, v]) => [
         mcNo,
@@ -80,7 +77,6 @@ export function parseBackupJson(json: string): DoffState | null {
           corakOverride: v?.corakOverride ?? null,
           yardOverride: typeof v?.yardOverride === "number" ? v.yardOverride : null,
           pausedAtAbsMin: typeof v?.pausedAtAbsMin === "number" ? v.pausedAtAbsMin : null,
-          isMatching: typeof v?.isMatching === "boolean" ? v.isMatching : false,
         },
       ]),
     ),
@@ -101,10 +97,6 @@ export function parseBackupJson(json: string): DoffState | null {
     ? (serial.corakPotonganAwal as string[]).map((s) => String(s).trim().toUpperCase()).filter((s) => s.length > 0)
     : DEFAULT_CORAK_POTONGAN_AWAL;
 
-  const rawPendingMatchingMcNos = Array.isArray(serial.pendingMatchingMcNos)
-    ? (serial.pendingMatchingMcNos as string[]).map((s) => String(s).trim()).filter((s) => s.length > 0)
-    : [];
-
   return {
     db,
     estimasi,
@@ -114,14 +106,9 @@ export function parseBackupJson(json: string): DoffState | null {
     history,
     nextShiftId: Number(serial.nextShiftId) || 1,
     onboardingSeen: typeof serial.onboardingSeen === "boolean" ? serial.onboardingSeen : true,
-    operatorNama: typeof serial.operatorNama === "string" ? serial.operatorNama.trim() : "",
-    operatorGrup: typeof serial.operatorGrup === "string" ? serial.operatorGrup.trim() : "",
-    // Absen di backup versi lama → false, jadi pemakai lama tetap ditanya sekali.
-    operatorAsked: typeof serial.operatorAsked === "boolean" ? serial.operatorAsked : false,
     keteranganShortcuts: rawShortcuts,
     corakShortcuts: rawCorakShortcuts,
     corakPotonganAwal: rawCorakPotonganAwal,
-    pendingMatchingMcNos: rawPendingMatchingMcNos,
   };
 }
 
@@ -171,13 +158,9 @@ export function loadState(): DoffState {
     history: [],
     nextShiftId: 1,
     onboardingSeen: false,
-    operatorNama: "",
-    operatorGrup: "",
-    operatorAsked: false,
     keteranganShortcuts: DEFAULT_KETERANGAN_SHORTCUTS,
     corakShortcuts: DEFAULT_CORAK_SHORTCUTS,
     corakPotonganAwal: DEFAULT_CORAK_POTONGAN_AWAL,
-    pendingMatchingMcNos: [],
   };
 }
 

@@ -7,6 +7,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.automirrored.outlined.Undo
@@ -308,29 +309,24 @@ private fun RadarGestureGuide() {
             )
         }
 
-        // Gesture 1: Geser ke Kanan — Cyan (netral), bukan warna Normal (Sky) atau Matching
-        // (Emerald) tertentu, karena hasilnya memang kondisional tergantung penanda.
+        // Gesture 1: Geser ke Kanan
         GestureItem(
             icon = Icons.AutoMirrored.Outlined.ArrowForward,
-            iconTint = Cyan400,
+            iconTint = Emerald400,
             actionLabel = "Geser ke Kanan",
-            badgeText = "Doffing",
-            badgeColor = Cyan400,
-            description = "Usap kartu ke kanan untuk mencatat Doffing — otomatis Normal, atau Matching kalau mesin sedang " +
-                "bertanda 🏷️ Tali Hijau. Hanya aktif saat mendekati jam doffing.",
+            badgeText = "Doffing Normal",
+            badgeColor = Emerald400,
+            description = "Usap kartu ke kanan untuk mencatat Doffing Normal saat kain selesai sesuai target yard standar.",
         )
 
-        // Gesture 2: Geser ke Kiri — ikon tag/label, bukan bookmark, mengikuti desain pita pojok
-        // kanan-atas kartu yang sekarang bertuliskan "MATCHING" (bukan lagi ikon bookmark).
+        // Gesture 2: Geser ke Kiri
         GestureItem(
-            icon = Icons.Outlined.Sell,
-            iconTint = Emerald400,
+            icon = Icons.AutoMirrored.Outlined.ArrowBack,
+            iconTint = Sky400,
             actionLabel = "Geser ke Kiri",
-            badgeText = "Tandai Tali Hijau",
-            badgeColor = Emerald400,
-            description = "Usap kartu ke kiri untuk menandai/melepas 🏷️ Tali Hijau · Matching — beam lusi baru yang " +
-                "gulungan pertamanya perlu dipotong sebagai sampel uji kualitas. Bisa kapan saja, tidak perlu menunggu jam " +
-                "doffing; begitu ditandai, Doffing berikutnya (geser kanan) otomatis tercatat Matching.",
+            badgeText = "Doffing Matching",
+            badgeColor = Sky400,
+            description = "Usap kartu ke kiri untuk mencatat Doffing Matching (doffing awal pada beam lusi baru untuk potong sampel & cek kualitas kain).",
         )
 
         // Gesture 3: Ketuk Angka Jam

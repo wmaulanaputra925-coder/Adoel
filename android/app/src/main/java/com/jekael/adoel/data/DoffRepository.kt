@@ -12,6 +12,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import androidx.glance.appwidget.updateAll
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
+import com.google.gson.annotations.SerializedName
 import com.jekael.adoel.notification.NotificationHelper
 import com.jekael.adoel.widget.AdoelWidget
 import kotlinx.coroutines.CoroutineScope
@@ -51,7 +52,6 @@ private data class SerialState(
     val keteranganShortcuts: List<String>? = null,
     val corakShortcuts: List<String>? = null,
     val corakPotonganAwal: List<String>? = null,
-    val pendingMatchingMcNos: List<String>? = null,
 )
 
 private data class SerialMesin(
@@ -72,9 +72,7 @@ private data class SerialEstimasi(
     // Null on data written before Jeda existed (Gson leaves it null on old data) — same "never
     // paused" default as a fresh Estimasi.
     val pausedAtAbsMin: Long? = null,
-    // Null on data written before this flag existed (Gson leaves it null on old data) — same
-    // "not tagged" default as a fresh Estimasi.
-    val isMatching: Boolean? = null,
+    val isMatching: Boolean? = false,
 )
 
 private data class SerialAktual(
@@ -98,17 +96,17 @@ private data class SerialShiftRecord(
 )
 
 data class SyncEnvelope(
-    val type: String?,
-    val payload: String?,
-    val part: Int? = null,
-    val total: Int? = null,
+    @SerializedName("type") val type: String?,
+    @SerializedName("payload") val payload: String?,
+    @SerializedName("part") val part: Int? = null,
+    @SerializedName("total") val total: Int? = null,
 )
 
 private data class SyncPayload(
-    val cDb: List<List<Any?>>? = null,
-    val db: Map<String, SerialMesin>? = null,
-    val estimasi: Map<String, SerialEstimasi>? = null,
-    val aktual: List<SerialAktual>? = null,
+    @SerializedName("cDb") val cDb: List<List<Any?>>? = null,
+    @SerializedName("db") val db: Map<String, SerialMesin>? = null,
+    @SerializedName("estimasi") val estimasi: Map<String, SerialEstimasi>? = null,
+    @SerializedName("aktual") val aktual: List<SerialAktual>? = null,
 )
 
 /**
@@ -211,7 +209,6 @@ class DoffRepository private constructor(private val context: Context) : DoffSta
                 keteranganShortcuts = serial.keteranganShortcuts,
                 corakShortcuts = serial.corakShortcuts,
                 corakPotonganAwal = serial.corakPotonganAwal,
-                pendingMatchingMcNos = serial.pendingMatchingMcNos,
             )
         } catch (e: Exception) {
             // Null is the correct contract for the caller (invalid backup / corrupt blob), but a
@@ -303,7 +300,6 @@ class DoffRepository private constructor(private val context: Context) : DoffSta
             keteranganShortcuts = state.keteranganShortcuts,
             corakShortcuts = state.corakShortcuts,
             corakPotonganAwal = state.corakPotonganAwal,
-            pendingMatchingMcNos = state.pendingMatchingMcNos,
         )
         return gson.toJson(serial)
     }
@@ -525,10 +521,28 @@ class DoffRepository private constructor(private val context: Context) : DoffSta
      * tampilan yang sudah word-wrap, dst.) sudah cukup membuat parsing gagal total dan
      * menampilkan "Format QR Sync tidak valid" walau datanya sendiri sebenarnya utuh. Sama
      * persis dengan sanitizeSyncText di sync.ts (web). */
-    private fun sanitizeSyncText(raw: String): String =
-        raw.filterNot {
+    private fun sanitizeSyncText(raw: String): String {
+        var cleaned = raw.trim()
+        if (cleaned.startsWith("\"") && cleaned.endsWith("\"") && cleaned.length >= 2) {
+            cleaned = cleaned.substring(1, cleaned.length - 1)
+        }
+        if (cleaned.contains("%7B") || cleaned.contains("%22")) {
+            cleaned = runCatching { java.net.URLDecoder.decode(cleaned, "UTF-8") }.getOrDefault(cleaned)
+        }
+        if (cleaned.contains("\\\"")) {
+            cleaned = cleaned.replace("\\\"", "\"")
+        }
+        val stripped = cleaned.filterNot {
             it.isWhitespace() || it == '\uFEFF' || it == '\u200B' || it == '\u200C' || it == '\u200D'
         }
+        val firstBrace = stripped.indexOf('{')
+        val lastBrace = stripped.lastIndexOf('}')
+        return if (firstBrace != -1 && lastBrace != -1 && lastBrace > firstBrace) {
+            stripped.substring(firstBrace, lastBrace + 1)
+        } else {
+            stripped
+        }
+    }
 
     private fun mergeHandover(current: DoffState, payload: SyncPayload): DoffState {
         val incomingAktual = (payload.aktual ?: emptyList()).filterNotNull().map(::toAktualEntry)
@@ -555,7 +569,8 @@ class DoffRepository private constructor(private val context: Context) : DoffSta
         if (!payload.cDb.isNullOrEmpty()) {
             for (item in payload.cDb) {
                 if (item.isEmpty()) continue
-                val mcNo = item.getOrNull(0)?.toString() ?: continue
+                val rawMcNo = item.getOrNull(0)?.toString() ?: continue
+                val mcNo = if (rawMcNo.endsWith(".0")) rawMcNo.substringBefore(".0") else rawMcNo
                 val tipeStr = item.getOrNull(1)?.toString() ?: "TAPPET"
                 val corak = item.getOrNull(2)?.toString() ?: "-"
                 val targetYard = (item.getOrNull(3) as? Number)?.toDouble()

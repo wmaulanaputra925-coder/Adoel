@@ -1,8 +1,5 @@
 package com.jekael.adoel.ui.components
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -17,7 +14,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Edit
@@ -66,29 +62,11 @@ private fun CorakSummaryCard(
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalAppColors.current
-    // Selecting a corak filters the whole list below it, so the card that did it should visibly
-    // settle into its selected state rather than snap — same treatment the Statistik chart gives
-    // its selected bar.
-    val cardBg by animateColorAsState(
-        targetValue = if (isSelected) Cyan600.copy(alpha = 0.16f) else colors.bg,
-        animationSpec = tween(180),
-        label = "corakCardBg",
-    )
-    val cardBorder by animateColorAsState(
-        targetValue = if (isSelected) Cyan500 else colors.border,
-        animationSpec = tween(180),
-        label = "corakCardBorder",
-    )
-    val corakNameColor by animateColorAsState(
-        targetValue = if (isSelected) Cyan400 else colors.textPrimary,
-        animationSpec = tween(180),
-        label = "corakCardName",
-    )
     Surface(
         modifier = modifier.clickable(onClick = onToggleSelect),
         shape = RoundedCornerShape(8.dp),
-        color = cardBg,
-        border = BorderStroke(1.dp, cardBorder),
+        color = if (isSelected) Cyan600.copy(alpha = 0.16f) else colors.bg,
+        border = BorderStroke(1.dp, if (isSelected) Cyan500 else colors.border),
     ) {
         Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(
@@ -98,7 +76,7 @@ private fun CorakSummaryCard(
             ) {
                 Text(
                     item.corak,
-                    style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = corakNameColor),
+                    style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = if (isSelected) Cyan400 else colors.textPrimary),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f, fill = false),
@@ -250,18 +228,14 @@ internal fun MesinTab(
         order.mapNotNull { tipe -> byTipe[tipe]?.let { tipe to it } }
     }
 
-    // Searching a number the list doesn't show is how a machine gets added: the mill's machine
-    // count grows over time, and buildDefaultDb only seeds 1-174, so anything past that has to be
-    // creatable from here. isNew separates "doesn't exist yet" from "exists but has no corak" so
-    // the button below can say which one it is, same as web's searchedTarget.
     val unconfigured = remember(state.db, search) {
         val n = search.trim()
         if (n.matches(Regex("^\\d{1,4}$"))) {
             val existing = state.db[n]
             if (existing == null) {
-                Triple(n, MesinData(), true)
+                n to MesinData()
             } else if (existing.corak.isEmpty() || existing.corak == "-") {
-                Triple(n, existing, false)
+                n to existing
             } else null
         } else null
     }
@@ -282,19 +256,22 @@ internal fun MesinTab(
                         .padding(Dimens.Space12),
                     verticalArrangement = Arrangement.spacedBy(Dimens.Space10),
                 ) {
-                    // Title and badges share one line whenever they fit and the badges drop to a
-                    // second line when they don't — as a fixed space-between Row the title was the
-                    // side that gave way instead, ellipsizing to "Corak Sedang Pr…" as soon as the
-                    // machine count grew a digit. The heading is the one part that should always
-                    // be readable, so it now takes its natural width and the badges wrap.
-                    FlowRow(
+                    // One row, title left / badges right — matches web's .corak-summary-header
+                    // (display:flex, justify-content:space-between) exactly, rather than the
+                    // stacked title-then-badges layout this used to force unconditionally: that
+                    // spent an extra row's worth of height even when everything comfortably fits
+                    // on one line, which is exactly what web does when it fits. Badges wrap onto
+                    // their own second line via FlowRow only if the title leaves too little room
+                    // (mirrors .corak-summary-badges' own flex-wrap: wrap), not the title.
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(Dimens.Space8),
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(Dimens.Space6),
+                            modifier = Modifier.weight(1f, fill = false),
                         ) {
                             Icon(
                                 imageVector = Icons.Outlined.Texture,
@@ -306,12 +283,13 @@ internal fun MesinTab(
                                 "Corak Sedang Produksi",
                                 style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary),
                                 maxLines = 1,
-                                softWrap = false,
+                                overflow = TextOverflow.Ellipsis,
                             )
                         }
                         FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.End),
                             verticalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier.padding(start = Dimens.Space8),
                         ) {
                             Surface(
                                 shape = RoundedCornerShape(12.dp),
@@ -356,49 +334,25 @@ internal fun MesinTab(
                             style = AppType.BodySmall.copy(color = colors.textFaint),
                         )
                     } else {
-                        // Two columns filled independently, not fixed pairs. Pairing rows meant both
-                        // cards took the taller one's height, so a 30-machine corak next to a
-                        // 15-machine one left a hole the size of four pill rows under the short
-                        // card — and an odd count left a whole empty cell. Each card now goes to
-                        // whichever column is currently shorter, so the two sides stay level and
-                        // nothing is padded out to match a neighbour.
-                        val corakColumns = remember(activeCorakSummary) {
-                            val left = mutableListOf<CorakSummaryItem>()
-                            val right = mutableListOf<CorakSummaryItem>()
-                            var leftHeight = 0
-                            var rightHeight = 0
-                            activeCorakSummary.forEach { item ->
-                                // Height in rough lines: the corak name, plus however many rows its
-                                // mc pills wrap into (~4 fit across a half-width card). Only used to
-                                // decide which column to drop the card in, never to lay it out.
-                                val height = 1 + (item.machines.size + 3) / 4
-                                if (leftHeight <= rightHeight) {
-                                    left += item
-                                    leftHeight += height
-                                } else {
-                                    right += item
-                                    rightHeight += height
-                                }
-                            }
-                            listOf(left, right)
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(Dimens.Space8),
-                        ) {
-                            corakColumns.forEach { columnItems ->
-                                Column(
-                                    modifier = Modifier.weight(1f),
-                                    verticalArrangement = Arrangement.spacedBy(Dimens.Space8),
+                        // Two-up grid, matching web's .corak-summary-grid — a single full-width
+                        // column read as a much longer scroll for the same 11 corak.
+                        Column(verticalArrangement = Arrangement.spacedBy(Dimens.Space8)) {
+                            activeCorakSummary.chunked(2).forEach { rowItems ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(Dimens.Space8),
                                 ) {
-                                    columnItems.forEach { item ->
+                                    rowItems.forEach { item ->
                                         CorakSummaryCard(
                                             item = item,
                                             isSelected = selectedCorak == item.corak,
                                             onToggleSelect = { selectedCorak = if (selectedCorak == item.corak) null else item.corak },
                                             onPillClick = { m -> loadFrom(m, state.db[m] ?: MesinData()) },
-                                            modifier = Modifier.fillMaxWidth(),
+                                            modifier = Modifier.weight(1f),
                                         )
+                                    }
+                                    if (rowItems.size == 1) {
+                                        Spacer(Modifier.weight(1f))
                                     }
                                 }
                             }
@@ -481,24 +435,14 @@ internal fun MesinTab(
 
             if (unconfigured != null) {
                 item(key = "unconfigured_banner") {
-                    val (n, m, isNew) = unconfigured
+                    val (n, m) = unconfigured
                     OutlinedButton(
                         onClick = { loadFrom(n, m) },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(Dimens.RadiusControl),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = Cyan500),
                         border = BorderStroke(1.dp, Cyan500),
-                    ) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(imageVector = Icons.Outlined.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Text(
-                                if (isNew) "Tambah Mesin Baru Mc $n" else "Konfigurasi Mc $n (belum diatur)",
-                            )
-                        }
-                    }
+                    ) { Text("Konfigurasi Mc $n (belum diatur)") }
                 }
             }
 
@@ -539,9 +483,6 @@ internal fun MesinTab(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            // Filtering by search/status/corak adds and drops whole groups; every
-                            // other list in the app reflows through animateItem, this one snapped.
-                            .animateItem()
                             .background(colors.bg)
                             .padding(vertical = Dimens.Space8),
                         verticalAlignment = Alignment.CenterVertically,
@@ -564,38 +505,17 @@ internal fun MesinTab(
                 }
                 items(rows, key = { (k, _) -> k }) { (k, v) ->
                     val isRunning = v.isActive
-                    // Toggling a machine ON/OFF is a tap away and repaints the whole row — dim,
-                    // tint and border all at once. Eased rather than swapped so the row reads as
-                    // changing state instead of blinking into a different one.
-                    val runningAlpha by animateFloatAsState(
-                        targetValue = if (isRunning) 1f else 0.72f,
-                        animationSpec = tween(180),
-                        label = "mesinRowAlpha",
-                    )
-                    val runningBg by animateColorAsState(
-                        targetValue = if (isRunning) {
-                            colors.bgElevated2
-                        } else {
-                            Amber500.copy(alpha = 0.05f).compositeOver(colors.bgElevated2)
-                        },
-                        animationSpec = tween(180),
-                        label = "mesinRowBg",
-                    )
-                    val runningBorder by animateColorAsState(
-                        targetValue = if (isRunning) colors.border else Amber500.copy(alpha = 0.4f),
-                        animationSpec = tween(180),
-                        label = "mesinRowBorder",
-                    )
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .animateItem()
-                            .alpha(runningAlpha)
+                            .alpha(if (isRunning) 1f else 0.72f)
                             .elevatedListCard(
-                                backgroundColor = runningBg,
-                                borderColor = runningBorder,
-                                // Dash pattern can't tween, so it still flips outright — the tint
-                                // and border colour easing around it carry the transition.
+                                backgroundColor = if (isRunning) {
+                                    colors.bgElevated2
+                                } else {
+                                    Amber500.copy(alpha = 0.05f).compositeOver(colors.bgElevated2)
+                                },
+                                borderColor = if (isRunning) null else Amber500.copy(alpha = 0.4f),
                                 dashedBorder = !isRunning,
                             )
                             .clickable { loadFrom(k, v) }
@@ -698,8 +618,7 @@ internal fun MesinTab(
             item(key = "bottom_spacer") { Spacer(Modifier.height(consoleHeight + Dimens.Space16)) }
         }
 
-        // Top fade comes from SlideOverPanel, which owns the header this list scrolls behind —
-        // only the fade for this tab's own floating console belongs here.
+        EdgeFadeScrim(atTop = true, height = 10.dp + headerHeight + 16.dp)
         EdgeFadeScrim(atTop = false, height = consoleHeight + 16.dp)
 
         // Floating console bar for search & quick edit

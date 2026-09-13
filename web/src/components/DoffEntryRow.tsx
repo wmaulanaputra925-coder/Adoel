@@ -1,7 +1,7 @@
 import { formatYard } from "../domain/format";
 import { TIPE_COLOR } from "../domain/mesinVisual";
 import type { AktualEntry, MesinData } from "../domain/types";
-import { CircleIcon, MesinTipeIcon, ScheduleIcon, TextureIcon } from "./Icons";
+import { CircleIcon, EditIcon, MesinTipeIcon, TextureIcon } from "./Icons";
 
 /**
  * The one row layout for a recorded doff, shared by Riwayat and by Statistik's shift detail so the
@@ -10,63 +10,58 @@ import { CircleIcon, MesinTipeIcon, ScheduleIcon, TextureIcon } from "./Icons";
  * inline). Each caller still supplies its own container: Riwayat a list card with edit/hapus
  * buttons after this, Statistik a flat tappable strip inside the shift card.
  *
- * Fixed two-row layout instead of a wrapping flex line — the wrap point used to depend on content
- * length (a long keterangan or corak could push time onto its own line unpredictably, so card
- * height and vertical alignment varied row to row while scrolling). Now every row is exactly two
- * lines, always: identity (No/tipe/Mc/corak) on .der-row1, result (yard/jam/keterangan) on
- * .der-row2. Corak and yard are also no longer folded into one chip — corak alone can already run
- * long, and appending "(303y)" to it just made the single chip wider still; each gets its own chip
- * so neither one's length affects the other's legibility. Port 1:1 dari DoffEntryRow.kt (Android).
+ * Order: [No Urut] -> [No Mesin] -> [Corak] -> [Panjang] -> [Jam] -> [Keterangan]
+ * Corak is flexible so it absorbs any squeeze with ellipsis. Yard matches Corak pill styling.
+ * Jam comes before Keterangan, and Keterangan is only rendered when present.
+ * Port 1:1 dari DoffEntryRow.kt (aplikasi Android).
  */
 export function DoffEntryRowContent({
   num,
   entry,
   mesin,
+  showEditHint = false,
 }: {
   num: number;
   entry: AktualEntry;
   mesin: MesinData | undefined;
+  showEditHint?: boolean;
 }) {
   const corak = entry.corakOverride ?? mesin?.corak ?? "—";
   const yard = entry.customYard ?? mesin?.targetYard ?? null;
   // entry.ket is "jam(extra)" when the doff carried a keterangan, or bare "jam" when it didn't
-  // (see commands.ts prosesBarisUmum). The time has its own chip below, so strip it back off here
-  // and keep only the code — otherwise the row prints the clock twice.
+  // (see commands.ts prosesBarisUmum). The time has its own chip, so strip it back off
+  // here and keep only the code — otherwise the row prints the clock twice.
   const ketCode = entry.ket.startsWith(entry.jam)
-    ? entry.ket.slice(entry.jam.length).replace(/^\((.*)\)$/, "$1")
-    : entry.ket;
+    ? entry.ket.slice(entry.jam.length).replace(/^\((.*)\)$/, "$1").trim()
+    : entry.ket.replace(/^\((.*)\)$/, "$1").trim();
 
   return (
     <>
-      <span className="der-row1">
-        <span className="der-num">{num}</span>
-        <span className="der-tipe" style={{ color: mesin ? TIPE_COLOR[mesin.tipe] : "var(--text-faint)" }}>
-          {mesin ? <MesinTipeIcon tipe={mesin.tipe} size={13} /> : <CircleIcon size={13} />}
-        </span>
-        {/* Just the number — the surrounding chips already make it obvious this is the machine. */}
-        <span className="der-mcno">{entry.mcNo}</span>
-        <span className="der-corak">
-          <TextureIcon size={11} />
-          <span className="der-corak-text">{corak}</span>
-        </span>
+      <span className="der-num" title={`Urutan #${num}`}>
+        {num}
       </span>
-      <span className="der-row2">
-        {yard != null && <span className="der-yard">{formatYard(yard)}y</span>}
-        {/* No more edit-pencil here — the row itself is the tap target (Statistik even prints
-            "Ketuk baris untuk edit" once above the list), so a second per-row hint was
-            redundant, not the reason anyone found the affordance. */}
-        <span className="der-time">
-          <ScheduleIcon size={11} />
-          {entry.jam}
-        </span>
-        {ketCode.length > 0 && (
-          <span
-            className={`der-ket${ketCode === "MATCHING" ? " ket-matching" : ketCode === "HB" ? " ket-hb" : ""}`}
-          >
-            {ketCode}
-          </span>
-        )}
+      <span className="der-tipe" style={{ color: mesin ? TIPE_COLOR[mesin.tipe] : "var(--text-faint)" }}>
+        {mesin ? <MesinTipeIcon tipe={mesin.tipe} size={13} /> : <CircleIcon size={13} />}
       </span>
+      <span className="der-mcno">{entry.mcNo}</span>
+      <span className="der-corak" title={corak}>
+        <TextureIcon size={11} />
+        <span className="der-corak-text">{corak}</span>
+      </span>
+      {yard != null && (
+        <span className="der-yard" title={`Target/hasil yard: ${formatYard(yard)}y`}>
+          {formatYard(yard)}y
+        </span>
+      )}
+      <span className="der-time" title={`Jam: ${entry.jam}`}>
+        <span>{entry.jam}</span>
+        {showEditHint && <EditIcon size={10} />}
+      </span>
+      {ketCode.length > 0 && (
+        <span className="der-ket" title={`Keterangan: ${ketCode}`}>
+          {ketCode}
+        </span>
+      )}
     </>
   );
 }

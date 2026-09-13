@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Circle
 import androidx.compose.material.icons.outlined.ContentCut
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
@@ -25,6 +26,7 @@ import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jekael.adoel.data.*
@@ -33,6 +35,8 @@ import com.jekael.adoel.ui.components.EmptyState
 import com.jekael.adoel.ui.components.EmptyStateArt
 import com.jekael.adoel.ui.components.InlineActionPillSubtitle
 import com.jekael.adoel.ui.components.SwipeableCard
+import com.jekael.adoel.ui.components.MesinTipeIcon
+import com.jekael.adoel.ui.components.mesinTipeColor
 import com.jekael.adoel.ui.theme.*
 
 /** RIWAYAT page's list content: empty state or the recorded-doff rows (newest first). Shift-wide
@@ -48,7 +52,7 @@ fun LazyListScope.doffingSection(
     if (state.aktual.isEmpty()) {
         item(key = "doff_empty") {
             EmptyState(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp).animateItem(),
+                modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
                 title = "Belum Ada Riwayat Doffing",
                 titleIcon = Icons.Outlined.History,
                 art = EmptyStateArt.WEAVING,
@@ -155,7 +159,7 @@ fun LazyListScope.doffingSection(
     if (filteredIndexed.isEmpty()) {
         item(key = "doff_filter_empty") {
             EmptyState(
-                modifier = Modifier.fillMaxWidth().padding(vertical = Dimens.Space24).animateItem(),
+                modifier = Modifier.fillMaxWidth().padding(vertical = Dimens.Space24),
                 title = "Riwayat Tidak Ditemukan",
                 titleIcon = Icons.Outlined.Search,
                 subtitle = "Coba cari dengan nomor mesin lainnya",
@@ -195,11 +199,7 @@ private fun DoffingRow(
         rightIcon = Icons.Outlined.Edit,
         leftIcon = Icons.Outlined.Delete,
     ) {
-        // Shared with Statistik's shift detail so both read identically — see DoffEntryRow.kt.
-        DoffEntryRowContent(
-            num = num,
-            entry = entry,
-            mesin = mesin,
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .elevatedListCard(backgroundColor = colors.bgElevated)
@@ -210,8 +210,17 @@ private fun DoffingRow(
                         CustomAccessibilityAction("Hapus riwayat Mc ${entry.mcNo}") { onHapus(); true },
                     )
                 }
-                .padding(horizontal = 12.dp, vertical = 10.dp),
-        )
+                .padding(horizontal = 10.dp, vertical = 9.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            DoffEntryRowContent(
+                num = num,
+                entry = entry,
+                mesin = mesin,
+                showEditHint = false,
+            )
+        }
     }
 }
 

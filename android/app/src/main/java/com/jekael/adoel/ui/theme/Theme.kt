@@ -52,11 +52,10 @@ val Red700 = Color(0xFFB91C1C)
 val Violet500 = Color(0xFF8B5CF6)
 val Indigo500 = Color(0xFF6366F1)
 val Fuchsia500 = Color(0xFFD946EF)
-// Reserved for the "Normal" doff-completion role only (RadarCard swipe/celebration) — Emerald
-// below carries Matching instead, reused from the bookmark tab's own always-green Tali Hijau
-// marker so a green flash doesn't mean two different things at once. Do not also use Sky for
-// machine-type identity (see mesinTipeColor in Icons.kt), or a D408 badge next to a Normal doff
-// action reads as related when they're unconnected.
+// Reserved for the "Matching" doff-completion role only (RadarCard swipe/celebration,
+// GuidedDoffingSheet's Matching accent+button) — do not also use this for machine-type identity
+// (see mesinTipeColor in Icons.kt), or a D408 badge next to a Matching action reads as related
+// when they're unconnected.
 val Sky600 = Color(0xFF0284C7)
 val Sky500 = Color(0xFF0EA5E9)
 val Sky400 = Color(0xFF38BDF8)

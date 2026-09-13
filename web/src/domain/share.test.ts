@@ -4,10 +4,6 @@ import type { DoffState, MesinData, ShiftRecord } from "./types";
 
 // Golden-fixture, port dari ShareTextTest.kt — pesan "Bagikan" dibaca rekan di lantai produksi,
 // jadi perubahan format apa pun harus disengaja. Zona lokal dipakai konsisten (lihat format.test).
-//
-// Dua hal yang dijaga fixture ini secara khusus: (1) tidak ada penanda tebal di baris daftar —
-// WhatsApp tidak pernah memformatnya, bintangnya justru ikut terbaca; (2) mesin operan TIDAK ikut
-// dijumlahkan ke total shift ini, cuma disebut di baris terpisah.
 
 const DIVIDER = "─".repeat(16);
 
@@ -41,49 +37,18 @@ describe("shareHistoryText", () => {
       history: [],
       nextShiftId: 1,
       onboardingSeen: true,
-      operatorNama: "Wahyu",
-      operatorGrup: "B",
     };
 
     const expected =
-      `*UPDATE DOFFING AKTIF*\n15/01/2026 · Shift 1\nOperator: Wahyu · Grup B\n${DIVIDER}\n\n` +
-      "*Selesai (2 doff)*\n" +
-      "1. Mc 29 – 34758 (303y) · 10.00\n" +
-      "2. Mc 61 – 60357 (120y) · 11.00 (HB)\n\n" +
-      "*Operan shift berikutnya (1 mc)*\n" +
-      "• Mc 76 – 21242 (165y) · Est. 16.20\n\n" +
+      `*UPDATE DOFFING AKTIF*\n📅 15/01/2026\n${DIVIDER}\n\n` +
+      "✅ *Selesai (2 doff)*\n" +
+      "1. *Mc 29* – 34758 (303y) · 10.00\n" +
+      "2. *Mc 61* – 60357 (120y) · 11.00 (HB)\n\n" +
+      "📤 *Operan Shift Berikutnya (1 mc)*\n" +
+      "• *Mc 76* – 21242 (165y) · Est. 16.20\n" +
       `${DIVIDER}\n` +
-      "*Total shift ini: 2 doff*\n" +
-      "Operan ke shift berikutnya: 1 mc (di luar total)";
+      "📊 *Total: 2 doff*";
     expect(shareHistoryText(state)).toBe(expected);
-  });
-
-  it("estimasi berjalan bertanda Matching tercatat di teks bagikan", () => {
-    vi.setSystemTime(new Date(2026, 0, 15, 12, 0));
-    const state: DoffState = {
-      db,
-      aktual: [],
-      estimasi: {
-        "76": {
-          mcNo: "76",
-          estAbsMin: epochMin(2026, 1, 15, 13, 20),
-          startAbsMin: epochMin(2026, 1, 15, 12, 0),
-          corakOverride: null,
-          yardOverride: null,
-          pausedAtAbsMin: null,
-          isMatching: true,
-        },
-      },
-      nextId: 1,
-      themeMode: "SYSTEM",
-      history: [],
-      nextShiftId: 1,
-      onboardingSeen: true,
-      operatorNama: "",
-      operatorGrup: "",
-    };
-
-    expect(shareHistoryText(state)).toContain("*Sedang berjalan (1 mc)*\n• Mc 76 – 21242 (165y) · Matching · Est. 13.20");
   });
 });
 
@@ -98,30 +63,15 @@ describe("shareShiftText", () => {
         { id: 1, mcNo: "61", jam: "07.00", ket: "07.00", corakOverride: null, customYard: null, tsEpochMin: null },
       ],
       estimasiRemaining: {},
-      // Dicap saat shift diarsipkan — laporan lama tetap atas nama yang menjalankannya.
-      operatorNama: "Wahyu",
-      operatorGrup: "B",
     };
 
     const expected =
-      `*LAPORAN SHIFT 1*\n15/01/2026\nOperator: Wahyu · Grup B\n${DIVIDER}\n\n` +
-      "*Selesai (2 doff)*\n" +
-      "1. Mc 61 – 60357 (303y) · 07.00\n" +
-      "2. Mc 61 – 60357 (120y) · 11.00 (HB)\n\n" +
+      `*LAPORAN SHIFT 1*\n📅 15/01/2026\n${DIVIDER}\n\n` +
+      "✅ *Selesai (2 doff)*\n" +
+      "1. *Mc 61* – 60357 (303y) · 07.00\n" +
+      "2. *Mc 61* – 60357 (120y) · 11.00 (HB)\n" +
       `${DIVIDER}\n` +
-      "*Total: 2 doff*";
+      "📊 *Total: 2 doff*";
     expect(shareShiftText(shift, db)).toBe(expected);
-  });
-
-  it("arsip lama tanpa cap operator memakai identitas yang berlaku sekarang", () => {
-    const shift: ShiftRecord = {
-      id: 6,
-      startedAtEpochMin: epochMin(2026, 1, 15, 6, 0),
-      endedAtEpochMin: epochMin(2026, 1, 15, 14, 0),
-      aktual: [{ id: 1, mcNo: "61", jam: "07.00", ket: "07.00", corakOverride: null, customYard: null, tsEpochMin: null }],
-      estimasiRemaining: {},
-    };
-
-    expect(shareShiftText(shift, db, "Wahyu", "B")).toContain("Operator: Wahyu · Grup B");
   });
 });

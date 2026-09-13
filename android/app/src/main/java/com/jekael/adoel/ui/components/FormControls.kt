@@ -52,11 +52,11 @@ import com.jekael.adoel.ui.theme.floatingHeaderCard
 fun FieldLabel(text: String) {
     val colors = LocalAppColors.current
     Text(
-        text = text.uppercase(),
+        text = text,
         style = TextStyle(
-            fontSize = 12.sp,
+            fontSize = 13.sp,
             fontWeight = FontWeight.SemiBold,
-            letterSpacing = 1.sp,
+            letterSpacing = 0.sp,
             color = colors.textMuted,
         ),
         modifier = Modifier.padding(bottom = 6.dp),

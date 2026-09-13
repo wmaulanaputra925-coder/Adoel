@@ -54,17 +54,20 @@ internal fun LazyListScope.estimasiSection(
     onRadarFilterChange: (String) -> Unit,
     onDoff: (String) -> Unit,
     onDoffMatching: (String) -> Unit,
+    onToggleMatching: (String) -> Unit = {},
+    // See RadarCard's guardDoffMatching doc — runs before the swipe-left slide-out animation
+    // starts, not after, so a "potongan awal 70y" confirm dialog can still cancel it cleanly.
+    guardDoffMatching: (String, () -> Unit) -> Unit = { _, proceed -> proceed() },
     onHapus: (String) -> Unit,
     onJeda: (String) -> Unit,
     onLanjutkan: (String) -> Unit,
     onQuickEdit: (String) -> Unit,
     onEditWaktu: (String) -> Unit,
-    onToggleMatching: (String) -> Unit,
 ) {
     if (radarList.isEmpty()) {
         item(key = "est_empty") {
             EmptyState(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp).animateItem(),
+                modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
                 title = "Radar Siap Memantau",
                 titleIcon = Icons.Outlined.Radar,
                 art = EmptyStateArt.RADAR,
@@ -109,7 +112,7 @@ internal fun LazyListScope.estimasiSection(
     if (segeraList.isEmpty() && menungguList.isEmpty() && dijedaList.isEmpty()) {
         item(key = "est_filter_empty") {
             EmptyState(
-                modifier = Modifier.fillMaxWidth().padding(vertical = Dimens.Space24).animateItem(),
+                modifier = Modifier.fillMaxWidth().padding(vertical = Dimens.Space24),
                 title = "Mesin Tidak Ditemukan",
                 titleIcon = Icons.Outlined.Search,
                 subtitle = "Coba kata kunci lain — masukkan nomor mesin yang terdaftar",
@@ -131,12 +134,13 @@ internal fun LazyListScope.estimasiSection(
                 shiftHandover = est.estAbsMin > shiftBoundary,
                 onDoff = { onDoff(est.mcNo) },
                 onDoffMatching = { onDoffMatching(est.mcNo) },
+                onToggleMatching = { onToggleMatching(est.mcNo) },
+                guardDoffMatching = { proceed -> guardDoffMatching(est.mcNo, proceed) },
                 onHapus = { onHapus(est.mcNo) },
                 onJeda = { onJeda(est.mcNo) },
                 onLanjutkan = { onLanjutkan(est.mcNo) },
                 onQuickEdit = { onQuickEdit(est.mcNo) },
                 onEditWaktu = { onEditWaktu(est.mcNo) },
-                onToggleMatching = { onToggleMatching(est.mcNo) },
                 modifier = Modifier.animateItem(),
                 entranceDelayMs = (index * Motion.LIST_STAGGER_STEP_MS).coerceAtMost(Motion.LIST_STAGGER_MAX_MS),
             )
@@ -155,12 +159,13 @@ internal fun LazyListScope.estimasiSection(
                 shiftHandover = est.estAbsMin > shiftBoundary,
                 onDoff = { onDoff(est.mcNo) },
                 onDoffMatching = { onDoffMatching(est.mcNo) },
+                onToggleMatching = { onToggleMatching(est.mcNo) },
+                guardDoffMatching = { proceed -> guardDoffMatching(est.mcNo, proceed) },
                 onHapus = { onHapus(est.mcNo) },
                 onJeda = { onJeda(est.mcNo) },
                 onLanjutkan = { onLanjutkan(est.mcNo) },
                 onQuickEdit = { onQuickEdit(est.mcNo) },
                 onEditWaktu = { onEditWaktu(est.mcNo) },
-                onToggleMatching = { onToggleMatching(est.mcNo) },
                 modifier = Modifier.animateItem(),
                 entranceDelayMs = (index * Motion.LIST_STAGGER_STEP_MS).coerceAtMost(Motion.LIST_STAGGER_MAX_MS),
             )
@@ -201,12 +206,13 @@ internal fun LazyListScope.estimasiSection(
                         shiftHandover = row.est.estAbsMin > shiftBoundary,
                         onDoff = { onDoff(row.est.mcNo) },
                         onDoffMatching = { onDoffMatching(row.est.mcNo) },
+                        onToggleMatching = { onToggleMatching(row.est.mcNo) },
+                        guardDoffMatching = { proceed -> guardDoffMatching(row.est.mcNo, proceed) },
                         onHapus = { onHapus(row.est.mcNo) },
                         onJeda = { onJeda(row.est.mcNo) },
                         onLanjutkan = { onLanjutkan(row.est.mcNo) },
                         onQuickEdit = { onQuickEdit(row.est.mcNo) },
                         onEditWaktu = { onEditWaktu(row.est.mcNo) },
-                        onToggleMatching = { onToggleMatching(row.est.mcNo) },
                         modifier = Modifier.animateItem(),
                         entranceDelayMs = entranceDelayMs,
                     )

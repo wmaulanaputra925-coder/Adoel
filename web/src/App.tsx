@@ -13,7 +13,6 @@ import { ConfirmDialog } from "./components/ConfirmDialog";
 import { GuidedEstimasiSheet } from "./components/GuidedEstimasiSheet";
 import { GuidedDoffingSheet } from "./components/GuidedDoffingSheet";
 import { OnboardingDialog } from "./components/OnboardingDialog";
-import { OperatorDialog } from "./components/OperatorDialog";
 import { ShiftFinishedOverlay } from "./components/ShiftFinishedOverlay";
 import { SyncDialog } from "./components/SyncDialog";
 import { WaveProgressBar } from "./components/WaveProgressBar";
@@ -40,7 +39,7 @@ type Page = "RADAR" | "RIWAYAT";
 type Screen = "main" | "statistik" | "settings" | "mesin";
 
 function AppInner() {
-  const { state, setMesin, setOnboardingSeen, setOperator, markOperatorAsked, undo, redo, canUndo, canRedo } = useDoffStore();
+  const { state, setMesin, setOnboardingSeen, undo, redo, canUndo, canRedo } = useDoffStore();
   const { showToast } = useUiStore();
   const { handleEstimasiSubmit, handleAktualSubmit, handleFinishShift } = useConsoleHandlers();
   const [page, setPage] = useState<Page>("RADAR");
@@ -59,18 +58,24 @@ function AppInner() {
 
   const isDbEmpty = useMemo(() => isMachineDataEmpty(state.db), [state.db]);
   const shouldShowAutoQr = !state.onboardingSeen && isDbEmpty && !autoQrDismissed;
-  // Gatenya operatorAsked, BUKAN onboardingSeen: pemakai lama sudah lewat panduannya, jadi kalau
-  // ikut onboardingSeen mereka tidak pernah ditanya sama sekali dan laporannya diam-diam terkirim
-  // tanpa nama.
-  const showOperatorAsk = !shouldShowAutoQr && !state.operatorAsked;
 
   // Tema: SYSTEM mengikuti preferensi OS, DARK/LIGHT dipaksa lewat atribut di <html>.
   useEffect(() => {
     const root = document.documentElement;
+    const isDark =
+      state.themeMode === "SYSTEM"
+        ? typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
+        : state.themeMode === "DARK";
+
     if (state.themeMode === "SYSTEM") {
       root.removeAttribute("data-theme");
     } else {
       root.setAttribute("data-theme", state.themeMode === "DARK" ? "dark" : "light");
+    }
+
+    const themeMeta = document.querySelector('meta[name="theme-color"]');
+    if (themeMeta) {
+      themeMeta.setAttribute("content", isDark ? "#09090b" : "#fafafa");
     }
   }, [state.themeMode]);
 
@@ -404,20 +409,7 @@ function AppInner() {
 
       {syncOpen && !shouldShowAutoQr && <SyncDialog onClose={() => setSyncOpen(false)} />}
 
-      {/* Identitas operator ditanyakan di antara impor QR dan Panduan: setelah data mesin ada
-          (kalau memang diimpor) tapi sebelum walkthrough, jadi operator baru cukup sekali mengisi
-          dan teks bagikannya langsung bernama. Boleh dilewati — lihat OperatorDialog. */}
-      {showOperatorAsk && (
-        <OperatorDialog
-          nama={state.operatorNama ?? ""}
-          grup={state.operatorGrup ?? ""}
-          isFirstLaunch={!state.onboardingSeen}
-          onClose={markOperatorAsked}
-          onSave={setOperator}
-        />
-      )}
-
-      {!shouldShowAutoQr && !showOperatorAsk && (!state.onboardingSeen || helpOpen) && (
+      {!shouldShowAutoQr && (!state.onboardingSeen || helpOpen) && (
         <OnboardingDialog
           onClose={() => {
             setOnboardingSeen();

@@ -2,7 +2,6 @@ package com.jekael.adoel.ui.components
 
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -14,7 +13,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -42,11 +40,6 @@ fun ToastHost(
         exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(),
     ) {
         toast?.let {
-            // Pesan gagal selalu diawali "⚠" (lihat flashError di MainScreenHandlers) — beri
-            // cincin merah supaya perintah yang ditolak tidak terbaca persis sama dengan
-            // konfirmasi berhasil kalau operator hanya melirik sekilas.
-            val isError = it.msg.startsWith("⚠")
-            val shape = RoundedCornerShape(24.dp)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -55,14 +48,8 @@ fun ToastHost(
             ) {
                 Row(
                     modifier = Modifier
-                        .shadow(elevation = 10.dp, shape = shape, ambientColor = Color.Black.copy(alpha = 0.4f))
-                        .background(
-                            if (isError) lerp(colors.bgElevated2, Red500, 0.10f) else colors.bgElevated2,
-                            shape,
-                        )
-                        .then(
-                            if (isError) Modifier.border(1.dp, Red500.copy(alpha = 0.45f), shape) else Modifier
-                        )
+                        .shadow(elevation = 10.dp, shape = RoundedCornerShape(24.dp), ambientColor = Color.Black.copy(alpha = 0.4f))
+                        .background(colors.bgElevated2, RoundedCornerShape(24.dp))
                         .padding(horizontal = Dimens.Space20, vertical = 14.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(Dimens.Space12),

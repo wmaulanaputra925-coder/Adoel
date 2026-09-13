@@ -35,13 +35,6 @@ data class Estimasi(
     // Estimasi.effectiveRemaining in EstimasiUtils.kt): estAbsMin itself doesn't move until
     // Lanjutkan shifts it forward by however long the pause lasted (DoffViewModel.resumeEstimasi).
     val pausedAtAbsMin: Long? = null,
-    // "Tali Hijau" — operator tagged this machine's beam as freshly hung (new lusi beam, sample
-    // Matching still owed) while walking the floor at shift start, well before doffing time. Set
-    // via RadarCard's one-tap toggle (DoffViewModel.setEstimasiMatching); when true, the doff this
-    // Estimasi eventually turns into is forced to record as Matching regardless of which swipe
-    // direction/button actually fires it (DoffViewModel.prosesBarisUmum) — the operator already
-    // decided at tag time, so nothing asks them to choose again at doff time. Naturally resets to
-    // false for the next cycle because the whole Estimasi is deleted on doff, not just this flag.
     val isMatching: Boolean = false,
 )
 
@@ -66,18 +59,9 @@ data class ShiftRecord(
     val endedAtEpochMin: Long,
     val aktual: List<AktualEntry> = emptyList(),
     val estimasiRemaining: Map<String, Estimasi> = emptyMap(),
-    /** Operator & grup yang menutup shift ini, dicap saat diarsipkan — bukan dibaca ulang dari
-     * pengaturan saat laporannya dibagikan, supaya arsip lama tidak berganti nama pemilik ketika
-     * operator/grup di pengaturan berubah. Kosong untuk arsip yang dibuat sebelum ada pendataan
-     * ini; teks bagikannya sekadar tidak mencantumkan baris operator. */
-    val operatorNama: String = "",
-    val operatorGrup: String = "",
 )
 
-// HB (Habis Beam) is common enough on every shift that it's worth shipping as a built-in
-// shortcut rather than making every install's operator add it by hand — the other codes
-// (P.LP/P.SN/etc.) are floor-specific enough that they stay opt-in via Pengaturan.
-val DEFAULT_KETERANGAN_SHORTCUTS = listOf("HB")
+val DEFAULT_KETERANGAN_SHORTCUTS = listOf("HB", "P.LP", "P.SN", "P.OH")
 val DEFAULT_CORAK_SHORTCUTS = emptyList<String>()
 
 /** Corak dengan aturan "potongan awal 70 yard" — begitu beam lusi baru naik, kain di awal jalan
@@ -85,12 +69,6 @@ val DEFAULT_CORAK_SHORTCUTS = emptyList<String>()
  * (1 yard) untuk corak-corak ini baru boleh diambil setelah 70y, bukan langsung dari 0. Sama
  * persis dengan DEFAULT_CORAK_POTONGAN_AWAL di types.ts (web) — jaga daftar & pesannya identik. */
 val DEFAULT_CORAK_POTONGAN_AWAL = listOf("80125", "21242", "66335")
-
-/** Panjang potongan yang benar-benar dicatat untuk Doffing Matching pada corak potongan awal:
- * kainnya dipotong setelah 70 yard pertama, bukan sepanjang target standar mesin. Tanpa angka ini
- * Riwayat menampilkan target standar (mis. 303y) untuk potongan yang nyatanya 70y. Sama persis
- * dengan POTONGAN_AWAL_YARD di types.ts (web). */
-const val POTONGAN_AWAL_YARD = 70.0
 
 data class DoffState(
     val db: Map<String, MesinData> = emptyMap(),
@@ -104,26 +82,9 @@ data class DoffState(
     // field don't suddenly get the first-run tutorial — it's only explicitly set false in
     // DoffRepository.parseState()'s genuinely-fresh-install fallback (no persisted state at all).
     val onboardingSeen: Boolean = true,
-    /** Identitas operator pemakai aplikasi ini — ditanyakan sekali saat pertama kali dibuka dan
-     * bisa diubah kapan saja di Pengaturan. Ikut tercetak di teks bagikan supaya rekan yang
-     * membaca laporan di WhatsApp tahu laporan itu dari siapa tanpa harus bertanya. */
-    val operatorNama: String = "",
-    val operatorGrup: String = "",
-    /** Sudah pernah ditanyai identitasnya (termasuk kalau pertanyaannya dilewati). Terpisah dari
-     * [operatorNama] supaya "dilewati" tidak berarti "tanya lagi tiap buka aplikasi", dan terpisah
-     * dari [onboardingSeen] supaya pemasangan di atas versi lama — yang panduannya sudah lewat —
-     * tetap ditanya sekali, bukan diam-diam mengirim laporan tanpa nama. */
-    val operatorAsked: Boolean = false,
     val keteranganShortcuts: List<String>? = null,
     val corakShortcuts: List<String>? = null,
     val corakPotonganAwal: List<String>? = null,
-    /** Mc yang habis di-doff HB (Habis Beam) dan operator sudah menekan "Tandai Matching" pada
-     * pengingat tali-hijau (lihat matchingRules.kt) — belum bertemu Estimasi baru,
-     * jadi flag isMatching-nya belum ada tempat untuk hinggap. Dikonsumsi (dihapus dari daftar ini)
-     * begitu Estimasi berikutnya untuk mcNo itu benar-benar dibuat (DoffViewModel
-     * prosesBarisKondisiMesin), yang saat itu langsung disetel isMatching = true. Null/kosong =
-     * tidak ada yang menunggu. Sama persis dengan DoffState.pendingMatchingMcNos di types.ts (Web). */
-    val pendingMatchingMcNos: List<String>? = null,
 )
 
 /** Cek apakah [corak] termasuk [corakPotonganAwal] (atau [DEFAULT_CORAK_POTONGAN_AWAL] kalau
@@ -140,7 +101,7 @@ fun isPotonganAwalCorak(corakPotonganAwal: List<String>?, corak: String?): Boole
 }
 
 fun potonganAwalReminderMessage(corak: String): String =
-    "Corak $corak wajib jalan minimal 70 yard.\nPastikan sudah ≥ 70y sebelum potong sampel. Lanjut catat Matching?"
+    "Corak $corak termasuk daftar potongan awal 70 yard. Pastikan beam sudah jalan minimal 70y sebelum ambil sampel Matching (1 yard), supaya sampel tidak kena LTK/lusi putus di awal jalan. Lanjutkan catat Doffing Matching sekarang?"
 
 fun getRepresentativeEpochMin(shift: ShiftRecord): Long {
     val timestamps = shift.aktual.mapNotNull { it.tsEpochMin }

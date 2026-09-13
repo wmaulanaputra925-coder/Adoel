@@ -78,6 +78,29 @@ fun MainScreen(
     var radarFilter by rememberSaveable { mutableStateOf("") }
     var doffFilter by rememberSaveable { mutableStateOf("") }
 
+    val sendPulse = remember { SendPulseState() }
+    LaunchedEffect(sendPulse.key) {
+        if (sendPulse.key == 0) return@LaunchedEffect
+        sendPulse.showCheck = true
+        sendPulse.scale.snapTo(0.8f)
+        launch {
+            sendPulse.scale.animateTo(1f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium))
+        }
+        delay(500)
+        sendPulse.showCheck = false
+    }
+
+    // Error feedback on a rejected console command — a toast alone (3.5s, auto-dismiss) can be
+    // missed if the operator looks back at the machine right after hitting send, so this pairs it
+    // with a haptic + a brief red ring around the input that doesn't depend on eyes staying on screen.
+    val errorFlash = remember { ErrorFlashState() }
+    LaunchedEffect(errorFlash.key) {
+        if (errorFlash.key == 0) return@LaunchedEffect
+        errorFlash.active = true
+        delay(200)
+        errorFlash.active = false
+    }
+
     // "Selesai Shift" closes out a full work shift — worth a beat more than a toast that's gone
     // in 3.5s, so this pops a big checkmark over a dimmed backdrop before fading on its own.
     val shiftFinished = remember { ShiftFinishedState() }
@@ -106,7 +129,7 @@ fun MainScreen(
 
     val undoRedo = remember { UndoRedoState() }
     val handlers = remember(context, doffVm, uiVm, haptic) {
-        MainScreenHandlers(context, doffVm, uiVm, haptic, shiftFinished, undoRedo)
+        MainScreenHandlers(context, doffVm, uiVm, haptic, sendPulse, errorFlash, shiftFinished, undoRedo)
     }
 
     // Request notification permission launcher
@@ -336,6 +359,15 @@ fun MainScreen(
                                 onRadarFilterChange = { radarFilter = it },
                                 onDoff = { mcNo -> handlers.handleDoff(mcNo) },
                                 onDoffMatching = { mcNo -> handlers.handleDoff(mcNo, "MATCHING") },
+                                onToggleMatching = { mcNo -> doffVm.toggleEstimasiMatching(mcNo) },
+                                guardDoffMatching = { mcNo, proceed ->
+                                    val corak = state.estimasi[mcNo]?.corakOverride ?: state.db[mcNo]?.corak
+                                    if (isPotonganAwalCorak(state.corakPotonganAwal, corak)) {
+                                        uiVm.showConfirm(potonganAwalReminderMessage(corak!!)) { proceed() }
+                                    } else {
+                                        proceed()
+                                    }
+                                },
                                 onHapus = { mcNo -> handlers.handleHapusEst(mcNo) },
                                 onJeda = { mcNo -> handlers.handleJeda(mcNo) },
                                 onLanjutkan = { mcNo -> handlers.handleLanjutkan(mcNo) },
@@ -344,7 +376,6 @@ fun MainScreen(
                                 // estimasi's own time — no more one tap target for two fields.
                                 onQuickEdit = { mcNo -> activeOverlay = ActiveOverlay.QuickEditMesin(mcNo) },
                                 onEditWaktu = { mcNo -> activeOverlay = ActiveOverlay.GuidedEstimasi(mcNo) },
-                                onToggleMatching = { mcNo -> handlers.handleToggleMatching(mcNo) },
                             )
                         }
                         Page.RIWAYAT -> {
@@ -466,7 +497,6 @@ fun MainScreen(
                     doffVm.resetDb()
                 },
                 onSetThemeMode = { mode -> doffVm.setThemeMode(mode.name) },
-                onSetOperator = { nama, grup -> doffVm.setOperator(nama, grup) },
                 onExportJson = { doffVm.exportJson() },
                 onAddKeteranganShortcut = { sc -> doffVm.addKeteranganShortcut(sc) },
                 onRemoveKeteranganShortcut = { sc -> doffVm.removeKeteranganShortcut(sc) },
@@ -500,8 +530,6 @@ fun MainScreen(
             StatistikScreen(
                 history = state.history,
                 db = state.db,
-                operatorNama = state.operatorNama,
-                operatorGrup = state.operatorGrup,
                 onClose = { activeOverlay = ActiveOverlay.None },
                 onDeleteShift = { id -> doffVm.hapusShift(id) },
                 showConfirm = { msg, fn -> uiVm.showConfirm(msg, onConfirm = fn) },
@@ -635,25 +663,10 @@ fun MainScreen(
     val isDbEmpty = remember(state.db) { isMachineDataEmpty(state.db) }
     val shouldShowAutoQr = !state.onboardingSeen && isDbEmpty && !autoQrDismissed
 
-    // Identitas operator ditanyakan di antara impor QR dan Panduan: setelah data mesin ada
-    // (kalau memang diimpor) tapi sebelum walkthrough, jadi operator baru cukup sekali mengisi
-    // dan teks bagikannya langsung bernama. Boleh dilewati — lihat OperatorDialog.
-    //
-    // Gatenya operatorAsked, BUKAN onboardingSeen: pemasangan di atas versi lama sudah lewat
-    // panduannya, jadi kalau ikut onboardingSeen mereka tidak pernah ditanya sama sekali dan
-    // laporannya diam-diam terkirim tanpa nama — persis yang terjadi setelah 10.3.0.
     if (shouldShowAutoQr) {
         SyncDialog(
             isFirstTimeEmpty = true,
             onClose = { autoQrDismissed = true },
-        )
-    } else if (!state.operatorAsked) {
-        OperatorDialog(
-            nama = state.operatorNama,
-            grup = state.operatorGrup,
-            isFirstLaunch = !state.onboardingSeen,
-            onDismiss = { doffVm.markOperatorAsked() },
-            onSave = { nama, grup -> doffVm.setOperator(nama, grup) },
         )
     } else if (!state.onboardingSeen) {
         OnboardingDialog(onClose = { doffVm.setOnboardingSeen() })

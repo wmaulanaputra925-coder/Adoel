@@ -1,13 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { prosesBarisKondisiMesin, prosesBarisUmum } from "../domain/commands";
 import { buildDefaultDb } from "../domain/defaultDb";
-import { currentShiftStartAbsMin, getRepresentativeEpochMin, nowAbsMin } from "../domain/format";
+import { getRepresentativeEpochMin, nowAbsMin } from "../domain/format";
 import { parseJam } from "../domain/parse";
-import { isPotonganAwalCorak } from "../domain/matchingRules";
 import { loadState, parseBackupJson, saveState, serializeState } from "../domain/storage";
 import { processScannedQr } from "../domain/sync";
 import type { AktualEntry, DoffState, Estimasi, MesinData, ProsesResult, ShiftRecord, ThemeMode } from "../domain/types";
-import { DEFAULT_CORAK_POTONGAN_AWAL, DEFAULT_CORAK_SHORTCUTS, DEFAULT_KETERANGAN_SHORTCUTS, POTONGAN_AWAL_YARD } from "../domain/types";
+import { DEFAULT_CORAK_POTONGAN_AWAL, DEFAULT_CORAK_SHORTCUTS, DEFAULT_KETERANGAN_SHORTCUTS } from "../domain/types";
 
 // Retensi riwayat: 30 HARI KALENDER (bukan jumlah shift) — sama seperti
 // HISTORY_RETENTION_DAYS di DoffViewModel.kt.
@@ -29,8 +28,7 @@ interface DoffStore {
   restoreEstimasi: (est: Estimasi) => void;
   pauseEstimasi: (mcNo: string) => void;
   resumeEstimasi: (mcNo: string) => void;
-  toggleEstimasiMatching: (mcNo: string) => void;
-  markPendingMatching: (mcNo: string) => void;
+  setEstimasiMatching: (mcNo: string, isMatching: boolean) => void;
   hapusAktualById: (id: number) => void;
   restoreAktual: (entry: AktualEntry) => void;
   hapusShift: (id: number) => void;
@@ -44,8 +42,6 @@ interface DoffStore {
   resetDb: () => void;
   setThemeMode: (mode: ThemeMode) => void;
   setOnboardingSeen: () => void;
-  setOperator: (nama: string, grup: string) => void;
-  markOperatorAsked: () => void;
   addKeteranganShortcut: (shortcut: string) => void;
   removeKeteranganShortcut: (shortcut: string) => void;
   resetKeteranganShortcuts: () => void;
@@ -167,32 +163,14 @@ export function DoffStoreProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  // Tali Hijau: menyalakan/mematikan penanda Matching di Mc mcNo — no-op kalau estimasinya sudah
-  // tidak ada lagi (mis. sudah keburu didoffing). yardOverride tidak punya penulis lain di luar
-  // fitur Matching ini, jadi dihitung ulang murni dari isMatching+corak setiap toggle (bukan
-  // "preserve nilai lama"): menyala → 70y HANYA kalau corak mesin ini memang termasuk aturan
-  // potongan awal (lihat isPotonganAwalCorak) — corak lain tetap null, tidak dipaksa 70y; mati →
-  // selalu kembali null (target standar mesin), tidak pernah menyisakan 70y yang menempel.
-  const toggleEstimasiMatching = useCallback((mcNo: string) => {
+  const setEstimasiMatching = useCallback((mcNo: string, isMatching: boolean) => {
     setState((s) => {
       const est = s.estimasi[mcNo];
       if (!est) return s;
-      const next = !est.isMatching;
-      const effectiveCorak = est.corakOverride ?? s.db[mcNo]?.corak;
-      const yardOverride = next && isPotonganAwalCorak(s, effectiveCorak) ? POTONGAN_AWAL_YARD : null;
-      return { ...s, estimasi: { ...s.estimasi, [mcNo]: { ...est, isMatching: next, yardOverride } } };
-    });
-  }, []);
-
-  // Tali Hijau: menandai mcNo agar Estimasi berikutnya untuk mesin itu otomatis isMatching (lihat
-  // DoffState.pendingMatchingMcNos) — dipanggil dari tombol "Tandai Matching" pada pengingat
-  // setelah doff HB. Konsumsinya (dihapus dari daftar ini) terjadi di
-  // commands.ts prosesBarisKondisiMesin, begitu Estimasi baru untuk mcNo itu benar-benar dibuat.
-  const markPendingMatching = useCallback((mcNo: string) => {
-    setState((s) => {
-      const list = s.pendingMatchingMcNos ?? [];
-      if (list.includes(mcNo)) return s;
-      return { ...s, pendingMatchingMcNos: [...list, mcNo] };
+      return {
+        ...s,
+        estimasi: { ...s.estimasi, [mcNo]: { ...est, isMatching } },
+      };
     });
   }, []);
 
@@ -342,25 +320,14 @@ export function DoffStoreProvider({ children }: { children: ReactNode }) {
 
       // Hanya buat arsip shift baru jika terdapat entri di halaman riwayat
       if (s.aktual.length > 0) {
-        // Arsip shift memakai jadwalnya (06/14/22 + 8 jam), bukan doff pertama dan detik operator
-        // menekan Selesai Shift — dua hal itu bergeser tergantung kapan beam pertama habis dan
-        // seberapa telat shift ditutup, sehingga shift yang sama tercatat dengan jam berbeda tiap
-        // kali. Doff paling awal (atau now kalau tidak ada timestamp) hanya dipakai untuk memilih
-        // shift MANA, jadi penutupan yang telat — bahkan melewati batas shift berikutnya — tetap
-        // masuk ke shift tempat pekerjaan itu dilakukan.
         const tsList = s.aktual.map((a) => a.tsEpochMin).filter((t): t is number => t !== null);
-        const anchor = Math.min(...(tsList.length > 0 ? tsList : [now]));
-        const started = currentShiftStartAbsMin(anchor);
+        const started = Math.min(...(tsList.length > 0 ? tsList : [now]));
         const record: ShiftRecord = {
           id: s.nextShiftId,
           startedAtEpochMin: started,
-          endedAtEpochMin: started + 8 * 60,
+          endedAtEpochMin: now,
           aktual: s.aktual,
           estimasiRemaining: {},
-          // Dicap sekarang, bukan dibaca saat laporannya dibagikan — kalau operator/grup di
-          // pengaturan berubah, arsip lama tetap atas nama orang yang benar-benar menjalankannya.
-          operatorNama: s.operatorNama ?? "",
-          operatorGrup: s.operatorGrup ?? "",
         };
         return {
           ...s,
@@ -390,10 +357,7 @@ export function DoffStoreProvider({ children }: { children: ReactNode }) {
 
   const resetDb = useCallback(() => {
     clearUndo();
-    // Identitas operator ikut dipertahankan seperti onboardingSeen: ini data diri pemakai, bukan
-    // data produksi, dan orangnya tidak berubah hanya karena data mesin dikembalikan ke bawaan.
-    // Kalau ponselnya memang berpindah tangan, namanya tinggal diganti di Pengaturan.
-    setState((s) => ({
+    setState(() => ({
       db: buildDefaultDb(),
       estimasi: {},
       aktual: [],
@@ -402,9 +366,6 @@ export function DoffStoreProvider({ children }: { children: ReactNode }) {
       history: [],
       nextShiftId: 1,
       onboardingSeen: true,
-      operatorNama: s.operatorNama ?? "",
-      operatorGrup: s.operatorGrup ?? "",
-      operatorAsked: s.operatorAsked ?? false,
       keteranganShortcuts: DEFAULT_KETERANGAN_SHORTCUTS,
       corakShortcuts: DEFAULT_CORAK_SHORTCUTS,
     }));
@@ -416,18 +377,6 @@ export function DoffStoreProvider({ children }: { children: ReactNode }) {
 
   const setOnboardingSeen = useCallback(() => {
     setState((s) => ({ ...s, onboardingSeen: true }));
-  }, []);
-
-  /** Identitas operator — ditanyakan sekali saat pertama buka, lalu bisa diubah di Pengaturan.
-   * Dipakai teks bagikan; dicap ke arsip shift saat Selesai Shift ditekan. */
-  const setOperator = useCallback((nama: string, grup: string) => {
-    setState((s) => ({ ...s, operatorNama: nama.trim(), operatorGrup: grup.trim(), operatorAsked: true }));
-  }, []);
-
-  /** Pertanyaan identitasnya dilewati — jangan tanya lagi tiap buka; kolomnya tetap bisa diisi
-   * kapan saja lewat Pengaturan. */
-  const markOperatorAsked = useCallback(() => {
-    setState((s) => ({ ...s, operatorAsked: true }));
   }, []);
 
   const addKeteranganShortcut = useCallback((shortcut: string) => {
@@ -547,8 +496,7 @@ export function DoffStoreProvider({ children }: { children: ReactNode }) {
       restoreEstimasi,
       pauseEstimasi,
       resumeEstimasi,
-      toggleEstimasiMatching,
-      markPendingMatching,
+      setEstimasiMatching,
       hapusAktualById,
       restoreAktual,
       hapusShift,
@@ -562,8 +510,6 @@ export function DoffStoreProvider({ children }: { children: ReactNode }) {
       resetDb,
       setThemeMode,
       setOnboardingSeen,
-      setOperator,
-      markOperatorAsked,
       addKeteranganShortcut,
       removeKeteranganShortcut,
       resetKeteranganShortcuts,
@@ -593,8 +539,7 @@ export function DoffStoreProvider({ children }: { children: ReactNode }) {
       restoreEstimasi,
       pauseEstimasi,
       resumeEstimasi,
-      toggleEstimasiMatching,
-      markPendingMatching,
+      setEstimasiMatching,
       hapusAktualById,
       restoreAktual,
       hapusShift,
@@ -608,8 +553,6 @@ export function DoffStoreProvider({ children }: { children: ReactNode }) {
       resetDb,
       setThemeMode,
       setOnboardingSeen,
-      setOperator,
-      markOperatorAsked,
       addKeteranganShortcut,
       removeKeteranganShortcut,
       resetKeteranganShortcuts,

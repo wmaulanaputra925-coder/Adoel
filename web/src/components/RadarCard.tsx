@@ -17,6 +17,7 @@ import {
   CloseIcon,
   ShiftExchangeIcon,
   TagIcon,
+  BookmarkIcon,
 } from "./Icons";
 
 const REMINDER_LEAD_MIN = 5;
@@ -34,17 +35,8 @@ const URGENCY_STYLE: Record<UrgencyLevel, { accent: string; bar: string; text: s
 
 /** Kartu radar — sentuh & tahan memunculkan menu aksi Jeda/Hapus di atas kartu,
  * kartu dijeda tampil langsung di bagian depan dengan tombol Lanjutkan instan,
- * tap zona nomor = ubah corak+yard, tap zona waktu = ubah estimasi.
- *
- * Swipe kiri = tandai/lepas Tali Hijau · Matching (Estimasi.isMatching) — selalu bisa diakses
- * kapan saja, tidak dibatasi jarak ke waktu doff, karena ini cuma menandai, bukan mendoff.
- * Munculkan sebagai penanda buku (bookmark) yang menonjol dari sisi kanan kartu, bukan panel
- * penuh — lihat bookmarkPeek di bawah.
- *
- * Swipe kanan = doff, tapi hasilnya bergantung status penanda: kalau isMatching sedang aktif,
- * ini otomatis Doffing Matching (bukan Normal) — operator sudah memutuskan itu lewat penanda,
- * tidak perlu memilih arah swipe yang "benar" lagi. Tetap dibatasi hanya bisa dipicu mendekati
- * waktu doff (canDoffBySwipe), sama seperti sebelumnya. */
+ * swipe kanan = doff normal, swipe kiri = doff matching, tap zona nomor = ubah corak+yard,
+ * tap zona waktu = ubah estimasi. */
 export function RadarCard({
   est,
   mesin,
@@ -52,12 +44,12 @@ export function RadarCard({
   clashingMcNos = [],
   onDoff,
   onDoffMatching,
+  guardDoffMatching,
   onHapus,
   onJeda,
   onLanjutkan,
   onQuickEdit,
   onEditWaktu,
-  onToggleMatching,
   shiftHandover = false,
 }: {
   est: Estimasi;
@@ -66,14 +58,16 @@ export function RadarCard({
   clashingMcNos?: string[];
   onDoff: () => void;
   onDoffMatching: () => void;
+  // Called instead of animating straight into onDoffMatching when set — lets the caller show a
+  // confirm dialog first (e.g. the "potongan awal 70y" reminder) and only invoke [proceed] to
+  // actually start the slide-out once the operator confirms. Swipe-right (Normal) has no such
+  // gate, only Matching does.
+  guardDoffMatching?: (proceed: () => void) => void;
   onHapus: () => void;
   onJeda: () => void;
   onLanjutkan: () => void;
   onQuickEdit: () => void;
   onEditWaktu: () => void;
-  // Tali Hijau: toggle for Estimasi.isMatching — reachable via swipe-left (see the bookmark tab
-  // rendered further down), always available regardless of urgency/time-to-doff.
-  onToggleMatching: () => void;
   shiftHandover?: boolean;
 }) {
   const remaining = effectiveRemaining(est, nowAbs);
@@ -89,12 +83,7 @@ export function RadarCard({
   const standardYard = est.yardOverride ?? mesin?.targetYard ?? null;
   const corakLine = standardYard != null ? `${corak} · ${formatYard(standardYard)}y` : corak;
   const showDot = !isPaused && remaining <= 5;
-  // Doffing before a machine is actually near due doesn't make sense operationally — swipe-right
-  // (doff) only turns on once the card's within the same lead time as the reminder notification.
-  // Swipe-left (Tali Hijau toggle, see bookmarkPeek below) has no such gate: it's not a doff, so
-  // it's always reachable, matching how the operator tags machines while walking the floor well
-  // before doffing time.
-  const canDoffBySwipe = !isPaused && remaining <= REMINDER_LEAD_MIN;
+  const swipeDoffEnabled = !isPaused && remaining <= REMINDER_LEAD_MIN;
 
   const [showActionsOverlay, setShowActionsOverlay] = useState(false);
   const [offsetX, setOffsetX] = useState(0);
@@ -177,12 +166,19 @@ export function RadarCard({
       clearLongPress();
       setCharging(false);
 
-      // Kanan (doff) tetap dibatasi mendekati waktu doff; kiri (tandai Tali Hijau) selalu boleh —
-      // dx dihitung ulang dari posisi turun jari yang tetap tiap event, bukan akumulasi delta,
-      // jadi membalik arah di tengah gerakan (mis. mulai ke kanan lalu balik ke kiri) otomatis
-      // benar tanpa perlu logika tambahan.
-      const clampedDx = dx > 0 && !canDoffBySwipe ? 0 : dx;
-      // Tangkap pointer agar Chrome di ponsel tidak memutus event stream dengan pointercancel
+      let targetX = dx;
+      if (dx > 0 && !swipeDoffEnabled) {
+        // Jika belum masuk waktu doff (estimasi > 5m), beri hambatan elastis lembut
+        targetX = Math.min(20, dx * 0.12);
+      } else if (dx > 0) {
+        targetX = Math.min(SWIPE_MAX_PX, dx);
+      } else if (dx < 0 && !swipeDoffEnabled) {
+        // Hambatan elastis lembut jika belum masuk waktu doff
+        targetX = Math.max(-20, dx * 0.12);
+      } else if (dx < 0) {
+        targetX = Math.max(-SWIPE_MAX_PX, dx);
+      }
+
       if (cardElementRef.current && pointerIdRef.current !== null) {
         try {
           if (!cardElementRef.current.hasPointerCapture(pointerIdRef.current)) {
@@ -193,7 +189,7 @@ export function RadarCard({
         }
       }
       setDragging(true);
-      setOffsetX(Math.max(-SWIPE_MAX_PX, Math.min(SWIPE_MAX_PX, clampedDx)));
+      setOffsetX(targetX);
     }
   }
 
@@ -216,31 +212,46 @@ export function RadarCard({
     pointerIdRef.current = null;
     setDragging(false);
 
-    if (offsetX <= -SWIPE_THRESHOLD_PX) {
-      // Swipe kiri: tandai/lepas Tali Hijau — bukan doff, jadi kartu tidak pernah meninggalkan
-      // layar, cuma memicu toggle lalu kembali ke posisi netral.
-      onToggleMatching();
-      setOffsetX(0);
-    } else if (offsetX >= SWIPE_THRESHOLD_PX && canDoffBySwipe) {
-      triggerDoff();
+    if (offsetX >= SWIPE_THRESHOLD_PX) {
+      // Swipe kanan: doffing normal
+      if (swipeDoffEnabled) {
+        triggerDoff("NORMAL");
+      } else {
+        setOffsetX(0);
+      }
+    } else if (offsetX <= -SWIPE_THRESHOLD_PX) {
+      // Swipe kiri: doffing matching langsung
+      if (swipeDoffEnabled) {
+        triggerDoff("MATCHING");
+      } else {
+        setOffsetX(0);
+      }
     } else {
       setOffsetX(0);
     }
   }
 
-  function triggerDoff() {
+  function triggerDoff(kind: "NORMAL" | "MATCHING") {
     if (completing) return;
-    // Swipe kanan sekarang satu-satunya arah doff — hasilnya bergantung status penanda, bukan
-    // arah swipe: mesin bertali hijau selalu tercatat Matching, tanpa operator harus memilih.
-    const kind = est.isMatching ? "MATCHING" : "NORMAL";
-    setCompleting(kind);
-    // Kartu terus meluncur ke arah swipe yang sebenarnya terjadi (kanan) — bukan lagi ke kiri
-    // untuk Matching, karena swipe kiri sudah bukan aksi doff lagi.
-    setOffsetX(420);
-    window.setTimeout(() => {
-      if (kind === "NORMAL") onDoff();
-      else onDoffMatching();
-    }, 950);
+
+    function startAnim() {
+      setCompleting(kind);
+      setOffsetX(kind === "MATCHING" ? -420 : 420);
+      window.setTimeout(() => {
+        if (kind === "NORMAL") onDoff();
+        else onDoffMatching();
+      }, 950);
+    }
+
+    if (kind === "MATCHING" && guardDoffMatching) {
+      // Snap the card back to neutral right away instead of optimistically sliding it off —
+      // the guard may show a confirm dialog, and if the operator cancels there'd be nothing to
+      // undo the slide-out with. startAnim only runs if/when the guard calls proceed().
+      setOffsetX(0);
+      guardDoffMatching(startAnim);
+      return;
+    }
+    startAnim();
   }
 
   function handleZoneClick(action: () => void) {
@@ -248,20 +259,8 @@ export function RadarCard({
     action();
   }
 
-  // Pita Tali Hijau: badge diagonal kecil di pojok kanan-atas kartu, indikator status yang selalu
-  // terlihat saat isMatching aktif (menggantikan lencana/tombol yang dulu ada di title row, dan
-  // sebelum itu tab bookmark yang menonjol dari sisi kanan — dipindah ke sini karena sisi kanan
-  // butuh ruang gutter di luar kartu yang tidak selalu cukup; pojok ini sepenuhnya di dalam batas
-  // kartu, jadi otomatis ter-clip bersih oleh .radar-card-front sendiri). Saat digeser ke kiri,
-  // pita "pop in" (scale dari kecil ke penuh) makin jelas makin jauh diseret, sampai mentok di
-  // titik "armed" tempat melepas jari akan men-toggle.
-  const leftDragFraction = offsetX < 0 ? Math.min(1, Math.abs(offsetX) / SWIPE_THRESHOLD_PX) : 0;
-  const bookmarkArmed = leftDragFraction >= 1;
-  const bookmarkVisible = est.isMatching || (dragging && offsetX < 0);
-  // Pratinjau status yang AKAN terjadi kalau jari dilepas sekarang — begitu melewati titik armed,
-  // warnanya berpindah ke status baru (bukan status saat ini), supaya operator tahu apa yang akan
-  // terjadi sebelum benar-benar melepas.
-  const bookmarkPreviewActive = dragging && offsetX < 0 && bookmarkArmed ? !est.isMatching : est.isMatching;
+  const revealSide: "right" | "left" | null = offsetX > 4 ? "right" : offsetX < -4 ? "left" : null;
+  const revealOpacity = Math.min(1, Math.abs(offsetX) / SWIPE_THRESHOLD_PX);
 
   // Jika kartu sedang dijeda, tampilkan kartu langsung di bagian depan dengan styling khusus
   if (isPaused) {
@@ -287,32 +286,16 @@ export function RadarCard({
                 <span className="radar-card-tipe-label" style={{ color: mesin ? TIPE_COLOR[mesin.tipe] : "var(--text-faint)" }}>
                   {mesin?.tipe ?? "?"}
                 </span>
-                <button
-                  type="button"
-                  className={`radar-matching-toggle${est.isMatching ? " active" : ""}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onToggleMatching();
-                  }}
-                  title={est.isMatching ? "Lepas penanda Tali Hijau" : "Tandai Tali Hijau · Matching"}
-                  aria-label={
-                    est.isMatching
-                      ? `Lepas penanda Tali Hijau Mc ${est.mcNo}`
-                      : `Tandai Mc ${est.mcNo} Tali Hijau · Matching`
-                  }
-                >
-                  <SparklesIcon size={12} />
-                </button>
-                {est.isMatching && (
-                  <span className="radar-matching-badge">
-                    <SparklesIcon size={10} />
-                    <span>TALI HIJAU · MATCHING</span>
-                  </span>
-                )}
                 <span className="radar-paused-badge">
                   <PauseIcon size={11} />
                   <span>DIJEDA</span>
                 </span>
+                {est.isMatching && (
+                  <span className="radar-matching-badge" title="Kain gulungan awal beam baru (bertanda tali hijau)">
+                    <SparklesIcon size={10} />
+                    <span>TALI HIJAU</span>
+                  </span>
+                )}
               </div>
 
               <div className="radar-card-corak" style={{ display: "flex", alignItems: "center", gap: 4 }}>
@@ -361,26 +344,36 @@ export function RadarCard({
 
   return (
     <div
-      className="radar-card-outer"
+      className={`radar-card-outer${est.isMatching ? " matching-beam" : ""}`}
       style={{ ["--urgency-accent" as any]: style.accent }}
       onContextMenu={(e) => e.preventDefault()}
     >
-      {offsetX > 4 && !completing && (
+      {revealSide && !completing && (
         <div
-          className={`radar-card-swipe-bg right${est.isMatching ? " matching" : ""}`}
-          style={{ opacity: Math.min(1, offsetX / SWIPE_THRESHOLD_PX) }}
+          className={`radar-card-swipe-bg ${revealSide}${revealSide === "left" ? " matching" : ""}`}
+          style={{ opacity: revealOpacity }}
         >
-          <div className="radar-swipe-hint-content right">
-            <div className={`radar-swipe-hint-icon${est.isMatching ? " matching" : ""}`}>
-              {est.isMatching ? <SparklesIcon size={22} /> : <ScissorsIcon size={22} />}
-            </div>
-            <div className="radar-swipe-hint-text">
-              <div className="radar-swipe-hint-title">{est.isMatching ? "Doffing Matching" : "Doffing Normal"}</div>
-              <div className="radar-swipe-hint-desc">
-                {est.isMatching ? "Sampel beam baru · Uji kualitas" : "Target yard selesai"}
+          {revealSide === "right" ? (
+            <div className="radar-swipe-hint-content right">
+              <div className="radar-swipe-hint-icon">
+                <ScissorsIcon size={22} />
+              </div>
+              <div className="radar-swipe-hint-text">
+                <div className="radar-swipe-hint-title">Doffing Normal</div>
+                <div className="radar-swipe-hint-desc">Target yard selesai</div>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="radar-swipe-hint-content left">
+              <div className="radar-swipe-hint-text right-align">
+                <div className="radar-swipe-hint-title">Doffing Matching</div>
+                <div className="radar-swipe-hint-desc">Sampel beam baru · Uji kualitas</div>
+              </div>
+              <div className="radar-swipe-hint-icon matching">
+                <SparklesIcon size={22} />
+              </div>
+            </div>
+          )}
         </div>
       )}
       <div
@@ -401,32 +394,13 @@ export function RadarCard({
         onContextMenu={(e) => e.preventDefault()}
       >
         <div
-          className={`radar-card-front${level === "OVERDUE" ? " overdue" : ""}${charging ? " charging" : ""}`}
+          className={`radar-card-front${level === "OVERDUE" ? " overdue" : ""}${charging ? " charging" : ""}${est.isMatching ? " has-bookmark" : ""}`}
           onContextMenu={(e) => e.preventDefault()}
         >
           {/* Visual indikator saat aksi sentuh & tahan sedang berlangsung */}
           {charging && <div className="radar-card-charge-bar" />}
           <div className="radar-card-charge-overlay" />
           <div className="radar-card-accent" />
-          {!completing && (
-            <div
-              className={`radar-matching-ribbon${bookmarkPreviewActive ? " active" : ""}`}
-              style={{
-                // Digeser: makin ditarik ke kiri, makin besar & makin nampak — tapi opacity-nya
-                // dipercepat (penuh di 35% jarak pertama menuju ambang) sementara scale terus
-                // tumbuh sampai selesai. Tanpa ini, pita langsung 100% terlihat di piksel pertama
-                // geseran padahal ukurannya masih kecil (0.75), jadi kemunculannya terasa "muncul
-                // lalu membesar" alih-alih satu gerakan menyatu "tumbuh sambil memudar masuk".
-                opacity: dragging && offsetX < 0 ? Math.min(1, leftDragFraction / 0.35) : bookmarkVisible ? 1 : 0,
-                transform: `rotate(45deg) scale(${dragging && offsetX < 0 ? 0.75 + leftDragFraction * 0.25 : 1})`,
-                transition: dragging
-                  ? "none"
-                  : "opacity 0.2s ease, transform 0.28s cubic-bezier(0.34,1.56,0.64,1), background 0.2s ease, color 0.2s ease",
-              }}
-            >
-              Matching
-            </div>
-          )}
           <div className="radar-card-body">
             <div className="radar-card-main" onClick={() => handleZoneClick(onQuickEdit)} role="button">
               <div className="radar-card-title-row">
@@ -538,6 +512,11 @@ export function RadarCard({
             </div>
           )}
         </div>
+        {est.isMatching && (
+          <div className="radar-bookmark-tab" title="Penanda Matching aktif" aria-label="Penanda Matching">
+            <BookmarkIcon size={13} filled />
+          </div>
+        )}
       </div>
 
       {completing && (

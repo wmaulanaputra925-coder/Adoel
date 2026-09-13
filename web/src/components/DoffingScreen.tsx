@@ -4,8 +4,8 @@ import { useConsoleHandlers } from "../hooks/useConsoleHandlers";
 import { nowAbsMin } from "../domain/format";
 import { sortAktualChronological } from "../domain/aktualOrder";
 import type { AktualEntry } from "../domain/types";
-import { DoffEntryRowContent } from "./DoffEntryRow";
 import { EditAktualDialog } from "./EditAktualDialog";
+import { DoffEntryRowContent } from "./DoffEntryRow";
 import {
   DeleteIcon,
   EditIcon,
@@ -114,31 +114,35 @@ export function DoffingScreen() {
               const mesin = state.db[entry.mcNo];
 
               return (
-                <div className="doff-row" key={entry.id}>
-                  {/* Shared with Statistik's shift detail so both read identically — see
-                      DoffEntryRow.tsx. Its own div (not .doff-row directly) so .doff-entry-row's
-                      column layout only stacks its two internal rows, not this whole card
-                      including the actions buttons below. */}
-                  <div className="doff-entry-row">
+                <div
+                  className="doff-row"
+                  key={entry.id}
+                  onClick={() => setEditing(entry)}
+                  style={{ cursor: "pointer" }}
+                >
+                  <div className="doff-entry-row" style={{ flex: 1, minWidth: 0 }}>
                     <DoffEntryRowContent num={num} entry={entry} mesin={mesin} />
                   </div>
-                  <div className="actions">
+
+                  <div className="doff-row-actions" onClick={(e) => e.stopPropagation()}>
                     <button
+                      type="button"
                       className="icon-btn"
                       onClick={() => setEditing(entry)}
                       aria-label={`Edit riwayat Mc ${entry.mcNo}`}
                       title={`Edit data riwayat Mc ${entry.mcNo}`}
                     >
-                      <EditIcon size={16} />
+                      <EditIcon size={15} />
                     </button>
                     <button
+                      type="button"
                       className="icon-btn danger-hover"
                       style={{ color: "var(--red-500)" }}
                       onClick={() => handleHapus(entry.id)}
                       aria-label={`Hapus riwayat Mc ${entry.mcNo}`}
                       title={`Hapus riwayat Mc ${entry.mcNo}`}
                     >
-                      <DeleteIcon size={16} />
+                      <DeleteIcon size={15} />
                     </button>
                   </div>
                 </div>

@@ -28,6 +28,8 @@
 -keepattributes *Annotation*
 -keep class com.jekael.adoel.data.Serial* { *; }
 -keepclassmembers class com.jekael.adoel.data.Serial* { *; }
+-keep class com.jekael.adoel.data.Sync* { *; }
+-keepclassmembers class com.jekael.adoel.data.Sync* { *; }
 -dontwarn com.google.gson.**
 
 # MesinTipe is (de)serialized via its enum name (.name / .valueOf), not Gson's own enum handling,

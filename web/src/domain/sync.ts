@@ -25,7 +25,7 @@ export interface SerialEstimasi {
   corakOverride?: string | null;
   yardOverride?: number | null;
   pausedAtAbsMin?: number | null;
-  isMatching?: boolean;
+  isMatching?: boolean | null;
 }
 
 export interface SerialAktual {
@@ -113,7 +113,27 @@ function decodeSyncPayload(encoded: string): SyncPayload | null {
  * "Format QR Sync tidak valid" walau datanya sendiri sebenarnya utuh. Sama persis dengan
  * sanitizeSyncText di DoffRepository.kt (Android). */
 function sanitizeSyncText(raw: string): string {
-  return raw.replace(/[\s\u200B\u200C\u200D\uFEFF]/g, "");
+  let cleaned = raw.trim();
+  if (cleaned.startsWith('"') && cleaned.endsWith('"') && cleaned.length >= 2) {
+    cleaned = cleaned.slice(1, -1);
+  }
+  if (cleaned.includes("%7B") || cleaned.includes("%22")) {
+    try {
+      cleaned = decodeURIComponent(cleaned);
+    } catch {
+      // ignore
+    }
+  }
+  if (cleaned.includes('\\"')) {
+    cleaned = cleaned.replace(/\\"/g, '"');
+  }
+  const stripped = cleaned.replace(/[\s\uFEFF\u200B-\u200D]/g, "");
+  const firstBrace = stripped.indexOf("{");
+  const lastBrace = stripped.lastIndexOf("}");
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+    return stripped.substring(firstBrace, lastBrace + 1);
+  }
+  return stripped;
 }
 
 export function getNextShiftEstimasiEntries(state: DoffState, nowAbs: number = nowAbsMin()): [string, Estimasi][] {
@@ -140,7 +160,7 @@ export function prepareHandoverData(state: DoffState, nowAbs: number = nowAbsMin
       corakOverride: e.corakOverride,
       yardOverride: e.yardOverride,
       pausedAtAbsMin: e.pausedAtAbsMin,
-      isMatching: e.isMatching,
+      isMatching: e.isMatching ?? false,
     };
 
     const m = state.db[mcNo];
@@ -243,8 +263,9 @@ function parseMesinMap(
 
   // Parse compact array format (cDb)
   if (Array.isArray(cDb)) {
-    for (const [mcNo, tipe, corak, targetYard, speed, koreksi, isActive] of cDb) {
-      if (!mcNo) continue;
+    for (const [rawMcNo, tipe, corak, targetYard, speed, koreksi, isActive] of cDb) {
+      if (!rawMcNo) continue;
+      const mcNo = String(rawMcNo).replace(/\.0$/, "");
       result[mcNo] = {
         tipe: validTipes[tipe ?? ""] ?? "TAPPET",
         corak: corak ?? "-",
@@ -259,8 +280,9 @@ function parseMesinMap(
 
   // Backward-compatibility: parse legacy object format
   if (serialDb) {
-    for (const [mcNo, v] of Object.entries(serialDb)) {
+    for (const [rawMcNo, v] of Object.entries(serialDb)) {
       if (!v) continue;
+      const mcNo = String(rawMcNo).replace(/\.0$/, "");
       result[mcNo] = {
         tipe: validTipes[v.tipe ?? ""] ?? "TAPPET",
         corak: v.corak ?? "-",

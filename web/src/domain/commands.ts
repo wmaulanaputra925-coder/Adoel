@@ -3,8 +3,6 @@
 // Android supaya operator tidak perlu belajar ulang cara pakai.
 import { absMinToTimeStr, jamKeShiftAbs, nowAbsMin, nowTimeStr } from "./format";
 import { parseDurasi, parseJam, standarisasiKeterangan } from "./parse";
-import { isPotonganAwalCorak } from "./matchingRules";
-import { POTONGAN_AWAL_YARD } from "./types";
 import type { AktualEntry, DoffState, Estimasi, ProsesResult } from "./types";
 
 export interface CommandOutcome {
@@ -24,7 +22,7 @@ export function prosesBarisKondisiMesin(state: DoffState, ln: string, now: numbe
   const mcNo = parts[0];
   if (!/^\d{1,4}$/.test(mcNo)) return { result: { ok: false, msg: "Nomor mesin tidak valid" }, newState: state };
   const mesin = state.db[mcNo];
-  if (!mesin) return { result: { ok: false, msg: `Mc ${mcNo} belum terdaftar, tambahkan dulu di Pengaturan` }, newState: state };
+  if (!mesin) return { result: { ok: false, msg: `Mc ${mcNo} tidak ditemukan` }, newState: state };
   if (!mesin.corak || mesin.corak.trim() === "" || mesin.corak.trim() === "-") {
     return { result: { ok: false, msg: `Mc ${mcNo} belum diatur, atur corak dulu di Pengaturan` }, newState: state };
   }
@@ -72,33 +70,15 @@ export function prosesBarisKondisiMesin(state: DoffState, ln: string, now: numbe
   }
 
   const existing = state.estimasi[mcNo];
-  // Tali Hijau: mcNo ini baru saja di-doff HB dan operator sudah menekan "Tandai Matching" (lihat
-  // DoffState.pendingMatchingMcNos) — Estimasi baru ini adalah tempat pertama
-  // flag itu punya rumah, jadi konsumsi (dan hapus dari daftar tunggu) di sini.
-  const isPending = state.pendingMatchingMcNos?.includes(mcNo) ?? false;
-  const willBeMatching = isPending || (existing?.isMatching ?? false);
-  const effectiveCorak = existing?.corakOverride ?? mesin.corak;
   const newEst: Estimasi = {
     mcNo,
     estAbsMin: estAbs,
     startAbsMin: existing?.startAbsMin ?? now,
     corakOverride: existing?.corakOverride ?? null,
-    // yardOverride tidak punya penulis lain di luar fitur Matching ini, jadi dihitung ulang murni
-    // dari isMatching+corak tiap kali (bukan "preserve nilai lama") — sama seperti
-    // toggleEstimasiMatching manual: 70y HANYA untuk corak yang memang termasuk aturan potongan
-    // awal (lihat isPotonganAwalCorak); corak lain tetap null (pakai target standar mesin), dan
-    // begitu isMatching lepas (baik di sini maupun lewat toggle), yard ikut kembali ke standar.
-    yardOverride: willBeMatching && isPotonganAwalCorak(state, effectiveCorak) ? POTONGAN_AWAL_YARD : null,
+    yardOverride: existing?.yardOverride ?? null,
     pausedAtAbsMin: null,
-    // Tali Hijau menandai beam, bukan jam estimasi — koreksi durasi pada mesin yang sudah
-    // ditandai tidak boleh diam-diam melepas penandaannya.
-    isMatching: willBeMatching,
   };
-  const newState: DoffState = {
-    ...state,
-    estimasi: { ...state.estimasi, [mcNo]: newEst },
-    pendingMatchingMcNos: isPending ? state.pendingMatchingMcNos!.filter((m) => m !== mcNo) : state.pendingMatchingMcNos,
-  };
+  const newState: DoffState = { ...state, estimasi: { ...state.estimasi, [mcNo]: newEst } };
 
   return {
     result: { ok: true, msg: `Mc ${mcNo} → ${absMinToTimeStr(estAbs)}`, mcNo, estAbs },
@@ -113,7 +93,7 @@ export function prosesBarisUmum(state: DoffState, ln: string): CommandOutcome {
   const mcNo = parts[0];
   if (!/^\d{1,4}$/.test(mcNo)) return { result: { ok: false, msg: "Nomor mesin tidak valid" }, newState: state };
   const mesin = state.db[mcNo];
-  if (!mesin) return { result: { ok: false, msg: `Mc ${mcNo} belum terdaftar, tambahkan dulu di Pengaturan` }, newState: state };
+  if (!mesin) return { result: { ok: false, msg: `Mc ${mcNo} tidak ditemukan` }, newState: state };
 
   const jam = nowTimeStr();
   let customYard: number | null = null;
@@ -136,30 +116,11 @@ export function prosesBarisUmum(state: DoffState, ln: string): CommandOutcome {
     ketTokens.push(token);
   }
 
-  const prevEst = state.estimasi[mcNo] ?? null;
-  const effectiveCorak = prevEst?.corakOverride ?? mesin.corak;
-
-  const rawExtra = standarisasiKeterangan(ketTokens.join(" ").trim());
-  // Tali hijau: operator sudah menandai mesin ini Matching sebelum waktunya doffing (lihat
-  // Estimasi.isMatching) — begitu waktunya tiba, aksi doff APA PUN (swipe biasa, tombol
-  // Doffing, command yang diketik manual) langsung tercatat sebagai Matching juga, supaya
-  // operator tidak perlu memilih ulang di depan mesin. Menang atas ketTokens yang diketik —
-  // penanda ini dipasang justru supaya operator tidak perlu berpikir lagi saat itu.
-  const extra = prevEst?.isMatching ? "MATCHING" : rawExtra;
+  const extra = standarisasiKeterangan(ketTokens.join(" ").trim());
   const ket = extra.length > 0 ? `${jam}(${extra})` : jam;
 
-  // Doffing Matching memotong 70 yard pertama, bukan sepanjang target standar mesin — tanpa ini
-  // Riwayat mencatat panjang standar (mis. 303y) untuk potongan yang nyatanya 70y. Yard yang
-  // diketik operator selalu menang. Tali hijau pakai yardOverride apa adanya (null berarti corak
-  // ini BUKAN corak potongan awal — lihat toggleEstimasiMatching/prosesBarisKondisiMesin — jadi
-  // TIDAK dipaksa 70y, tetap pakai target standar mesin seperti Matching biasa di luar daftar).
-  if (customYard === null && extra.includes("MATCHING")) {
-    if (prevEst?.isMatching) {
-      customYard = prevEst.yardOverride;
-    } else if (isPotonganAwalCorak(state, effectiveCorak)) {
-      customYard = POTONGAN_AWAL_YARD;
-    }
-  }
+  const prevEst = state.estimasi[mcNo] ?? null;
+  const effectiveCorak = prevEst?.corakOverride ?? mesin.corak;
 
   const entryId = state.nextId;
   const entry: AktualEntry = {

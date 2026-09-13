@@ -19,48 +19,14 @@ private val DIVIDER = "─".repeat(16)
  * dipakai apa adanya untuk kerapian tampilan di WhatsApp. */
 private fun formatKetDisplay(ket: String): String = ket.replace("(", " (")
 
-/** Baris "Operator: <nama> · Grup <grup>" untuk kepala pesan, atau null kalau belum didata.
- * Tidak pernah memakai penanda tebal: lihat catatan [formatAktualLine]. */
-private fun formatOperatorLine(nama: String?, grup: String?): String? {
-    val n = nama?.trim().orEmpty()
-    val g = grup?.trim().orEmpty()
-    return when {
-        n.isEmpty() && g.isEmpty() -> null
-        g.isEmpty() -> "Operator: $n"
-        n.isEmpty() -> "Grup $g"
-        else -> "Operator: $n · Grup $g"
-    }
-}
-
-/**
- * Satu baris doff yang sudah selesai.
- *
- * Tanpa penanda tebal di sekitar nomor mesin. WhatsApp menolak memformat `*Mc 72*` di tengah
- * baris seperti ini — yang sampai ke rekan kerja justru bintangnya ikut terbaca — sementara
- * penanda tebal pada baris yang isinya HANYA teks tebal (judul bagian di bawah) tetap bekerja.
- * Jadi keterbacaan baris ini dibangun dari strukturnya: nomor mesin di depan, corak dan yard di
- * tengah, jam di belakang, dipisah pemisah yang berbeda supaya tiap bagian gampang dipindai.
- */
 private fun formatAktualLine(index: Int, mcNo: String, corak: String, yard: Double?, ket: String): String {
     val yardSuffix = if (yard != null) " (${formatYard(yard)}y)" else ""
-    return "${index + 1}. Mc $mcNo – $corak$yardSuffix · ${formatKetDisplay(ket)}"
+    return "${index + 1}. *Mc $mcNo* – $corak$yardSuffix · ${formatKetDisplay(ket)}"
 }
 
-private fun formatEstimasiLine(
-    mcNo: String,
-    corak: String,
-    yard: Double?,
-    estAbsMin: Long,
-    zone: TimeZone,
-    isMatching: Boolean,
-): String {
+private fun formatEstimasiLine(mcNo: String, corak: String, yard: Double?, estAbsMin: Long, zone: TimeZone): String {
     val yardSuffix = if (yard != null) " (${formatYard(yard)}y)" else ""
-    // formatAktualLine's ket already carries "(MATCHING)" for a completed doff — a still-running
-    // Estimasi has no ket yet (that's only written at doff time), just its own isMatching flag, so
-    // this needs its own explicit segment or the tag silently vanishes from the share text the
-    // moment it matters most: while a coworker still needs to know before the machine is doffed.
-    val matchingSuffix = if (isMatching) " · Matching" else ""
-    return "• Mc $mcNo – $corak$yardSuffix$matchingSuffix · Est. ${absMinToTimeStr(estAbsMin, zone)}"
+    return "• *Mc $mcNo* – $corak$yardSuffix · Est. ${absMinToTimeStr(estAbsMin, zone)}"
 }
 
 /** [nowMillis]/[zone] hanya untuk unit test — call site produksi memakai waktu & zona perangkat
@@ -70,10 +36,8 @@ fun buildShareHistoryText(
     nowMillis: Long = System.currentTimeMillis(),
     zone: TimeZone = TimeZone.getDefault(),
 ): String {
-    val nowAbs = nowMillis / 60000L
-    val shiftNo = shiftNumberForEpochMin(nowAbs, zone)
     val cal = Calendar.getInstance(zone).apply { timeInMillis = nowMillis }
-    if (shiftNo == 3 && cal.get(Calendar.HOUR_OF_DAY) < 7) {
+    if (shiftNumberForEpochMin(nowMillis / 60000L, zone) == 3 && cal.get(Calendar.HOUR_OF_DAY) < 7) {
         cal.add(Calendar.DAY_OF_YEAR, -1)
     }
     val dateStr = "%02d/%02d/%04d".format(
@@ -81,7 +45,7 @@ fun buildShareHistoryText(
         cal.get(Calendar.MONTH) + 1,
         cal.get(Calendar.YEAR),
     )
-    val lines = sortAktualChronological(state.aktual, nowAbs, zone).mapIndexed { i, a ->
+    val lines = sortAktualChronological(state.aktual, nowMillis / 60000L, zone).mapIndexed { i, a ->
         val mesin = state.db[a.mcNo]
         val corak = a.corakOverride ?: mesin?.corak ?: "—"
         val yard = a.customYard ?: mesin?.targetYard
@@ -90,7 +54,7 @@ fun buildShareHistoryText(
     // Doff selesai saja tidak cukup buat rekan yang baca pesan ini di lantai produksi — mereka
     // juga perlu tahu mesin mana yang masih ditimer sekarang dan kapan harus di-doff, jadi bagian
     // ini ikut disertakan alih-alih cuma riwayat yang sudah selesai.
-    val currentShiftStart = currentShiftStartAbsMin(nowAbs, zone)
+    val currentShiftStart = currentShiftStartAbsMin(nowMillis / 60000L, zone)
     val currentShiftEnd = currentShiftStart + 480L
     val (estimasiBerjalan, estimasiOperan) = state.estimasi.values
         .filter { it.estAbsMin >= currentShiftStart }
@@ -99,37 +63,33 @@ fun buildShareHistoryText(
         val mesin = state.db[est.mcNo]
         val corak = est.corakOverride ?: mesin?.corak ?: "—"
         val yard = est.yardOverride ?: mesin?.targetYard
-        return formatEstimasiLine(est.mcNo, corak, yard, est.estAbsMin, zone, est.isMatching)
+        return formatEstimasiLine(est.mcNo, corak, yard, est.estAbsMin, zone)
     }
     val berjalan = sortedByNearest(estimasiBerjalan.associateBy { it.mcNo }).map(::formatEstimasi)
     val operan = estimasiOperan.sortedBy { it.estAbsMin }.map(::formatEstimasi)
     val selesaiCount = state.aktual.size
     val berjalanCount = berjalan.size
     val operanCount = operan.size
-
-    val head = mutableListOf("*UPDATE DOFFING AKTIF*", "$dateStr · Shift $shiftNo")
-    formatOperatorLine(state.operatorNama, state.operatorGrup)?.let { head += it }
-
-    val blocks = mutableListOf(
-        if (lines.isNotEmpty()) "*Selesai ($selesaiCount doff)*\n${lines.joinToString("\n")}" else "*Selesai (0 doff)*",
-    )
-    if (berjalanCount > 0) blocks += "*Sedang berjalan ($berjalanCount mc)*\n${berjalan.joinToString("\n")}"
-    if (operanCount > 0) blocks += "*Operan shift berikutnya ($operanCount mc)*\n${operan.joinToString("\n")}"
-
-    // Operan TIDAK ikut dijumlahkan: mesin itu baru akan di-doff setelah shift ini habis, jadi
-    // memasukkannya ke total membuat shift ini terlihat mengerjakan pekerjaan shift berikutnya.
-    // Jumlahnya tetap disebut di baris terpisah supaya rekan yang menerima operan tahu berapa.
-    // Penjumlahannya dieja ("N selesai + N berjalan = N mc") karena tanpa itu rekan yang baca
-    // sering salah hitung sendiri antara yang sudah selesai vs. yang masih berjalan.
-    val totalLine = if (berjalanCount > 0) {
-        "*Total shift ini: $selesaiCount selesai + $berjalanCount berjalan = ${selesaiCount + berjalanCount} mc*"
+    // Spelling the sum out explicitly (bukan cuma "Total: N doff") — tanpa ini, rekan yang baca
+    // sering salah jumlah sendiri antara yang sudah selesai vs. yang masih berjalan (lihat contoh
+    // nyata: seseorang nanya "jadi total 23 mc?" padahal "Total" di pesan cuma menghitung selesai).
+    val totalEstimasiCount = berjalanCount + operanCount
+    val totalLine = if (totalEstimasiCount > 0) {
+        "📊 *Total: $selesaiCount selesai + $totalEstimasiCount berjalan = ${selesaiCount + totalEstimasiCount} mc*"
     } else {
-        "*Total shift ini: $selesaiCount doff*"
+        "📊 *Total: $selesaiCount doff*"
     }
-    val foot = mutableListOf(totalLine)
-    if (operanCount > 0) foot += "Operan ke shift berikutnya: $operanCount mc (di luar total)"
-
-    return "${head.joinToString("\n")}\n$DIVIDER\n\n${blocks.joinToString("\n\n")}\n\n$DIVIDER\n${foot.joinToString("\n")}"
+    val berjalanBlock = if (berjalan.isNotEmpty()) {
+        "\n\n⏳ *Sedang Berjalan ($berjalanCount mc)*\n${berjalan.joinToString("\n")}"
+    } else {
+        ""
+    }
+    val operanBlock = if (operan.isNotEmpty()) {
+        "\n\n📤 *Operan Shift Berikutnya ($operanCount mc)*\n${operan.joinToString("\n")}"
+    } else {
+        ""
+    }
+    return "*UPDATE DOFFING AKTIF*\n📅 $dateStr\n$DIVIDER\n\n✅ *Selesai ($selesaiCount doff)*\n${lines.joinToString("\n")}$berjalanBlock$operanBlock\n$DIVIDER\n$totalLine"
 }
 
 /** Re-share a single archived shift — mirrors [buildShareHistoryText]'s format/tone exactly (same
@@ -137,13 +97,7 @@ fun buildShareHistoryText(
  * resend a specific day's record instead of the whole running total.
  *
  * [zone] hanya untuk unit test — call site produksi memakai default zona perangkat. */
-fun buildShareShiftText(
-    shift: ShiftRecord,
-    db: Map<String, MesinData>,
-    fallbackNama: String = "",
-    fallbackGrup: String = "",
-    zone: TimeZone = TimeZone.getDefault(),
-): String {
+fun buildShareShiftText(shift: ShiftRecord, db: Map<String, MesinData>, zone: TimeZone = TimeZone.getDefault()): String {
     val shiftNo = shiftNumberForEpochMin(shift.startedAtEpochMin, zone)
     val dateStr = formatShiftDate(shift.startedAtEpochMin, zone)
     // +240 (4 jam setelah mulai) dipakai sebagai titik tengah yang aman dari pembungkusan
@@ -155,22 +109,7 @@ fun buildShareShiftText(
         val yard = a.customYard ?: mesin?.targetYard
         formatAktualLine(i, a.mcNo, corak, yard, a.ket)
     }
-    val head = mutableListOf("*LAPORAN SHIFT $shiftNo*", dateStr)
-    // Operator yang dicap saat shift ini diarsipkan. Arsip dari sebelum pendataan operator ada
-    // tidak punya capnya — untuk itu saja identitas yang berlaku sekarang dipakai sebagai
-    // cadangan, karena satu ponsel dipegang satu operator dan laporan tanpa nama sama sekali
-    // lebih merugikan daripada nama yang mungkin sudah pindah grup. Shift yang diarsipkan versi
-    // ini dan seterusnya selalu memakai capnya sendiri.
-    formatOperatorLine(
-        shift.operatorNama.ifBlank { fallbackNama },
-        shift.operatorGrup.ifBlank { fallbackGrup },
-    )?.let { head += it }
-    val body = if (lines.isNotEmpty()) {
-        "*Selesai (${shift.aktual.size} doff)*\n${lines.joinToString("\n")}"
-    } else {
-        "*Selesai (0 doff)*"
-    }
-    return "${head.joinToString("\n")}\n$DIVIDER\n\n$body\n\n$DIVIDER\n*Total: ${shift.aktual.size} doff*"
+    return "*LAPORAN SHIFT $shiftNo*\n📅 $dateStr\n$DIVIDER\n\n✅ *Selesai (${shift.aktual.size} doff)*\n${lines.joinToString("\n")}\n$DIVIDER\n📊 *Total: ${shift.aktual.size} doff*"
 }
 
 /** Launches the system share sheet with [text] — shared by both callers above so a failure to

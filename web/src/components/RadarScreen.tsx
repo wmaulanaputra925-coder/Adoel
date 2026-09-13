@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useDoffStore } from "../store/DoffStore";
+import { useUiStore } from "../store/UiStore";
 import { useConsoleHandlers } from "../hooks/useConsoleHandlers";
+import { isPotonganAwalCorak, potonganAwalReminderMessage } from "../domain/matchingRules";
 import {
   BREAK_GAP_THRESHOLD_MIN,
   effectiveRemaining,
@@ -29,10 +31,22 @@ import {
 
 export function RadarScreen({ onEditWaktu }: { onEditWaktu: (mcNo: string) => void }) {
   const { state } = useDoffStore();
-  const { handleDoff, handleHapusEst, handleJeda, handleLanjutkan, handleToggleMatching } = useConsoleHandlers();
+  const { showConfirm } = useUiStore();
+  const { handleDoff, handleHapusEst, handleJeda, handleLanjutkan } = useConsoleHandlers();
   const [filter, setFilter] = useState("");
   const [quickEditMcNo, setQuickEditMcNo] = useState<string | null>(null);
   const [, forceTick] = useState(0);
+
+  // Runs before RadarCard's swipe-left slide-out animation starts (not after, like handleDoff's
+  // own gate would be too late for) — see RadarCard's guardDoffMatching doc for why.
+  function guardDoffMatching(mcNo: string, proceed: () => void) {
+    const corak = state.estimasi[mcNo]?.corakOverride ?? state.db[mcNo]?.corak;
+    if (isPotonganAwalCorak(state, corak)) {
+      showConfirm(potonganAwalReminderMessage(corak!), proceed);
+    } else {
+      proceed();
+    }
+  }
 
   useEffect(() => {
     const id = setInterval(() => forceTick((n) => n + 1), 20000);
@@ -147,12 +161,12 @@ export function RadarScreen({ onEditWaktu }: { onEditWaktu: (mcNo: string) => vo
               clashingMcNos={[]}
               onDoff={() => handleDoff(est.mcNo)}
               onDoffMatching={() => handleDoff(est.mcNo, "MATCHING")}
+              guardDoffMatching={(proceed) => guardDoffMatching(est.mcNo, proceed)}
               onHapus={() => handleHapusEst(est.mcNo)}
               onJeda={() => handleJeda(est.mcNo)}
               onLanjutkan={() => handleLanjutkan(est.mcNo)}
               onQuickEdit={() => setQuickEditMcNo(est.mcNo)}
               onEditWaktu={() => onEditWaktu(est.mcNo)}
-              onToggleMatching={() => handleToggleMatching(est.mcNo)}
               shiftHandover={est.estAbsMin > shiftEndAbs}
             />
           ))}
@@ -182,12 +196,12 @@ export function RadarScreen({ onEditWaktu }: { onEditWaktu: (mcNo: string) => vo
               clashingMcNos={findClashingMachines(est.mcNo, all)}
               onDoff={() => handleDoff(est.mcNo)}
               onDoffMatching={() => handleDoff(est.mcNo, "MATCHING")}
+              guardDoffMatching={(proceed) => guardDoffMatching(est.mcNo, proceed)}
               onHapus={() => handleHapusEst(est.mcNo)}
               onJeda={() => handleJeda(est.mcNo)}
               onLanjutkan={() => handleLanjutkan(est.mcNo)}
               onQuickEdit={() => setQuickEditMcNo(est.mcNo)}
               onEditWaktu={() => onEditWaktu(est.mcNo)}
-              onToggleMatching={() => handleToggleMatching(est.mcNo)}
               shiftHandover={est.estAbsMin > shiftEndAbs}
             />
           ))}
@@ -249,12 +263,12 @@ export function RadarScreen({ onEditWaktu }: { onEditWaktu: (mcNo: string) => vo
                   clashingMcNos={findClashingMachines(est.mcNo, all)}
                   onDoff={() => handleDoff(est.mcNo)}
                   onDoffMatching={() => handleDoff(est.mcNo, "MATCHING")}
+                  guardDoffMatching={(proceed) => guardDoffMatching(est.mcNo, proceed)}
                   onHapus={() => handleHapusEst(est.mcNo)}
                   onJeda={() => handleJeda(est.mcNo)}
                   onLanjutkan={() => handleLanjutkan(est.mcNo)}
                   onQuickEdit={() => setQuickEditMcNo(est.mcNo)}
                   onEditWaktu={() => onEditWaktu(est.mcNo)}
-                  onToggleMatching={() => handleToggleMatching(est.mcNo)}
                   shiftHandover={est.estAbsMin > shiftEndAbs}
                 />
                 {next && gap >= BREAK_GAP_THRESHOLD_MIN && (

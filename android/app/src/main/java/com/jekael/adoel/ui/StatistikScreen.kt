@@ -1,11 +1,6 @@
 package com.jekael.adoel.ui
 
 import android.content.Context
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -37,7 +32,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Circle
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -60,6 +57,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -70,30 +70,31 @@ import com.jekael.adoel.data.MesinData
 import com.jekael.adoel.data.MesinTipe
 import com.jekael.adoel.data.ShiftRecord
 import com.jekael.adoel.data.buildShareShiftText
-import com.jekael.adoel.data.currentShiftStartAbsMin
 import com.jekael.adoel.data.formatDeltaMin
 import com.jekael.adoel.data.formatShiftDate
 import com.jekael.adoel.data.formatShiftShortDate
+import com.jekael.adoel.ui.components.DoffEntryRowContent
 import com.jekael.adoel.data.formatShiftTime
+import com.jekael.adoel.data.formatYard
 import com.jekael.adoel.data.getRepresentativeEpochMin
 import com.jekael.adoel.data.shareIntent
 import com.jekael.adoel.data.shiftNumberForEpochMin
 import com.jekael.adoel.data.sortAktualChronological
 import com.jekael.adoel.ui.components.CloseIcon
-import com.jekael.adoel.ui.components.DoffEntryRowContent
 import com.jekael.adoel.ui.components.EditAktSheet
 import com.jekael.adoel.ui.components.EmptyState
 import com.jekael.adoel.ui.components.LinearProgressBar
+import com.jekael.adoel.ui.components.MesinTipeIcon
 import com.jekael.adoel.ui.components.SlidePanel
-import com.jekael.adoel.ui.components.swipeRightToClose
+import com.jekael.adoel.ui.components.SwipeableCard
 import com.jekael.adoel.ui.components.TambahAktSheet
 import com.jekael.adoel.ui.components.mesinTipeColor
+import com.jekael.adoel.ui.theme.Amber400
 import com.jekael.adoel.ui.theme.AppType
 import com.jekael.adoel.ui.theme.Cyan400
 import com.jekael.adoel.ui.theme.Cyan500
 import com.jekael.adoel.ui.theme.Red500
 import com.jekael.adoel.ui.theme.Dimens
-import com.jekael.adoel.ui.theme.EdgeFadeScrim
 import com.jekael.adoel.ui.theme.LocalAppColors
 import com.jekael.adoel.ui.theme.Motion
 import com.jekael.adoel.ui.theme.elevatedListCard
@@ -110,10 +111,6 @@ import kotlinx.coroutines.launch
 fun StatistikScreen(
     history: List<ShiftRecord>,
     db: Map<String, MesinData>,
-    // Identitas yang berlaku sekarang — cadangan untuk arsip yang belum punya cap operator
-    // sendiri (lihat buildShareShiftText).
-    operatorNama: String,
-    operatorGrup: String,
     onClose: () -> Unit,
     onDeleteShift: (Int) -> Unit,
     showConfirm: (String, () -> Unit) -> Unit,
@@ -141,15 +138,7 @@ fun StatistikScreen(
         // Same "floating header overlays a full-bleed scrollable list" concept as MainScreen —
         // the list is measured/laid out from the very top and scrolls behind the header, instead
         // of just sitting in a Column below it.
-        // Swipe-right-to-dismiss, the same gesture (and the same shared modifier) that closes
-        // Pengaturan and Daftar Mesin — the shift cards below no longer take a swipe of their
-        // own, so the whole page can have it without the two competing for the drag.
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(colors.bg)
-                .swipeRightToClose(onClose),
-        ) {
+        Box(modifier = Modifier.fillMaxSize().background(colors.bg)) {
             if (history.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     EmptyState(
@@ -202,17 +191,11 @@ fun StatistikScreen(
                             showConfirm = showConfirm,
                             onEditEntry = { entryId -> editingEntry = shift.id to entryId },
                             onAddEntry = { addingToShiftId = shift.id },
-                            operatorNama = operatorNama,
-                            operatorGrup = operatorGrup,
                             modifier = Modifier.animateItem(),
                         )
                     }
                 }
             }
-
-            // Same soft cut-off the other scrolling screens get where content passes behind the
-            // header. Top only — nothing floats at the bottom of this panel.
-            EdgeFadeScrim(atTop = true, height = 10.dp + headerHeight + Dimens.Space16)
 
             // Floating header — overlays the list (list scrolls behind it), matching
             // MainScreen's header/console bar look: shadow + rounded corners + a subtle border
@@ -576,23 +559,15 @@ private fun ShiftRow(
     showConfirm: (String, () -> Unit) -> Unit,
     onEditEntry: (entryId: Int) -> Unit,
     onAddEntry: () -> Unit,
-    operatorNama: String,
-    operatorGrup: String,
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalAppColors.current
     val context = LocalContext.current
     val representativeTime = remember(shift) { getRepresentativeEpochMin(shift) }
     val shiftNo = remember(representativeTime) { shiftNumberForEpochMin(representativeTime) }
-    // Both the date and the range come off the shift's scheduled start rather than straight from
-    // the record, so shifts archived before finishShift started storing it that way (first doff →
-    // Selesai Shift tap) still read as the shift they actually were — a night shift whose first
-    // doff landed after midnight used to be dated the following day. A no-op for new records:
-    // their stored start is already a boundary, and a boundary maps to itself.
-    val scheduledStart = remember(shift.startedAtEpochMin) { currentShiftStartAbsMin(shift.startedAtEpochMin) }
-    val dateStr = remember(scheduledStart) { formatShiftDate(scheduledStart) }
-    val timeRange = remember(scheduledStart) {
-        "${formatShiftTime(scheduledStart)}–${formatShiftTime(scheduledStart + 480)}"
+    val dateStr = remember(shift.startedAtEpochMin) { formatShiftDate(shift.startedAtEpochMin) }
+    val timeRange = remember(shift.startedAtEpochMin, shift.endedAtEpochMin) {
+        "${formatShiftTime(shift.startedAtEpochMin)}–${formatShiftTime(shift.endedAtEpochMin)}"
     }
     // +240 (4 jam setelah mulai) dipakai sebagai titik tengah yang aman dari pembungkusan
     // tanggal untuk shift 8 jam manapun — shift ini sudah diarsipkan, bisa dibuka
@@ -607,9 +582,9 @@ private fun ShiftRow(
 
     // Bagikan langsung — bukan salin, supaya tidak perlu ganti aplikasi lalu tempel manual.
     // Tidak berarti apa-apa untuk shift tanpa doff (mis. diarsipkan dengan estimasi yang belum
-    // sempat diselesaikan), jadi tombol Bagikan-nya dinonaktifkan untuk shift kosong.
+    // sempat diselesaikan), jadi swipe-kanan pada shift kosong tidak melakukan apa-apa.
     fun requestShare() {
-        if (shift.aktual.isNotEmpty()) shareShift(context, shift, db, operatorNama, operatorGrup)
+        if (shift.aktual.isNotEmpty()) shareShift(context, shift, db)
     }
     fun requestDelete() {
         showConfirm("Hapus arsip Shift $shiftNo · $dateStr? Data ini tidak bisa dikembalikan.") {
@@ -617,89 +592,90 @@ private fun ShiftRow(
         }
     }
 
-    // No swipe-to-act on this card. It carries visible Bagikan/Hapus buttons, so a hidden
-    // gesture for the same two actions was only a second way to reach them — and it swallowed
-    // the horizontal drag that now closes the whole page (see swipeRightToClose above). The
-    // buttons are real focusable targets, so the custom accessibility actions that stood in for
-    // the swipe went with it.
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .elevatedListCard(backgroundColor = colors.bgElevated)
-            .clickable { onToggle() }
-            .padding(14.dp),
+    SwipeableCard(
+        modifier = modifier,
+        onSwipeRight = { requestShare() },
+        onSwipeLeft = { requestDelete() },
+        rightIcon = Icons.Outlined.Share,
+        leftIcon = Icons.Outlined.Delete,
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column {
-                Text(
-                    "Shift $shiftNo · $dateStr",
-                    style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary),
-                )
-                Text(timeRange, style = AppType.Caption.copy(color = colors.textFaint))
-                Spacer(Modifier.height(6.dp))
-                LinearProgressBar(
-                    fraction = shift.aktual.size.toFloat() / maxDoffCount,
-                    trackColor = colors.bgElevated2,
-                    fillColor = Cyan500,
-                    width = 60.dp,
-                )
-            }
-            Column(horizontalAlignment = Alignment.End) {
-                Text("${shift.aktual.size} doff", style = AppType.TabLabel.copy(color = Cyan400))
-                if (avgGapMin != null) {
-                    Text(
-                        "±${formatDeltaMin(avgGapMin.toLong())}/doff",
-                        style = TextStyle(fontSize = 12.sp, color = colors.textFaint),
-                    )
-                }
-            }
-        }
-
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 10.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                .elevatedListCard(backgroundColor = colors.bgElevated)
+                .clickable { onToggle() }
+                .semantics(mergeDescendants = true) {
+                    customActions = listOf(
+                        CustomAccessibilityAction("Bagikan Shift $shiftNo") { requestShare(); true },
+                        CustomAccessibilityAction("Hapus Shift $shiftNo") { requestDelete(); true },
+                    )
+                }
+                .padding(14.dp),
         ) {
-            OutlinedButton(
-                onClick = { requestShare() },
-                enabled = shift.aktual.isNotEmpty(),
-                modifier = Modifier.weight(1f).height(38.dp),
-                shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.textSecondary),
-                border = BorderStroke(1.dp, colors.border),
-                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(imageVector = Icons.Outlined.Share, contentDescription = null, modifier = Modifier.size(14.dp))
-                Spacer(Modifier.width(6.dp))
-                Text("Bagikan", style = AppType.CaptionBold)
+                Column {
+                    Text(
+                        "Shift $shiftNo · $dateStr",
+                        style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary),
+                    )
+                    Text(timeRange, style = AppType.Caption.copy(color = colors.textFaint))
+                    Spacer(Modifier.height(6.dp))
+                    LinearProgressBar(
+                        fraction = shift.aktual.size.toFloat() / maxDoffCount,
+                        trackColor = colors.bgElevated2,
+                        fillColor = Cyan500,
+                        width = 60.dp,
+                    )
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Text("${shift.aktual.size} doff", style = AppType.TabLabel.copy(color = Cyan400))
+                    if (avgGapMin != null) {
+                        Text(
+                            "±${formatDeltaMin(avgGapMin.toLong())}/doff",
+                            style = TextStyle(fontSize = 12.sp, color = colors.textFaint),
+                        )
+                    }
+                }
             }
-            OutlinedButton(
-                onClick = { requestDelete() },
-                modifier = Modifier.weight(1f).height(38.dp),
-                shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = Red500),
-                border = BorderStroke(1.dp, Red500.copy(alpha = 0.4f)),
-                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
-            ) {
-                Icon(imageVector = Icons.Outlined.Delete, contentDescription = null, modifier = Modifier.size(14.dp), tint = Red500)
-                Spacer(Modifier.width(6.dp))
-                Text("Hapus", style = AppType.CaptionBold.copy(color = Red500))
-            }
-        }
 
-        // A shift can unfold a dozen detail rows at once; as a bare `if` the card jumped
-        // straight to its new height, the one list interaction in the app that didn't move.
-        AnimatedVisibility(
-            visible = expanded,
-            enter = expandVertically(animationSpec = tween(200, easing = FastOutSlowInEasing)) + fadeIn(tween(200)),
-            exit = shrinkVertically(animationSpec = tween(180, easing = FastOutSlowInEasing)) + fadeOut(tween(140)),
-        ) {
-            Column {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 10.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                OutlinedButton(
+                    onClick = { requestShare() },
+                    enabled = shift.aktual.isNotEmpty(),
+                    modifier = Modifier.weight(1f).height(38.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.textSecondary),
+                    border = BorderStroke(1.dp, colors.border),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                ) {
+                    Icon(imageVector = Icons.Outlined.Share, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Bagikan", style = AppType.CaptionBold)
+                }
+                OutlinedButton(
+                    onClick = { requestDelete() },
+                    modifier = Modifier.weight(1f).height(38.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Red500),
+                    border = BorderStroke(1.dp, Red500.copy(alpha = 0.4f)),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                ) {
+                    Icon(imageVector = Icons.Outlined.Delete, contentDescription = null, modifier = Modifier.size(14.dp), tint = Red500)
+                    Spacer(Modifier.width(6.dp))
+                    Text("Hapus", style = AppType.CaptionBold.copy(color = Red500))
+                }
+            }
+
+            if (expanded) {
                 Spacer(Modifier.height(10.dp))
                 if (chronological.isNotEmpty()) {
                     Row(
@@ -732,11 +708,7 @@ private fun ShiftRow(
                     Spacer(Modifier.height(6.dp))
                 }
                 chronological.forEachIndexed { index, entry ->
-                    // Shared with the Riwayat list so both read identically — see DoffEntryRow.kt.
-                    DoffEntryRowContent(
-                        num = index + 1,
-                        entry = entry,
-                        mesin = db[entry.mcNo],
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 2.dp)
@@ -747,7 +719,16 @@ private fun ShiftRow(
                             // edit for just that record instead of collapsing the whole shift.
                             .clickable(onClickLabel = "Edit riwayat Mc ${entry.mcNo}") { onEditEntry(entry.id) }
                             .padding(horizontal = 10.dp, vertical = 8.dp),
-                    )
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        DoffEntryRowContent(
+                            num = index + 1,
+                            entry = entry,
+                            mesin = db[entry.mcNo],
+                            showEditHint = true,
+                        )
+                    }
                 }
                 Spacer(Modifier.height(6.dp))
                 TextButton(
@@ -769,12 +750,6 @@ private fun ShiftRow(
  * "Bravo!!!" casual register, same audience: rekan kerja), for whenever an operator needs to
  * resend a specific day's record instead of the whole running total. Opens the share-sheet
  * directly instead of a copy-then-paste round trip. */
-private fun shareShift(
-    context: Context,
-    shift: ShiftRecord,
-    db: Map<String, MesinData>,
-    operatorNama: String,
-    operatorGrup: String,
-) {
-    shareIntent(context, buildShareShiftText(shift, db, operatorNama, operatorGrup), "Bagikan shift")
+private fun shareShift(context: Context, shift: ShiftRecord, db: Map<String, MesinData>) {
+    shareIntent(context, buildShareShiftText(shift, db), "Bagikan shift")
 }

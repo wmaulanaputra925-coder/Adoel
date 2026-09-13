@@ -1,16 +1,16 @@
 import { useMemo, useRef, useState } from "react";
 import { useDoffStore } from "../store/DoffStore";
 import { useUiStore } from "../store/UiStore";
-import { currentShiftStartAbsMin, formatDeltaMin, getRepresentativeEpochMin, shiftNumberForEpochMin } from "../domain/format";
+import { formatDeltaMin, getRepresentativeEpochMin, shiftNumberForEpochMin } from "../domain/format";
 import { sortAktualChronological } from "../domain/aktualOrder";
 import { shareOrCopy, shareShiftText } from "../domain/share";
 import { TIPE_COLOR } from "../domain/mesinVisual";
 import type { AktualEntry, MesinData, MesinTipe, ShiftRecord } from "../domain/types";
 import { AddIcon, CloseIcon, DeleteIcon, ShareIcon } from "./Icons";
-import { DoffEntryRowContent } from "./DoffEntryRow";
 import { WaveProgressBar } from "./WaveProgressBar";
 import { EditAktualDialog } from "./EditAktualDialog";
 import { TambahAktualDialog } from "./TambahAktualDialog";
+import { DoffEntryRowContent } from "./DoffEntryRow";
 
 function formatShiftDate(epochMin: number): string {
   const d = new Date(epochMin * 60000);
@@ -67,10 +67,7 @@ export function StatistikScreen({ onClose }: { onClose: () => void }) {
 
   async function handleShareShift(shift: ShiftRecord) {
     if (shift.aktual.length === 0) return;
-    const outcome = await shareOrCopy(
-      shareShiftText(shift, state.db, state.operatorNama ?? "", state.operatorGrup ?? ""),
-      "Riwayat Shift",
-    );
+    const outcome = await shareOrCopy(shareShiftText(shift, state.db), "Riwayat Shift");
     if (outcome === "copied") showToast("Teks disalin ke clipboard ✓");
   }
 
@@ -335,16 +332,10 @@ function ShiftRow({
 }) {
   const representativeTime = useMemo(() => getRepresentativeEpochMin(shift), [shift]);
   const shiftNo = useMemo(() => shiftNumberForEpochMin(representativeTime), [representativeTime]);
-  // Tanggal dan rentang jam sama-sama diambil dari jam mulai terjadwal, bukan langsung dari
-  // record, supaya shift yang diarsipkan sebelum finishShift menyimpannya begitu (doff pertama →
-  // tap Selesai Shift) tetap terbaca sebagai shift yang sebenarnya — shift malam yang doff
-  // pertamanya lewat tengah malam dulu tertanggal hari berikutnya. Untuk record baru ini tidak
-  // mengubah apa pun: start-nya sudah berupa batas shift, dan batas shift memetakan ke dirinya.
-  const scheduledStart = useMemo(() => currentShiftStartAbsMin(shift.startedAtEpochMin), [shift.startedAtEpochMin]);
-  const dateStr = useMemo(() => formatShiftDate(scheduledStart), [scheduledStart]);
+  const dateStr = useMemo(() => formatShiftDate(shift.startedAtEpochMin), [shift.startedAtEpochMin]);
   const timeRange = useMemo(
-    () => `${formatShiftTime(scheduledStart)}–${formatShiftTime(scheduledStart + 8 * 60)}`,
-    [scheduledStart],
+    () => `${formatShiftTime(shift.startedAtEpochMin)}–${formatShiftTime(shift.endedAtEpochMin)}`,
+    [shift.startedAtEpochMin, shift.endedAtEpochMin],
   );
 
   const chronological = useMemo(
@@ -359,6 +350,15 @@ function ShiftRow({
     for (let i = 1; i < stamped.length; i++) total += stamped[i] - stamped[i - 1];
     return total / (stamped.length - 1);
   }, [chronological]);
+
+  const hbCount = useMemo(
+    () => shift.aktual.filter((a) => a.ket.toUpperCase().includes("HB")).length,
+    [shift.aktual],
+  );
+  const matchingCount = useMemo(
+    () => shift.aktual.filter((a) => a.ket.toUpperCase().includes("MATCHING")).length,
+    [shift.aktual],
+  );
 
   return (
     <div className={`shift-card${expanded ? " expanded" : ""}`} style={{ marginBottom: 12 }}>
@@ -379,6 +379,12 @@ function ShiftRow({
         </div>
         <div className="stats">
           <div className="num">{shift.aktual.length} doff</div>
+          {(hbCount > 0 || matchingCount > 0) && (
+            <div className="shift-stat-pills">
+              {hbCount > 0 && <span className="shift-pill hb">{hbCount} HB</span>}
+              {matchingCount > 0 && <span className="shift-pill match">{matchingCount} Match</span>}
+            </div>
+          )}
           {avgGapMin != null && <div className="gap">±{formatDeltaMin(Math.round(avgGapMin))}/doff</div>}
         </div>
       </div>
@@ -407,18 +413,21 @@ function ShiftRow({
                 <span className="shift-detail-hint">Ketuk baris untuk edit</span>
               </div>
 
-              {chronological.map((entry, index) => (
-                <div
-                  className="shift-detail-row doff-entry-row"
-                  key={entry.id}
-                  onClick={() => onEditEntry(entry)}
-                  role="button"
-                  title={`Edit riwayat Mc ${entry.mcNo}`}
-                >
-                  {/* Shared with the Riwayat list so both read identically — see DoffEntryRow.tsx. */}
-                  <DoffEntryRowContent num={index + 1} entry={entry} mesin={db[entry.mcNo]} />
-                </div>
-              ))}
+              {chronological.map((entry, index) => {
+                const mesin = db[entry.mcNo];
+
+                return (
+                  <div
+                    className="shift-detail-row doff-entry-row"
+                    key={entry.id}
+                    onClick={() => onEditEntry(entry)}
+                    role="button"
+                    title={`Edit riwayat Mc ${entry.mcNo}`}
+                  >
+                    <DoffEntryRowContent num={index + 1} entry={entry} mesin={mesin} showEditHint />
+                  </div>
+                );
+              })}
             </>
           )}
 

@@ -62,27 +62,16 @@ class DoffViewModel @JvmOverloads constructor(
         s.copy(db = s.db + (mcNo to default))
     }
 
-    fun resetDb() = updateState { s ->
-        // Identitas operator ikut dipertahankan: ini data diri pemakai, bukan data produksi, dan
-        // orangnya tidak berubah hanya karena data mesin dikembalikan ke bawaan. Kalau ponselnya
-        // memang berpindah tangan, namanya tinggal diganti di Pengaturan.
-        DoffState(
-            db = buildDefaultDb(),
-            onboardingSeen = false,
-            operatorNama = s.operatorNama,
-            operatorGrup = s.operatorGrup,
-            operatorAsked = s.operatorAsked,
-        )
+    fun resetDb() = updateState {
+        DoffState(db = buildDefaultDb(), onboardingSeen = false)
     }
 
     fun prosesBarisKondisiMesin(ln: String, nowAbsMin: Long): ProsesResult {
         val parts = ln.trim().split(Regex("\\s+"))
         if (parts.size < 2) return ProsesResult.Err("Kurang data")
         val mcNo = parts[0]
-        // 4 digits, matching web's commands.ts — the mill adds machines over time, so the console
-        // must not cap what Pengaturan will happily let you create (that form takes 4 digits too).
-        if (!mcNo.matches(Regex("^\\d{1,4}$"))) return ProsesResult.Err("Nomor mesin tidak valid")
-        val mesin = _state.value.db[mcNo] ?: return ProsesResult.Err("Mc $mcNo belum terdaftar, tambahkan dulu di Pengaturan")
+        if (!mcNo.matches(Regex("^\\d{1,3}$"))) return ProsesResult.Err("Nomor mesin tidak valid")
+        val mesin = _state.value.db[mcNo] ?: return ProsesResult.Err("Mc $mcNo tidak ditemukan")
         if (mesin.corak.isBlank() || mesin.corak.trim() == "-")
             return ProsesResult.Err("Mc $mcNo belum diatur, atur corak dulu di Pengaturan")
 
@@ -110,34 +99,14 @@ class DoffViewModel @JvmOverloads constructor(
         }
 
         val existing = _state.value.estimasi[mcNo]
-        // Tali Hijau: mcNo ini baru saja di-doff HB dan operator sudah menekan "Sudah Pasang &
-        // Tandai Matching" (lihat DoffState.pendingMatchingMcNos) — Estimasi baru ini adalah
-        // tempat pertama flag itu punya rumah, jadi konsumsi (dan hapus dari daftar tunggu) di sini.
-        val isPending = _state.value.pendingMatchingMcNos?.contains(mcNo) ?: false
-        val willBeMatching = isPending || (existing?.isMatching ?: false)
-        val effectiveCorak = existing?.corakOverride ?: mesin.corak
         val newEst = Estimasi(
             mcNo = mcNo,
             estAbsMin = estAbs,
             startAbsMin = existing?.startAbsMin ?: nowAbsMin,
             corakOverride = existing?.corakOverride,
-            // yardOverride tidak punya penulis lain di luar fitur Matching ini, jadi dihitung ulang
-            // murni dari isMatching+corak tiap kali (bukan "preserve nilai lama") — sama seperti
-            // toggleEstimasiMatching manual: 70y HANYA untuk corak yang memang termasuk aturan
-            // potongan awal (lihat isPotonganAwalCorak); corak lain tetap null (pakai target
-            // standar mesin), dan begitu isMatching lepas (di sini maupun lewat toggle), yard ikut
-            // kembali ke standar.
-            yardOverride = if (willBeMatching && isPotonganAwalCorak(_state.value.corakPotonganAwal, effectiveCorak)) POTONGAN_AWAL_YARD else null,
-            // Tali Hijau tags the beam, not the time estimate — re-timing an already-tagged
-            // machine (mistyped duration, corrected reading) shouldn't silently untag it.
-            isMatching = willBeMatching,
+            yardOverride = existing?.yardOverride,
         )
-        updateState { s ->
-            s.copy(
-                estimasi = s.estimasi + (mcNo to newEst),
-                pendingMatchingMcNos = if (isPending) (s.pendingMatchingMcNos ?: emptyList()) - mcNo else s.pendingMatchingMcNos,
-            )
-        }
+        updateState { s -> s.copy(estimasi = s.estimasi + (mcNo to newEst)) }
 
         return ProsesResult.Ok(
             msg = "Mc $mcNo → ${absMinToTimeStr(estAbs)}",
@@ -150,8 +119,8 @@ class DoffViewModel @JvmOverloads constructor(
         val parts = ln.trim().split(Regex("\\s+"))
         if (parts.isEmpty()) return ProsesResult.Err("Kosong")
         val mcNo = parts[0]
-        if (!mcNo.matches(Regex("^\\d{1,4}$"))) return ProsesResult.Err("Nomor mesin tidak valid")
-        val mesin = _state.value.db[mcNo] ?: return ProsesResult.Err("Mc $mcNo belum terdaftar, tambahkan dulu di Pengaturan")
+        if (!mcNo.matches(Regex("^\\d{1,3}$"))) return ProsesResult.Err("Nomor mesin tidak valid")
+        val mesin = _state.value.db[mcNo] ?: return ProsesResult.Err("Mc $mcNo tidak ditemukan")
 
         val jam = nowTimeStr()
         var customYard: Double? = null
@@ -172,31 +141,11 @@ class DoffViewModel @JvmOverloads constructor(
             ketTokens.add(token)
         }
 
-        val prevEst = _state.value.estimasi[mcNo]
-        val effectiveCorak = prevEst?.corakOverride ?: mesin.corak
-
-        val rawExtra = standarisasiKeterangan(ketTokens.joinToString(" ").trim())
-        // Tali hijau: operator sudah menandai mesin ini Matching sebelum waktunya doffing (lihat
-        // Estimasi.isMatching) — begitu waktunya tiba, aksi doff APA PUN (swipe biasa, tombol
-        // Doffing, command yang diketik manual) langsung tercatat sebagai Matching juga, supaya
-        // operator tidak perlu memilih ulang di depan mesin. Menang atas ketTokens yang diketik —
-        // penanda ini dipasang justru supaya operator tidak perlu berpikir lagi saat itu.
-        val extra = if (prevEst?.isMatching == true) "MATCHING" else rawExtra
+        val extra = standarisasiKeterangan(ketTokens.joinToString(" ").trim())
         val ket = if (extra.isNotEmpty()) "$jam($extra)" else jam
 
-        // Doffing Matching memotong 70 yard pertama, bukan sepanjang target standar mesin — tanpa
-        // ini Riwayat mencatat panjang standar (mis. 303y) untuk potongan yang nyatanya 70y. Yard
-        // yang diketik operator selalu menang. Tali hijau pakai yardOverride apa adanya (null
-        // berarti corak ini BUKAN corak potongan awal — lihat toggleEstimasiMatching/
-        // prosesBarisKondisiMesin — jadi TIDAK dipaksa 70y, tetap pakai target standar mesin
-        // seperti Matching biasa di luar daftar).
-        if (customYard == null && extra.contains("MATCHING")) {
-            customYard = when {
-                prevEst?.isMatching == true -> prevEst.yardOverride
-                isPotonganAwalCorak(_state.value.corakPotonganAwal, effectiveCorak) -> POTONGAN_AWAL_YARD
-                else -> null
-            }
-        }
+        val prevEst = _state.value.estimasi[mcNo]
+        val effectiveCorak = prevEst?.corakOverride ?: mesin.corak
 
         var entryId = 0
         var createdEntry: AktualEntry? = null
@@ -258,28 +207,15 @@ class DoffViewModel @JvmOverloads constructor(
         s.copy(estimasi = s.estimasi + (mcNo to est.copy(estAbsMin = est.estAbsMin + pausedFor, pausedAtAbsMin = null)))
     }
 
-    /** Tali Hijau: switches Mc [mcNo]'s Matching tag on/off — a no-op if the estimate no longer
-     * exists (e.g. already doffed out from under a pending tap). yardOverride has no other writer
-     * outside this Matching feature, so it's recomputed fresh from isMatching+corak on every
-     * toggle rather than "preserved": switching on sets it to the Matching sample length
-     * (POTONGAN_AWAL_YARD) ONLY when this machine's corak is actually in the potongan-awal list
-     * (see isPotonganAwalCorak) — other corak stay null (standard target yard), never forced to
-     * 70y; switching off always reverts to null (standard), never leaves a stale 70y behind. */
+    /** Toggles the Matching bookmark indicator for Mc [mcNo]. Accessible anytime. */
     fun toggleEstimasiMatching(mcNo: String) = updateState { s ->
         val est = s.estimasi[mcNo] ?: return@updateState s
-        val next = !est.isMatching
-        val effectiveCorak = est.corakOverride ?: s.db[mcNo]?.corak
-        val yardOverride = if (next && isPotonganAwalCorak(s.corakPotonganAwal, effectiveCorak)) POTONGAN_AWAL_YARD else null
-        s.copy(estimasi = s.estimasi + (mcNo to est.copy(isMatching = next, yardOverride = yardOverride)))
+        s.copy(estimasi = s.estimasi + (mcNo to est.copy(isMatching = !est.isMatching)))
     }
 
-    /** Tali Hijau: menandai [mcNo] agar Estimasi berikutnya untuk mesin itu otomatis isMatching
-     * (lihat DoffState.pendingMatchingMcNos) — dipanggil dari tombol "Tandai Matching" pada
-     * pengingat setelah doff HB. Konsumsinya (dihapus dari daftar ini) terjadi di
-     * prosesBarisKondisiMesin, begitu Estimasi baru untuk mcNo itu benar-benar dibuat. */
-    fun markPendingMatching(mcNo: String) = updateState { s ->
-        val list = s.pendingMatchingMcNos ?: emptyList()
-        if (list.contains(mcNo)) s else s.copy(pendingMatchingMcNos = list + mcNo)
+    fun setEstimasiMatching(mcNo: String, isMatching: Boolean) = updateState { s ->
+        val est = s.estimasi[mcNo] ?: return@updateState s
+        s.copy(estimasi = s.estimasi + (mcNo to est.copy(isMatching = isMatching)))
     }
 
     fun hapusAktualById(id: Int) = updateState { s ->
@@ -365,25 +301,13 @@ class DoffViewModel @JvmOverloads constructor(
 
         // Only archive a shift record when there's doffing history to archive.
         if (s.aktual.isNotEmpty()) {
-            // A shift record spans its SCHEDULED window (06/14/22 + 8 hours), not the operator's
-            // first doff and the moment they tapped Selesai Shift — those drift by however early
-            // the first beam ran out or how late someone got around to closing the shift, which
-            // made two runs of the same shift archive different hours. The earliest doff (falling
-            // back to now when nothing is timestamped) only picks WHICH shift this is, so closing
-            // late — even past the next boundary — still files the work under the shift it was
-            // done in.
-            val anchor = s.aktual.mapNotNull { it.tsEpochMin }.minOrNull() ?: now
-            val started = currentShiftStartAbsMin(anchor)
+            val started = s.aktual.mapNotNull { it.tsEpochMin }.minOrNull() ?: now
             val record = ShiftRecord(
                 id = s.nextShiftId,
                 startedAtEpochMin = started,
-                endedAtEpochMin = started + 480,
+                endedAtEpochMin = now,
                 aktual = s.aktual,
                 estimasiRemaining = emptyMap(),
-                // Dicap sekarang, bukan dibaca saat laporannya dibagikan — kalau operator/grup di
-                // pengaturan berubah, arsip lama tetap atas nama orang yang menjalankannya.
-                operatorNama = s.operatorNama,
-                operatorGrup = s.operatorGrup,
             )
             return@updateState s.copy(
                 estimasi = emptyMap(),
@@ -404,16 +328,6 @@ class DoffViewModel @JvmOverloads constructor(
     fun setOnboardingSeen() = updateState { s ->
         s.copy(onboardingSeen = true)
     }
-
-    /** Identitas operator — ditanyakan sekali saat pertama buka, lalu bisa diubah di Pengaturan.
-     * Dipakai teks bagikan; dicap ke arsip shift saat Selesai Shift ditekan. */
-    fun setOperator(nama: String, grup: String) = updateState { s ->
-        s.copy(operatorNama = nama.trim(), operatorGrup = grup.trim(), operatorAsked = true)
-    }
-
-    /** Pertanyaan identitasnya dilewati — jangan tanya lagi tiap buka aplikasi; kolomnya tetap
-     * bisa diisi kapan saja lewat Pengaturan. */
-    fun markOperatorAsked() = updateState { s -> s.copy(operatorAsked = true) }
 
     fun addKeteranganShortcut(shortcut: String) = updateState { s ->
         val list = (s.keteranganShortcuts ?: DEFAULT_KETERANGAN_SHORTCUTS)
