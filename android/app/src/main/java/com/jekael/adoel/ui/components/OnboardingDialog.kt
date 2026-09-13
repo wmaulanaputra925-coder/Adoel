@@ -308,29 +308,26 @@ private fun RadarGestureGuide() {
             )
         }
 
-        // Gesture 1: Geser ke Kanan — Cyan (netral), bukan warna Normal (Sky) atau Matching
-        // (Emerald) tertentu, karena hasilnya memang kondisional tergantung penanda.
+        // Gesture 1: Geser ke Kanan — Sky, warna Doffing Normal.
         GestureItem(
             icon = Icons.AutoMirrored.Outlined.ArrowForward,
             iconTint = Cyan400,
             actionLabel = "Geser ke Kanan",
-            badgeText = "Doffing",
+            badgeText = "Doffing Normal",
             badgeColor = Cyan400,
-            description = "Usap kartu ke kanan untuk mencatat Doffing — otomatis Normal, atau Matching kalau mesin sedang " +
-                "bertanda 🏷️ Tali Hijau. Hanya aktif saat mendekati jam doffing.",
+            description = "Usap kartu ke kanan untuk mencatat Doffing Normal — selesai sesuai target yard. Hanya aktif " +
+                "saat mendekati jam doffing.",
         )
 
-        // Gesture 2: Geser ke Kiri — ikon tag/label, bukan bookmark, mengikuti desain pita pojok
-        // kanan-atas kartu yang sekarang bertuliskan "MATCHING" (bukan lagi ikon bookmark).
+        // Gesture 2: Geser ke Kiri — Emerald, warna Doffing Matching.
         GestureItem(
             icon = Icons.Outlined.Sell,
             iconTint = Emerald400,
             actionLabel = "Geser ke Kiri",
-            badgeText = "Tandai Tali Hijau",
+            badgeText = "Doffing Matching",
             badgeColor = Emerald400,
-            description = "Usap kartu ke kiri untuk menandai/melepas 🏷️ Tali Hijau · Matching — beam lusi baru yang " +
-                "gulungan pertamanya perlu dipotong sebagai sampel uji kualitas. Bisa kapan saja, tidak perlu menunggu jam " +
-                "doffing; begitu ditandai, Doffing berikutnya (geser kanan) otomatis tercatat Matching.",
+            description = "Usap kartu ke kiri untuk mencatat Doffing Matching — potong sampel untuk cek kualitas beam " +
+                "baru. Sama seperti geser kanan, hanya aktif saat mendekati jam doffing.",
         )
 
         // Gesture 3: Ketuk Angka Jam

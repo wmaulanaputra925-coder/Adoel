@@ -59,7 +59,6 @@ internal fun LazyListScope.estimasiSection(
     onLanjutkan: (String) -> Unit,
     onQuickEdit: (String) -> Unit,
     onEditWaktu: (String) -> Unit,
-    onToggleMatching: (String) -> Unit,
 ) {
     if (radarList.isEmpty()) {
         item(key = "est_empty") {
@@ -136,7 +135,6 @@ internal fun LazyListScope.estimasiSection(
                 onLanjutkan = { onLanjutkan(est.mcNo) },
                 onQuickEdit = { onQuickEdit(est.mcNo) },
                 onEditWaktu = { onEditWaktu(est.mcNo) },
-                onToggleMatching = { onToggleMatching(est.mcNo) },
                 modifier = Modifier.animateItem(),
                 entranceDelayMs = (index * Motion.LIST_STAGGER_STEP_MS).coerceAtMost(Motion.LIST_STAGGER_MAX_MS),
             )
@@ -160,7 +158,6 @@ internal fun LazyListScope.estimasiSection(
                 onLanjutkan = { onLanjutkan(est.mcNo) },
                 onQuickEdit = { onQuickEdit(est.mcNo) },
                 onEditWaktu = { onEditWaktu(est.mcNo) },
-                onToggleMatching = { onToggleMatching(est.mcNo) },
                 modifier = Modifier.animateItem(),
                 entranceDelayMs = (index * Motion.LIST_STAGGER_STEP_MS).coerceAtMost(Motion.LIST_STAGGER_MAX_MS),
             )
@@ -206,7 +203,6 @@ internal fun LazyListScope.estimasiSection(
                         onLanjutkan = { onLanjutkan(row.est.mcNo) },
                         onQuickEdit = { onQuickEdit(row.est.mcNo) },
                         onEditWaktu = { onEditWaktu(row.est.mcNo) },
-                        onToggleMatching = { onToggleMatching(row.est.mcNo) },
                         modifier = Modifier.animateItem(),
                         entranceDelayMs = entranceDelayMs,
                     )

@@ -110,34 +110,14 @@ class DoffViewModel @JvmOverloads constructor(
         }
 
         val existing = _state.value.estimasi[mcNo]
-        // Tali Hijau: mcNo ini baru saja di-doff HB dan operator sudah menekan "Sudah Pasang &
-        // Tandai Matching" (lihat DoffState.pendingMatchingMcNos) — Estimasi baru ini adalah
-        // tempat pertama flag itu punya rumah, jadi konsumsi (dan hapus dari daftar tunggu) di sini.
-        val isPending = _state.value.pendingMatchingMcNos?.contains(mcNo) ?: false
-        val willBeMatching = isPending || (existing?.isMatching ?: false)
-        val effectiveCorak = existing?.corakOverride ?: mesin.corak
         val newEst = Estimasi(
             mcNo = mcNo,
             estAbsMin = estAbs,
             startAbsMin = existing?.startAbsMin ?: nowAbsMin,
             corakOverride = existing?.corakOverride,
-            // yardOverride tidak punya penulis lain di luar fitur Matching ini, jadi dihitung ulang
-            // murni dari isMatching+corak tiap kali (bukan "preserve nilai lama") — sama seperti
-            // toggleEstimasiMatching manual: 70y HANYA untuk corak yang memang termasuk aturan
-            // potongan awal (lihat isPotonganAwalCorak); corak lain tetap null (pakai target
-            // standar mesin), dan begitu isMatching lepas (di sini maupun lewat toggle), yard ikut
-            // kembali ke standar.
-            yardOverride = if (willBeMatching && isPotonganAwalCorak(_state.value.corakPotonganAwal, effectiveCorak)) POTONGAN_AWAL_YARD else null,
-            // Tali Hijau tags the beam, not the time estimate — re-timing an already-tagged
-            // machine (mistyped duration, corrected reading) shouldn't silently untag it.
-            isMatching = willBeMatching,
+            yardOverride = existing?.yardOverride,
         )
-        updateState { s ->
-            s.copy(
-                estimasi = s.estimasi + (mcNo to newEst),
-                pendingMatchingMcNos = if (isPending) (s.pendingMatchingMcNos ?: emptyList()) - mcNo else s.pendingMatchingMcNos,
-            )
-        }
+        updateState { s -> s.copy(estimasi = s.estimasi + (mcNo to newEst)) }
 
         return ProsesResult.Ok(
             msg = "Mc $mcNo → ${absMinToTimeStr(estAbs)}",
@@ -175,27 +155,14 @@ class DoffViewModel @JvmOverloads constructor(
         val prevEst = _state.value.estimasi[mcNo]
         val effectiveCorak = prevEst?.corakOverride ?: mesin.corak
 
-        val rawExtra = standarisasiKeterangan(ketTokens.joinToString(" ").trim())
-        // Tali hijau: operator sudah menandai mesin ini Matching sebelum waktunya doffing (lihat
-        // Estimasi.isMatching) — begitu waktunya tiba, aksi doff APA PUN (swipe biasa, tombol
-        // Doffing, command yang diketik manual) langsung tercatat sebagai Matching juga, supaya
-        // operator tidak perlu memilih ulang di depan mesin. Menang atas ketTokens yang diketik —
-        // penanda ini dipasang justru supaya operator tidak perlu berpikir lagi saat itu.
-        val extra = if (prevEst?.isMatching == true) "MATCHING" else rawExtra
+        val extra = standarisasiKeterangan(ketTokens.joinToString(" ").trim())
         val ket = if (extra.isNotEmpty()) "$jam($extra)" else jam
 
-        // Doffing Matching memotong 70 yard pertama, bukan sepanjang target standar mesin — tanpa
-        // ini Riwayat mencatat panjang standar (mis. 303y) untuk potongan yang nyatanya 70y. Yard
-        // yang diketik operator selalu menang. Tali hijau pakai yardOverride apa adanya (null
-        // berarti corak ini BUKAN corak potongan awal — lihat toggleEstimasiMatching/
-        // prosesBarisKondisiMesin — jadi TIDAK dipaksa 70y, tetap pakai target standar mesin
-        // seperti Matching biasa di luar daftar).
-        if (customYard == null && extra.contains("MATCHING")) {
-            customYard = when {
-                prevEst?.isMatching == true -> prevEst.yardOverride
-                isPotonganAwalCorak(_state.value.corakPotonganAwal, effectiveCorak) -> POTONGAN_AWAL_YARD
-                else -> null
-            }
+        // Doffing Matching memotong 70 yard pertama pada corak yang termasuk aturan potongan awal,
+        // bukan sepanjang target standar mesin — tanpa ini Riwayat mencatat panjang standar (mis.
+        // 303y) untuk potongan yang nyatanya 70y. Yard yang diketik operator selalu menang.
+        if (customYard == null && extra.contains("MATCHING") && isPotonganAwalCorak(_state.value.corakPotonganAwal, effectiveCorak)) {
+            customYard = POTONGAN_AWAL_YARD
         }
 
         var entryId = 0
@@ -256,30 +223,6 @@ class DoffViewModel @JvmOverloads constructor(
         val pausedAt = est.pausedAtAbsMin ?: return@updateState s
         val pausedFor = nowAbsMin() - pausedAt
         s.copy(estimasi = s.estimasi + (mcNo to est.copy(estAbsMin = est.estAbsMin + pausedFor, pausedAtAbsMin = null)))
-    }
-
-    /** Tali Hijau: switches Mc [mcNo]'s Matching tag on/off — a no-op if the estimate no longer
-     * exists (e.g. already doffed out from under a pending tap). yardOverride has no other writer
-     * outside this Matching feature, so it's recomputed fresh from isMatching+corak on every
-     * toggle rather than "preserved": switching on sets it to the Matching sample length
-     * (POTONGAN_AWAL_YARD) ONLY when this machine's corak is actually in the potongan-awal list
-     * (see isPotonganAwalCorak) — other corak stay null (standard target yard), never forced to
-     * 70y; switching off always reverts to null (standard), never leaves a stale 70y behind. */
-    fun toggleEstimasiMatching(mcNo: String) = updateState { s ->
-        val est = s.estimasi[mcNo] ?: return@updateState s
-        val next = !est.isMatching
-        val effectiveCorak = est.corakOverride ?: s.db[mcNo]?.corak
-        val yardOverride = if (next && isPotonganAwalCorak(s.corakPotonganAwal, effectiveCorak)) POTONGAN_AWAL_YARD else null
-        s.copy(estimasi = s.estimasi + (mcNo to est.copy(isMatching = next, yardOverride = yardOverride)))
-    }
-
-    /** Tali Hijau: menandai [mcNo] agar Estimasi berikutnya untuk mesin itu otomatis isMatching
-     * (lihat DoffState.pendingMatchingMcNos) — dipanggil dari tombol "Tandai Matching" pada
-     * pengingat setelah doff HB. Konsumsinya (dihapus dari daftar ini) terjadi di
-     * prosesBarisKondisiMesin, begitu Estimasi baru untuk mcNo itu benar-benar dibuat. */
-    fun markPendingMatching(mcNo: String) = updateState { s ->
-        val list = s.pendingMatchingMcNos ?: emptyList()
-        if (list.contains(mcNo)) s else s.copy(pendingMatchingMcNos = list + mcNo)
     }
 
     fun hapusAktualById(id: Int) = updateState { s ->

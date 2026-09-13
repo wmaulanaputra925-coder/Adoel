@@ -51,7 +51,6 @@ private data class SerialState(
     val keteranganShortcuts: List<String>? = null,
     val corakShortcuts: List<String>? = null,
     val corakPotonganAwal: List<String>? = null,
-    val pendingMatchingMcNos: List<String>? = null,
 )
 
 private data class SerialMesin(
@@ -72,9 +71,6 @@ private data class SerialEstimasi(
     // Null on data written before Jeda existed (Gson leaves it null on old data) — same "never
     // paused" default as a fresh Estimasi.
     val pausedAtAbsMin: Long? = null,
-    // Null on data written before this flag existed (Gson leaves it null on old data) — same
-    // "not tagged" default as a fresh Estimasi.
-    val isMatching: Boolean? = null,
 )
 
 private data class SerialAktual(
@@ -179,7 +175,7 @@ class DoffRepository private constructor(private val context: Context) : DoffSta
                     val safeMcNo = v.mcNo ?: mcNo
                     val estAbsMin = v.estAbsMin ?: return@mapNotNull null
                     val startAbsMin = v.startAbsMin ?: return@mapNotNull null
-                    safeMcNo to Estimasi(safeMcNo, estAbsMin, startAbsMin, v.corakOverride, v.yardOverride, v.pausedAtAbsMin, v.isMatching ?: false)
+                    safeMcNo to Estimasi(safeMcNo, estAbsMin, startAbsMin, v.corakOverride, v.yardOverride, v.pausedAtAbsMin)
                 }.toMap(),
                 aktual = dedupeIds(serial.aktual),
                 nextId = maxOf(serial.nextId ?: 1, ((serial.aktual?.filterNotNull()?.maxOfOrNull { it.id ?: 0 }) ?: 0) + 1),
@@ -195,7 +191,7 @@ class DoffRepository private constructor(private val context: Context) : DoffSta
                             val safeMcNo = v.mcNo ?: mcNo
                             val estAbsMin = v.estAbsMin ?: return@mapNotNull null
                             val startAbsMin = v.startAbsMin ?: return@mapNotNull null
-                            safeMcNo to Estimasi(safeMcNo, estAbsMin, startAbsMin, v.corakOverride, v.yardOverride, v.pausedAtAbsMin, v.isMatching ?: false)
+                            safeMcNo to Estimasi(safeMcNo, estAbsMin, startAbsMin, v.corakOverride, v.yardOverride, v.pausedAtAbsMin)
                         }.toMap(),
                         operatorNama = r.operatorNama.orEmpty(),
                         operatorGrup = r.operatorGrup.orEmpty(),
@@ -211,7 +207,6 @@ class DoffRepository private constructor(private val context: Context) : DoffSta
                 keteranganShortcuts = serial.keteranganShortcuts,
                 corakShortcuts = serial.corakShortcuts,
                 corakPotonganAwal = serial.corakPotonganAwal,
-                pendingMatchingMcNos = serial.pendingMatchingMcNos,
             )
         } catch (e: Exception) {
             // Null is the correct contract for the caller (invalid backup / corrupt blob), but a
@@ -277,7 +272,7 @@ class DoffRepository private constructor(private val context: Context) : DoffSta
                 SerialMesin(v.tipe.name, v.corak, v.targetYard, v.speed, v.koreksi, v.isActive)
             },
             estimasi = state.estimasi.mapValues { (_, v) ->
-                SerialEstimasi(v.mcNo, v.estAbsMin, v.startAbsMin, v.corakOverride, v.yardOverride, v.pausedAtAbsMin, v.isMatching)
+                SerialEstimasi(v.mcNo, v.estAbsMin, v.startAbsMin, v.corakOverride, v.yardOverride, v.pausedAtAbsMin)
             },
             aktual = state.aktual.map(::toSerialAktual),
             nextId = state.nextId,
@@ -289,7 +284,7 @@ class DoffRepository private constructor(private val context: Context) : DoffSta
                     endedAtEpochMin = r.endedAtEpochMin,
                     aktual = r.aktual.map(::toSerialAktual),
                     estimasiRemaining = r.estimasiRemaining.mapValues { (_, v) ->
-                        SerialEstimasi(v.mcNo, v.estAbsMin, v.startAbsMin, v.corakOverride, v.yardOverride, v.pausedAtAbsMin, v.isMatching)
+                        SerialEstimasi(v.mcNo, v.estAbsMin, v.startAbsMin, v.corakOverride, v.yardOverride, v.pausedAtAbsMin)
                     },
                     operatorNama = r.operatorNama,
                     operatorGrup = r.operatorGrup,
@@ -303,7 +298,6 @@ class DoffRepository private constructor(private val context: Context) : DoffSta
             keteranganShortcuts = state.keteranganShortcuts,
             corakShortcuts = state.corakShortcuts,
             corakPotonganAwal = state.corakPotonganAwal,
-            pendingMatchingMcNos = state.pendingMatchingMcNos,
         )
         return gson.toJson(serial)
     }
@@ -404,7 +398,7 @@ class DoffRepository private constructor(private val context: Context) : DoffSta
         val payload = SyncPayload(
             cDb = cDbList,
             estimasi = targetEst.mapValues { (_, v) ->
-                SerialEstimasi(v.mcNo, v.estAbsMin, v.startAbsMin, v.corakOverride, v.yardOverride, v.pausedAtAbsMin, v.isMatching)
+                SerialEstimasi(v.mcNo, v.estAbsMin, v.startAbsMin, v.corakOverride, v.yardOverride, v.pausedAtAbsMin)
             },
             aktual = emptyList(),
         )
@@ -471,7 +465,7 @@ class DoffRepository private constructor(private val context: Context) : DoffSta
                             val safeMcNo = v.mcNo ?: mcNo
                             val estAbsMin = v.estAbsMin ?: return@mapNotNull null
                             val startAbsMin = v.startAbsMin ?: return@mapNotNull null
-                            safeMcNo to Estimasi(safeMcNo, estAbsMin, startAbsMin, v.corakOverride, v.yardOverride, v.pausedAtAbsMin, v.isMatching ?: false)
+                            safeMcNo to Estimasi(safeMcNo, estAbsMin, startAbsMin, v.corakOverride, v.yardOverride, v.pausedAtAbsMin)
                         }.toMap()
 
                         message = "Oper Shift berhasil diimpor (${incomingEst.size} estimasi) ✓"
@@ -567,7 +561,7 @@ class DoffRepository private constructor(private val context: Context) : DoffSta
                 val safeMcNo = v.mcNo ?: mcNo
                 val estAbsMin = v.estAbsMin ?: return@mapNotNull null
                 val startAbsMin = v.startAbsMin ?: return@mapNotNull null
-                safeMcNo to Estimasi(safeMcNo, estAbsMin, startAbsMin, v.corakOverride, v.yardOverride, v.pausedAtAbsMin, v.isMatching ?: false)
+                safeMcNo to Estimasi(safeMcNo, estAbsMin, startAbsMin, v.corakOverride, v.yardOverride, v.pausedAtAbsMin)
             }.toMap(),
             aktual = dedupedAktual,
             nextId = maxOf(current.nextId, (dedupedAktual.maxOfOrNull { it.id } ?: 0) + 1),

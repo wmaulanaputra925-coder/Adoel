@@ -35,14 +35,6 @@ data class Estimasi(
     // Estimasi.effectiveRemaining in EstimasiUtils.kt): estAbsMin itself doesn't move until
     // Lanjutkan shifts it forward by however long the pause lasted (DoffViewModel.resumeEstimasi).
     val pausedAtAbsMin: Long? = null,
-    // "Tali Hijau" — operator tagged this machine's beam as freshly hung (new lusi beam, sample
-    // Matching still owed) while walking the floor at shift start, well before doffing time. Set
-    // via RadarCard's one-tap toggle (DoffViewModel.setEstimasiMatching); when true, the doff this
-    // Estimasi eventually turns into is forced to record as Matching regardless of which swipe
-    // direction/button actually fires it (DoffViewModel.prosesBarisUmum) — the operator already
-    // decided at tag time, so nothing asks them to choose again at doff time. Naturally resets to
-    // false for the next cycle because the whole Estimasi is deleted on doff, not just this flag.
-    val isMatching: Boolean = false,
 )
 
 data class AktualEntry(
@@ -117,13 +109,6 @@ data class DoffState(
     val keteranganShortcuts: List<String>? = null,
     val corakShortcuts: List<String>? = null,
     val corakPotonganAwal: List<String>? = null,
-    /** Mc yang habis di-doff HB (Habis Beam) dan operator sudah menekan "Tandai Matching" pada
-     * pengingat tali-hijau (lihat matchingRules.kt) — belum bertemu Estimasi baru,
-     * jadi flag isMatching-nya belum ada tempat untuk hinggap. Dikonsumsi (dihapus dari daftar ini)
-     * begitu Estimasi berikutnya untuk mcNo itu benar-benar dibuat (DoffViewModel
-     * prosesBarisKondisiMesin), yang saat itu langsung disetel isMatching = true. Null/kosong =
-     * tidak ada yang menunggu. Sama persis dengan DoffState.pendingMatchingMcNos di types.ts (Web). */
-    val pendingMatchingMcNos: List<String>? = null,
 )
 
 /** Cek apakah [corak] termasuk [corakPotonganAwal] (atau [DEFAULT_CORAK_POTONGAN_AWAL] kalau

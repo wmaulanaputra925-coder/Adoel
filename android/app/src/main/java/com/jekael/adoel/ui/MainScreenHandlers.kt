@@ -34,25 +34,6 @@ internal class MainScreenHandlers(
         uiVm.showToast("⚠ $msg")
     }
 
-    /** Tali Hijau: HB (Habis Beam) berarti beam lusi lama habis dan beam baru sudah naik — potongan
-     * pertama gulungan itu adalah sampel Matching, dan operator harus memasang tali hijau fisik di
-     * tepi kainnya. Tawarkan langsung menandai isMatching untuk siklus berikutnya, supaya nanti
-     * waktu doffingnya tiba operator tidak perlu memeriksa kain lagi. Cek pada string ket yang
-     * sudah dibakukan (bukan cmd mentah) — ket selalu berbentuk "jam(HB)" persis, tidak pernah
-     * tergabung dengan token lain (lihat standarisasiKeterangan). */
-    private fun maybeShowMatchingReminder(entry: AktualEntry?) {
-        if (entry != null && entry.ket.contains("(HB)")) {
-            uiVm.showConfirm(
-                msg = "⚠️ Beam baru Mc ${entry.mcNo} — pasang tali hijau di tepi kain gulungan awal.",
-                confirmLabel = "Tandai Matching",
-                cancelLabel = "Lewati",
-                isDestructive = false,
-            ) {
-                doffVm.markPendingMatching(entry.mcNo)
-            }
-        }
-    }
-
     private fun submitEstimasi(cmd: String, onCleared: () -> Unit) {
         val result = doffVm.prosesBarisKondisiMesin(cmd, nowAbsMin())
         when (result) {
@@ -108,7 +89,6 @@ internal class MainScreenHandlers(
                             ),
                         )
                         uiVm.showToast(result.msg)
-                        maybeShowMatchingReminder(result.entry)
                         onCleared()
                     }
                     is ProsesResult.Err -> flashError(result.msg)
@@ -117,10 +97,10 @@ internal class MainScreenHandlers(
         }
     }
 
-    // RadarCard's swipe-right always resolves its own Normal/Matching kind from Estimasi.isMatching
-    // before calling this (see triggerDoff there) — this function's own keterangan is trusted as
-    // already-decided. GuidedDoffingSheet's own Matching pick still gates itself against the
-    // potongan-awal-70y reminder independently, in its own composable.
+    // RadarCard's swipe direction decides Normal vs Matching itself (swipe kanan = tanpa
+    // keterangan, swipe kiri = "MATCHING") before calling this. GuidedDoffingSheet's own Matching
+    // pick still gates itself against the potongan-awal-70y reminder independently, in its own
+    // composable.
     fun handleDoff(mcNo: String, keterangan: String? = null) {
         val cmd = if (keterangan != null) "$mcNo $keterangan" else mcNo
         val result = doffVm.prosesBarisUmum(cmd)
@@ -143,7 +123,6 @@ internal class MainScreenHandlers(
                     ),
                 )
                 uiVm.showToast(result.msg)
-                maybeShowMatchingReminder(result.entry)
             }
             is ProsesResult.Err -> uiVm.showToast("⚠ ${result.msg}")
         }
@@ -204,23 +183,6 @@ internal class MainScreenHandlers(
             ),
         )
         uiVm.showToast("Mc $mcNo dilanjutkan")
-    }
-
-    /** Tali Hijau: RadarCard's always-visible one-tap toggle. No confirm dialog and no reminder
-     * reschedule — isMatching never touches estAbsMin, only which flavor of doff gets forced at
-     * DoffViewModel.prosesBarisUmum once the machine's time actually comes. */
-    fun handleToggleMatching(mcNo: String) {
-        val prevEst = doffVm.state.value.estimasi[mcNo] ?: return
-        doffVm.toggleEstimasiMatching(mcNo)
-        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-        val nowMatching = doffVm.state.value.estimasi[mcNo]?.isMatching == true
-        undoRedo.push(
-            UndoableAction(
-                undo = { doffVm.restoreEstimasi(prevEst) },
-                redo = { doffVm.toggleEstimasiMatching(mcNo) },
-            ),
-        )
-        uiVm.showToast(if (nowMatching) "Mc $mcNo ditandai Matching" else "Penanda Matching Mc $mcNo dilepas")
     }
 
     fun handleHapusAktual(id: Int, onCleared: () -> Unit) {

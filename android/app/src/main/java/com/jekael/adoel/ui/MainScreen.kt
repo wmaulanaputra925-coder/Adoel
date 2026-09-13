@@ -344,7 +344,6 @@ fun MainScreen(
                                 // estimasi's own time — no more one tap target for two fields.
                                 onQuickEdit = { mcNo -> activeOverlay = ActiveOverlay.QuickEditMesin(mcNo) },
                                 onEditWaktu = { mcNo -> activeOverlay = ActiveOverlay.GuidedEstimasi(mcNo) },
-                                onToggleMatching = { mcNo -> handlers.handleToggleMatching(mcNo) },
                             )
                         }
                         Page.RIWAYAT -> {

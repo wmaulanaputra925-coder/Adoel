@@ -46,21 +46,9 @@ private fun formatAktualLine(index: Int, mcNo: String, corak: String, yard: Doub
     return "${index + 1}. Mc $mcNo – $corak$yardSuffix · ${formatKetDisplay(ket)}"
 }
 
-private fun formatEstimasiLine(
-    mcNo: String,
-    corak: String,
-    yard: Double?,
-    estAbsMin: Long,
-    zone: TimeZone,
-    isMatching: Boolean,
-): String {
+private fun formatEstimasiLine(mcNo: String, corak: String, yard: Double?, estAbsMin: Long, zone: TimeZone): String {
     val yardSuffix = if (yard != null) " (${formatYard(yard)}y)" else ""
-    // formatAktualLine's ket already carries "(MATCHING)" for a completed doff — a still-running
-    // Estimasi has no ket yet (that's only written at doff time), just its own isMatching flag, so
-    // this needs its own explicit segment or the tag silently vanishes from the share text the
-    // moment it matters most: while a coworker still needs to know before the machine is doffed.
-    val matchingSuffix = if (isMatching) " · Matching" else ""
-    return "• Mc $mcNo – $corak$yardSuffix$matchingSuffix · Est. ${absMinToTimeStr(estAbsMin, zone)}"
+    return "• Mc $mcNo – $corak$yardSuffix · Est. ${absMinToTimeStr(estAbsMin, zone)}"
 }
 
 /** [nowMillis]/[zone] hanya untuk unit test — call site produksi memakai waktu & zona perangkat
@@ -99,7 +87,7 @@ fun buildShareHistoryText(
         val mesin = state.db[est.mcNo]
         val corak = est.corakOverride ?: mesin?.corak ?: "—"
         val yard = est.yardOverride ?: mesin?.targetYard
-        return formatEstimasiLine(est.mcNo, corak, yard, est.estAbsMin, zone, est.isMatching)
+        return formatEstimasiLine(est.mcNo, corak, yard, est.estAbsMin, zone)
     }
     val berjalan = sortedByNearest(estimasiBerjalan.associateBy { it.mcNo }).map(::formatEstimasi)
     val operan = estimasiOperan.sortedBy { it.estAbsMin }.map(::formatEstimasi)
