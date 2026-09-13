@@ -55,7 +55,6 @@ export function parseBackupJson(json: string): DoffState | null {
       corakOverride: v?.corakOverride ?? null,
       yardOverride: typeof v?.yardOverride === "number" ? v.yardOverride : null,
       pausedAtAbsMin: typeof v?.pausedAtAbsMin === "number" ? v.pausedAtAbsMin : null,
-      isMatching: typeof v?.isMatching === "boolean" ? v.isMatching : false,
     };
   }
 
@@ -80,7 +79,6 @@ export function parseBackupJson(json: string): DoffState | null {
           corakOverride: v?.corakOverride ?? null,
           yardOverride: typeof v?.yardOverride === "number" ? v.yardOverride : null,
           pausedAtAbsMin: typeof v?.pausedAtAbsMin === "number" ? v.pausedAtAbsMin : null,
-          isMatching: typeof v?.isMatching === "boolean" ? v.isMatching : false,
         },
       ]),
     ),
@@ -101,10 +99,6 @@ export function parseBackupJson(json: string): DoffState | null {
     ? (serial.corakPotonganAwal as string[]).map((s) => String(s).trim().toUpperCase()).filter((s) => s.length > 0)
     : DEFAULT_CORAK_POTONGAN_AWAL;
 
-  const rawPendingMatchingMcNos = Array.isArray(serial.pendingMatchingMcNos)
-    ? (serial.pendingMatchingMcNos as string[]).map((s) => String(s).trim()).filter((s) => s.length > 0)
-    : [];
-
   return {
     db,
     estimasi,
@@ -121,7 +115,6 @@ export function parseBackupJson(json: string): DoffState | null {
     keteranganShortcuts: rawShortcuts,
     corakShortcuts: rawCorakShortcuts,
     corakPotonganAwal: rawCorakPotonganAwal,
-    pendingMatchingMcNos: rawPendingMatchingMcNos,
   };
 }
 
@@ -177,7 +170,6 @@ export function loadState(): DoffState {
     keteranganShortcuts: DEFAULT_KETERANGAN_SHORTCUTS,
     corakShortcuts: DEFAULT_CORAK_SHORTCUTS,
     corakPotonganAwal: DEFAULT_CORAK_POTONGAN_AWAL,
-    pendingMatchingMcNos: [],
   };
 }
 

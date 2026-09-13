@@ -51,20 +51,9 @@ function formatAktualLine(index: number, mcNo: string, corak: string, yard: numb
   return `${index + 1}. Mc ${mcNo} – ${corak}${yardSuffix} · ${formatKetDisplay(ket)}`;
 }
 
-function formatEstimasiLine(
-  mcNo: string,
-  corak: string,
-  yard: number | null | undefined,
-  estAbsMin: number,
-  isMatching: boolean,
-): string {
+function formatEstimasiLine(mcNo: string, corak: string, yard: number | null | undefined, estAbsMin: number): string {
   const yardSuffix = yard != null ? ` (${formatYard(yard)}y)` : "";
-  // formatAktualLine's ket already carries "(MATCHING)" for a completed doff — a still-running
-  // Estimasi has no ket yet (that's only written at doff time), just its own isMatching flag, so
-  // this needs its own explicit segment or the tag silently vanishes from the share text the
-  // moment it matters most: while a coworker still needs to know before the machine is doffed.
-  const matchingSuffix = isMatching ? " · Matching" : "";
-  return `• Mc ${mcNo} – ${corak}${yardSuffix}${matchingSuffix} · Est. ${absMinToTimeStr(estAbsMin)}`;
+  return `• Mc ${mcNo} – ${corak}${yardSuffix} · Est. ${absMinToTimeStr(estAbsMin)}`;
 }
 
 /** Teks ringkasan siap-bagikan untuk daftar Doffing shift berjalan — termasuk daftar
@@ -93,7 +82,7 @@ export function shareHistoryText(state: DoffState): string {
     const mesin = state.db[est.mcNo];
     const corak = est.corakOverride ?? mesin?.corak ?? "—";
     const yard = est.yardOverride ?? mesin?.targetYard;
-    return formatEstimasiLine(est.mcNo, corak, yard, est.estAbsMin, est.isMatching ?? false);
+    return formatEstimasiLine(est.mcNo, corak, yard, est.estAbsMin);
   };
   const berjalan = estimasiBerjalan.map(formatEst);
   const operan = estimasiOperan.map(formatEst);

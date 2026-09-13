@@ -8,16 +8,6 @@ interface ToastState {
 interface ConfirmState {
   msg: string;
   onConfirm: () => void;
-  // Default ke "Ya, Lanjutkan"/"Batal" di ConfirmDialog.tsx kalau tidak diisi — dipakai satu-
-  // satunya oleh pengingat Tali Hijau setelah doff HB, yang butuh label aksi yang lebih
-  // spesifik daripada konfirmasi generik.
-  confirmLabel?: string;
-  cancelLabel?: string;
-  // Tombol konfirmasi defaultnya merah (var(--red-500)) — cocok untuk mayoritas pemakaian
-  // showConfirm yang memang destruktif (Hapus, Reset). Override ini dipakai satu-satunya oleh
-  // pengingat Tali Hijau di atas, yang aksinya menandai Matching — positif, bukan destruktif,
-  // jadi merah di sana justru menyesatkan.
-  confirmColor?: string;
 }
 
 interface UiStore {
@@ -27,11 +17,7 @@ interface UiStore {
   showToast: (msg: string) => void;
   dismissToast: () => void;
   confirm: ConfirmState | null;
-  showConfirm: (
-    msg: string,
-    onConfirm: () => void,
-    options?: { confirmLabel?: string; cancelLabel?: string; confirmColor?: string },
-  ) => void;
+  showConfirm: (msg: string, onConfirm: () => void) => void;
   dismissConfirm: () => void;
 }
 
@@ -49,18 +35,9 @@ export function UiStoreProvider({ children }: { children: ReactNode }) {
 
   const dismissToast = useCallback(() => setToast(null), []);
 
-  const showConfirm = useCallback(
-    (msg: string, onConfirm: () => void, options?: { confirmLabel?: string; cancelLabel?: string; confirmColor?: string }) => {
-      setConfirm({
-        msg,
-        onConfirm,
-        confirmLabel: options?.confirmLabel,
-        cancelLabel: options?.cancelLabel,
-        confirmColor: options?.confirmColor,
-      });
-    },
-    [],
-  );
+  const showConfirm = useCallback((msg: string, onConfirm: () => void) => {
+    setConfirm({ msg, onConfirm });
+  }, []);
 
   const dismissConfirm = useCallback(() => setConfirm(null), []);
 

@@ -29,7 +29,7 @@ import {
 
 export function RadarScreen({ onEditWaktu }: { onEditWaktu: (mcNo: string) => void }) {
   const { state } = useDoffStore();
-  const { handleDoff, handleHapusEst, handleJeda, handleLanjutkan, handleToggleMatching } = useConsoleHandlers();
+  const { handleDoff, handleHapusEst, handleJeda, handleLanjutkan } = useConsoleHandlers();
   const [filter, setFilter] = useState("");
   const [quickEditMcNo, setQuickEditMcNo] = useState<string | null>(null);
   const [, forceTick] = useState(0);
@@ -152,7 +152,6 @@ export function RadarScreen({ onEditWaktu }: { onEditWaktu: (mcNo: string) => vo
               onLanjutkan={() => handleLanjutkan(est.mcNo)}
               onQuickEdit={() => setQuickEditMcNo(est.mcNo)}
               onEditWaktu={() => onEditWaktu(est.mcNo)}
-              onToggleMatching={() => handleToggleMatching(est.mcNo)}
               shiftHandover={est.estAbsMin > shiftEndAbs}
             />
           ))}
@@ -187,7 +186,6 @@ export function RadarScreen({ onEditWaktu }: { onEditWaktu: (mcNo: string) => vo
               onLanjutkan={() => handleLanjutkan(est.mcNo)}
               onQuickEdit={() => setQuickEditMcNo(est.mcNo)}
               onEditWaktu={() => onEditWaktu(est.mcNo)}
-              onToggleMatching={() => handleToggleMatching(est.mcNo)}
               shiftHandover={est.estAbsMin > shiftEndAbs}
             />
           ))}
@@ -254,7 +252,6 @@ export function RadarScreen({ onEditWaktu }: { onEditWaktu: (mcNo: string) => vo
                   onLanjutkan={() => handleLanjutkan(est.mcNo)}
                   onQuickEdit={() => setQuickEditMcNo(est.mcNo)}
                   onEditWaktu={() => onEditWaktu(est.mcNo)}
-                  onToggleMatching={() => handleToggleMatching(est.mcNo)}
                   shiftHandover={est.estAbsMin > shiftEndAbs}
                 />
                 {next && gap >= BREAK_GAP_THRESHOLD_MIN && (

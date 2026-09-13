@@ -22,7 +22,6 @@ describe("sync domain module", () => {
         corakOverride: null,
         yardOverride: 70,
         pausedAtAbsMin: null,
-        isMatching: true,
       },
     },
     aktual: [
@@ -65,9 +64,6 @@ describe("sync domain module", () => {
     expect(merged?.estimasi["12"]).toBeDefined();
     expect(merged?.estimasi["12"].estAbsMin).toBe(800);
     expect(merged?.db["12"]).toBeDefined();
-    // Tali Hijau harus ikut terbawa lewat QR oper-shift — kalau mesin yang ditandai belum
-    // sempat didoffing sebelum shift berakhir, tag-nya tidak boleh hilang di HP penerima.
-    expect(merged?.estimasi["13"]?.isMatching).toBe(true);
     expect(merged?.estimasi["13"]?.yardOverride).toBe(70);
   });
 

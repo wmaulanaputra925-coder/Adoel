@@ -21,8 +21,6 @@ export function useConsoleHandlers() {
     restoreEstimasi,
     pauseEstimasi,
     resumeEstimasi,
-    toggleEstimasiMatching,
-    markPendingMatching,
     hapusAktualById,
     restoreAktual,
     finishShift,
@@ -85,30 +83,15 @@ export function useConsoleHandlers() {
       });
       showToast(result.msg);
       onCleared?.();
-      // Tali Hijau: HB (Habis Beam) berarti beam lusi lama habis dan beam baru sudah naik — potongan
-      // pertama gulungan itu adalah sampel Matching, dan operator harus memasang tali hijau fisik di
-      // tepi kainnya. Tawarkan langsung menandai isMatching untuk siklus berikutnya, supaya nanti
-      // waktu doffingnya tiba operator tidak perlu memeriksa kain lagi. Cek pada string ket yang
-      // sudah dibakukan (bukan cmd mentah), sama seperti extra.includes("MATCHING") di
-      // commands.ts — ket selalu berbentuk "jam(HB)" persis, tidak pernah tergabung dengan token lain.
-      if (entry && entry.ket.includes("(HB)")) {
-        // Bukan aksi destruktif (menandai Matching, bukan menghapus apa pun) — confirmColor hijau
-        // menggantikan merah default showConfirm, yang di sini akan menyesatkan.
-        showConfirm(
-          `Beam baru Mc ${entry.mcNo} — pasang tali hijau di tepi kain gulungan awal.`,
-          () => markPendingMatching(entry.mcNo),
-          { confirmLabel: "Tandai Matching", cancelLabel: "Lewati", confirmColor: "var(--emerald-500)" },
-        );
-      }
     } else {
       showToast(`⚠ ${result.msg}`);
     }
   }
 
-  // RadarCard's swipe-right always resolves its own Normal/Matching kind from Estimasi.isMatching
-  // before calling this (see triggerDoff there) — this function's own keterangan is trusted as
-  // already-decided. GuidedDoffingSheet's own Matching pick still gates itself against the
-  // potongan-awal-70y reminder independently, in its own component.
+  // RadarCard's swipe direction decides Normal vs Matching itself (swipe kanan = tanpa
+  // keterangan, swipe kiri = "MATCHING") before calling this. GuidedDoffingSheet's own Matching
+  // pick still gates itself against the potongan-awal-70y reminder independently, in its own
+  // component.
   function handleDoff(mcNo: string, keterangan?: string) {
     handleAktualSubmit(keterangan ? `${mcNo} ${keterangan}` : mcNo);
   }
@@ -152,22 +135,6 @@ export function useConsoleHandlers() {
       redo: () => resumeEstimasi(mcNo),
     });
     showToast(`Mc ${mcNo} dilanjutkan`);
-  }
-
-  /** Tali Hijau: RadarCard's always-visible one-tap toggle. No confirm dialog and no reminder
-   * reschedule — isMatching never touches estAbsMin, only which flavor of doff gets forced at
-   * commands.ts prosesBarisUmum once the machine's time actually comes. */
-  function handleToggleMatching(mcNo: string) {
-    const prevEst = state.estimasi[mcNo];
-    if (!prevEst) return;
-    toggleEstimasiMatching(mcNo);
-    vibrate(20);
-    pushUndo({
-      undo: () => restoreEstimasi(prevEst),
-      redo: () => toggleEstimasiMatching(mcNo),
-    });
-    const nowMatching = !prevEst.isMatching;
-    showToast(nowMatching ? `Mc ${mcNo} ditandai Matching` : `Penanda Matching Mc ${mcNo} dilepas`);
   }
 
   function handleHapusAktual(id: number, onCleared?: () => void) {
@@ -215,7 +182,6 @@ export function useConsoleHandlers() {
     handleHapusEst,
     handleJeda,
     handleLanjutkan,
-    handleToggleMatching,
     handleHapusAktual,
     handleFinishShift,
     flashError,

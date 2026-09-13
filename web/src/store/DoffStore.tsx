@@ -3,11 +3,10 @@ import { prosesBarisKondisiMesin, prosesBarisUmum } from "../domain/commands";
 import { buildDefaultDb } from "../domain/defaultDb";
 import { currentShiftStartAbsMin, getRepresentativeEpochMin, nowAbsMin } from "../domain/format";
 import { parseJam } from "../domain/parse";
-import { isPotonganAwalCorak } from "../domain/matchingRules";
 import { loadState, parseBackupJson, saveState, serializeState } from "../domain/storage";
 import { processScannedQr } from "../domain/sync";
 import type { AktualEntry, DoffState, Estimasi, MesinData, ProsesResult, ShiftRecord, ThemeMode } from "../domain/types";
-import { DEFAULT_CORAK_POTONGAN_AWAL, DEFAULT_CORAK_SHORTCUTS, DEFAULT_KETERANGAN_SHORTCUTS, POTONGAN_AWAL_YARD } from "../domain/types";
+import { DEFAULT_CORAK_POTONGAN_AWAL, DEFAULT_CORAK_SHORTCUTS, DEFAULT_KETERANGAN_SHORTCUTS } from "../domain/types";
 
 // Retensi riwayat: 30 HARI KALENDER (bukan jumlah shift) — sama seperti
 // HISTORY_RETENTION_DAYS di DoffViewModel.kt.
@@ -29,8 +28,6 @@ interface DoffStore {
   restoreEstimasi: (est: Estimasi) => void;
   pauseEstimasi: (mcNo: string) => void;
   resumeEstimasi: (mcNo: string) => void;
-  toggleEstimasiMatching: (mcNo: string) => void;
-  markPendingMatching: (mcNo: string) => void;
   hapusAktualById: (id: number) => void;
   restoreAktual: (entry: AktualEntry) => void;
   hapusShift: (id: number) => void;
@@ -164,35 +161,6 @@ export function DoffStoreProvider({ children }: { children: ReactNode }) {
         ...s,
         estimasi: { ...s.estimasi, [mcNo]: { ...est, estAbsMin: est.estAbsMin + pausedFor, pausedAtAbsMin: null } },
       };
-    });
-  }, []);
-
-  // Tali Hijau: menyalakan/mematikan penanda Matching di Mc mcNo — no-op kalau estimasinya sudah
-  // tidak ada lagi (mis. sudah keburu didoffing). yardOverride tidak punya penulis lain di luar
-  // fitur Matching ini, jadi dihitung ulang murni dari isMatching+corak setiap toggle (bukan
-  // "preserve nilai lama"): menyala → 70y HANYA kalau corak mesin ini memang termasuk aturan
-  // potongan awal (lihat isPotonganAwalCorak) — corak lain tetap null, tidak dipaksa 70y; mati →
-  // selalu kembali null (target standar mesin), tidak pernah menyisakan 70y yang menempel.
-  const toggleEstimasiMatching = useCallback((mcNo: string) => {
-    setState((s) => {
-      const est = s.estimasi[mcNo];
-      if (!est) return s;
-      const next = !est.isMatching;
-      const effectiveCorak = est.corakOverride ?? s.db[mcNo]?.corak;
-      const yardOverride = next && isPotonganAwalCorak(s, effectiveCorak) ? POTONGAN_AWAL_YARD : null;
-      return { ...s, estimasi: { ...s.estimasi, [mcNo]: { ...est, isMatching: next, yardOverride } } };
-    });
-  }, []);
-
-  // Tali Hijau: menandai mcNo agar Estimasi berikutnya untuk mesin itu otomatis isMatching (lihat
-  // DoffState.pendingMatchingMcNos) — dipanggil dari tombol "Tandai Matching" pada pengingat
-  // setelah doff HB. Konsumsinya (dihapus dari daftar ini) terjadi di
-  // commands.ts prosesBarisKondisiMesin, begitu Estimasi baru untuk mcNo itu benar-benar dibuat.
-  const markPendingMatching = useCallback((mcNo: string) => {
-    setState((s) => {
-      const list = s.pendingMatchingMcNos ?? [];
-      if (list.includes(mcNo)) return s;
-      return { ...s, pendingMatchingMcNos: [...list, mcNo] };
     });
   }, []);
 
@@ -547,8 +515,6 @@ export function DoffStoreProvider({ children }: { children: ReactNode }) {
       restoreEstimasi,
       pauseEstimasi,
       resumeEstimasi,
-      toggleEstimasiMatching,
-      markPendingMatching,
       hapusAktualById,
       restoreAktual,
       hapusShift,
@@ -593,8 +559,6 @@ export function DoffStoreProvider({ children }: { children: ReactNode }) {
       restoreEstimasi,
       pauseEstimasi,
       resumeEstimasi,
-      toggleEstimasiMatching,
-      markPendingMatching,
       hapusAktualById,
       restoreAktual,
       hapusShift,

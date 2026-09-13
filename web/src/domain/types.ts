@@ -20,16 +20,6 @@ export interface Estimasi {
   corakOverride: string | null;
   yardOverride: number | null;
   pausedAtAbsMin: number | null;
-  /** "Tali Hijau" — operator tagged this machine's beam as freshly hung (new lusi beam, sample
-   * Matching still owed) while walking the floor at shift start, well before doffing time. Set via
-   * RadarCard's one-tap toggle (DoffStore.setEstimasiMatching); when true, the doff this Estimasi
-   * eventually turns into is forced to record as Matching regardless of which swipe direction/
-   * button actually fires it (commands.ts prosesBarisUmum) — the operator already decided at tag
-   * time, so nothing asks them to choose again at doff time. Naturally resets for the next cycle
-   * because the whole Estimasi is deleted on doff, not just this flag. Optional (not every existing
-   * Estimasi literal sets it) — absent reads the same as false. Sama persis dengan
-   * Estimasi.isMatching di Models.kt (Android). */
-  isMatching?: boolean;
 }
 
 export interface AktualEntry {
@@ -97,13 +87,6 @@ export interface DoffState {
   keteranganShortcuts?: string[];
   corakShortcuts?: string[];
   corakPotonganAwal?: string[];
-  /** Mc yang habis di-doff HB (Habis Beam) dan operator sudah menekan "Tandai Matching" pada
-   * pengingat tali-hijau (lihat matchingRules.ts) — belum bertemu Estimasi baru,
-   * jadi flag isMatching-nya belum ada tempat untuk hinggap. Dikonsumsi (dihapus dari daftar ini)
-   * begitu Estimasi berikutnya untuk mcNo itu benar-benar dibuat (commands.ts
-   * prosesBarisKondisiMesin), yang saat itu langsung disetel isMatching: true. Absen = tidak ada
-   * yang menunggu. Sama persis dengan DoffState.pendingMatchingMcNos di Models.kt (Android). */
-  pendingMatchingMcNos?: string[];
 }
 
 export type ProsesResult =

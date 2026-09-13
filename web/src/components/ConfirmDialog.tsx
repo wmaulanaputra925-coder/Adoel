@@ -36,7 +36,7 @@ export function ConfirmDialog() {
         <div className="actions">
           <button className="cancel" onClick={dismissConfirm} style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
             <CloseIcon size={14} />
-            <span>{shown.cancelLabel ?? "Batal"}</span>
+            <span>Batal</span>
           </button>
           <button
             className="confirm"
@@ -44,15 +44,10 @@ export function ConfirmDialog() {
               shown.onConfirm();
               dismissConfirm();
             }}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 5,
-              ...(shown.confirmColor ? { background: shown.confirmColor } : null),
-            }}
+            style={{ display: "inline-flex", alignItems: "center", gap: 5 }}
           >
             <CheckIcon size={14} />
-            <span>{shown.confirmLabel ?? "Ya, Lanjutkan"}</span>
+            <span>Ya, Lanjutkan</span>
           </button>
         </div>
       </div>

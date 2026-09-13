@@ -767,12 +767,12 @@ button:disabled {
   background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 100%);
   box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.15);
 }
-/* Doffing Matching wash — swipe-right doffs Matching instead of Normal whenever Estimasi.isMatching
-   is on, so the reveal needs its own color for that case. Emerald here, reused from the bookmark
-   tab's own always-green Tali Hijau marker, so a green flash doesn't mean two different things at
-   once (it used to be Normal's color, which collided with the marker). */
-.radar-card-swipe-bg.right.matching {
+/* Doffing Matching wash — swipe-left always doffs Matching now, so it gets its own permanent
+   color (mirrored layout, anchored to the right edge since the reveal grows from the left). */
+.radar-card-swipe-bg.left {
+  justify-content: flex-end;
   background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.15);
 }
 .radar-swipe-hint-content {
   display: inline-flex;
@@ -851,8 +851,7 @@ button:disabled {
     celebrate-wipe-from-left 0.28s ease-out forwards,
     celebrate-dismiss 0.19s ease-in 0.76s forwards;
 }
-/* Emerald here, reused from the bookmark tab's own always-green Tali Hijau marker — used to be
-   Normal's color above, which collided with the marker now that it's always green too. */
+/* Emerald — sama dengan warna wash swipe-kiri (.radar-card-swipe-bg.left) yang memicunya. */
 .radar-card-celebrate.matching {
   background: linear-gradient(135deg, rgba(5, 150, 105, 0.92) 0%, rgba(16, 185, 129, 0.92) 100%);
   backdrop-filter: blur(6px);
@@ -1326,90 +1325,6 @@ button:disabled {
   flex-shrink: 0;
   display: inline-block;
   vertical-align: middle;
-}
-/* Tali Hijau badge — still used on the PAUSED card front (see .radar-matching-toggle above for
-   why); the active card front relies on the corner ribbon (.radar-matching-ribbon) instead. */
-.radar-matching-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 3.5px;
-  padding: 2px 7px;
-  border-radius: 6px;
-  background: color-mix(in srgb, var(--emerald-500) 18%, transparent);
-  color: var(--emerald-400, #34d399);
-  font-size: 9.5px;
-  font-weight: 800;
-  border: 1px solid color-mix(in srgb, var(--emerald-500) 35%, transparent);
-  white-space: nowrap;
-  line-height: 1.2;
-  flex-shrink: 0;
-}
-.radar-matching-badge svg {
-  flex-shrink: 0;
-  display: inline-block;
-  vertical-align: middle;
-}
-/* Tali Hijau toggle — the active (non-paused) card front has moved this to the swipe-left
-   corner ribbon instead (see .radar-matching-ribbon below), to keep this title row from
-   crowding with Bentrok/OPERAN SHIFT. Still used by the PAUSED card front, which has no swipe
-   gesture at all, so it needs its own reachable tap target here. */
-.radar-matching-toggle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 20px;
-  height: 20px;
-  padding: 0;
-  border: none;
-  border-radius: 50%;
-  background: transparent;
-  color: var(--text-faint);
-  line-height: 1;
-  cursor: pointer;
-}
-.radar-matching-toggle.active {
-  color: var(--emerald-500);
-}
-.radar-matching-toggle svg {
-  display: inline-block;
-  vertical-align: middle;
-}
-/* Tali Hijau corner ribbon — a classic diagonal "corner ribbon" badge cut across the card's own
-   top-right corner, the active card's swipe-left target and persistent status indicator. Lives
-   inside .radar-card-front (not a sibling of .radar-card-swipe), so it translates along with the
-   card face during drag instead of staying fixed while the card slides out from under it, and is
-   clipped for free by that element's own overflow:hidden + border-radius — no clip-path of its
-   own needed, and it can never bleed outside the card's rounded corner. Replaces the old
-   right-edge bookmark tab, which needed real gutter space to poke into outside the card
-   (.scroll-area only has 12px of padding, not enough for a comfortable protrusion); sitting
-   entirely inside the card's own box sidesteps that limit completely. Fully invisible (opacity 0,
-   set inline in RadarCard.tsx — ramped by drag fraction while actively dragging, so it fades in
-   smoothly rather than popping to full opacity on the first pixel of a left-drag) when untagged
-   and not being dragged, so an untagged card's corner is completely clean — then pops in (scale
-   0.75→1) as a preview during an active swipe-left, grey before the arm threshold and green
-   after, or stays permanently visible once Estimasi.isMatching is on. */
-.radar-matching-ribbon {
-  position: absolute;
-  top: 13px;
-  right: -34px;
-  z-index: 2;
-  width: 110px;
-  padding: 3px 0;
-  text-align: center;
-  transform-origin: center;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #fff;
-  background: var(--text-faint);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
-  pointer-events: none;
-}
-.radar-matching-ribbon.active {
-  background: var(--emerald-500);
 }
 .radar-card-corak {
   font-size: 12.5px;

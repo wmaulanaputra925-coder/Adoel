@@ -57,34 +57,6 @@ describe("shareHistoryText", () => {
       "Operan ke shift berikutnya: 1 mc (di luar total)";
     expect(shareHistoryText(state)).toBe(expected);
   });
-
-  it("estimasi berjalan bertanda Matching tercatat di teks bagikan", () => {
-    vi.setSystemTime(new Date(2026, 0, 15, 12, 0));
-    const state: DoffState = {
-      db,
-      aktual: [],
-      estimasi: {
-        "76": {
-          mcNo: "76",
-          estAbsMin: epochMin(2026, 1, 15, 13, 20),
-          startAbsMin: epochMin(2026, 1, 15, 12, 0),
-          corakOverride: null,
-          yardOverride: null,
-          pausedAtAbsMin: null,
-          isMatching: true,
-        },
-      },
-      nextId: 1,
-      themeMode: "SYSTEM",
-      history: [],
-      nextShiftId: 1,
-      onboardingSeen: true,
-      operatorNama: "",
-      operatorGrup: "",
-    };
-
-    expect(shareHistoryText(state)).toContain("*Sedang berjalan (1 mc)*\n• Mc 76 – 21242 (165y) · Matching · Est. 13.20");
-  });
 });
 
 describe("shareShiftText", () => {
