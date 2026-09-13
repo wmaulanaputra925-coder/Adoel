@@ -1269,25 +1269,6 @@ button:disabled {
   line-height: 1;
   flex-shrink: 0;
 }
-.radar-card-tipe-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.radar-card-tipe-icon svg {
-  display: inline-block;
-  vertical-align: middle;
-}
-.radar-card-tipe-label {
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  display: inline-flex;
-  align-items: center;
-  line-height: 1.2;
-  flex-shrink: 0;
-}
 .radar-card-urgency-icon {
   display: inline-flex;
   align-items: center;
@@ -1563,11 +1544,6 @@ button:disabled {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-}
-.der-tipe {
-  display: inline-flex;
-  align-items: center;
-  flex-shrink: 0;
 }
 .der-mcno {
   font-size: 14px;

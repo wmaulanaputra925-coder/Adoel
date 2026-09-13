@@ -1,7 +1,6 @@
 import { formatYard } from "../domain/format";
-import { TIPE_COLOR } from "../domain/mesinVisual";
 import type { AktualEntry, MesinData } from "../domain/types";
-import { CircleIcon, MesinTipeIcon, ScheduleIcon, TextureIcon } from "./Icons";
+import { ScheduleIcon, TextureIcon } from "./Icons";
 
 /**
  * The one row layout for a recorded doff, shared by Riwayat and by Statistik's shift detail so the
@@ -44,9 +43,6 @@ export function DoffEntryRowContent({
       <span className="der-row1">
         <span className="der-row1-left">
           <span className="der-num">{num}</span>
-          <span className="der-tipe" style={{ color: mesin ? TIPE_COLOR[mesin.tipe] : "var(--text-faint)" }}>
-            {mesin ? <MesinTipeIcon tipe={mesin.tipe} size={13} /> : <CircleIcon size={13} />}
-          </span>
           {/* Just the number — the surrounding chips already make it obvious this is the machine. */}
           <span className="der-mcno">{entry.mcNo}</span>
         </span>

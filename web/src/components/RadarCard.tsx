@@ -1,11 +1,9 @@
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { absMinToTimeStr, formatDeltaMin, formatYard } from "../domain/format";
 import { effectiveRemaining, urgencyLevel, type UrgencyLevel } from "../domain/estimasiUtils";
-import { TIPE_COLOR } from "../domain/mesinVisual";
 import type { Estimasi, MesinData } from "../domain/types";
 import { WaveProgressBar } from "./WaveProgressBar";
 import {
-  MesinTipeIcon,
   PauseIcon,
   PlayIcon,
   DeleteIcon,
@@ -244,14 +242,6 @@ export function RadarCard({
                 <span className="radar-card-mcno" style={{ fontSize: est.mcNo.length >= 3 ? 23 : 27 }}>
                   {est.mcNo}
                 </span>
-                {mesin && (
-                  <span className="radar-card-tipe-icon" style={{ color: TIPE_COLOR[mesin.tipe] }}>
-                    <MesinTipeIcon tipe={mesin.tipe} size={12} />
-                  </span>
-                )}
-                <span className="radar-card-tipe-label" style={{ color: mesin ? TIPE_COLOR[mesin.tipe] : "var(--text-faint)" }}>
-                  {mesin?.tipe ?? "?"}
-                </span>
                 <span className="radar-paused-badge">
                   <PauseIcon size={11} />
                   <span>DIJEDA</span>
@@ -367,14 +357,6 @@ export function RadarCard({
                   style={{ fontSize: est.mcNo.length >= 3 ? 23 : 27 }}
                 >
                   {est.mcNo}
-                </span>
-                {mesin && (
-                  <span className="radar-card-tipe-icon" style={{ color: TIPE_COLOR[mesin.tipe] }}>
-                    <MesinTipeIcon tipe={mesin.tipe} size={12} />
-                  </span>
-                )}
-                <span className="radar-card-tipe-label" style={{ color: mesin ? TIPE_COLOR[mesin.tipe] : "var(--text-faint)" }}>
-                  {mesin?.tipe ?? "?"}
                 </span>
                 {level === "SOON" && (
                   <span className="radar-card-urgency-icon" style={{ color: "var(--amber-400)" }}>

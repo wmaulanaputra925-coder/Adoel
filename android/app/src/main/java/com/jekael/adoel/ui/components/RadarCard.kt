@@ -128,7 +128,6 @@ fun RadarCard(
     val corak = est.corakOverride ?: mesin?.corak ?: "—"
     val standardYard = est.yardOverride ?: mesin?.targetYard
     val corakLine = if (standardYard != null) "$corak · ${formatYard(standardYard)}y" else corak
-    val tipe = mesin?.tipe?.name ?: "?"
     val showDot = remaining <= 5
     val colors = LocalAppColors.current
     val haptic = LocalHapticFeedback.current
@@ -358,10 +357,8 @@ fun RadarCard(
     if (isPaused) {
         PausedRadarCardFront(
             est = est,
-            mesin = mesin,
             remaining = remaining,
             corakLine = corakLine,
-            tipe = tipe,
             onQuickEdit = onQuickEdit,
             onLanjutkan = onLanjutkan,
             onHapus = onHapus,
@@ -594,28 +591,6 @@ fun RadarCard(
                                 verticalAlignment = Alignment.Bottom,
                                 horizontalArrangement = Arrangement.spacedBy(Dimens.Space8),
                             ) {
-                                if (mesin != null) {
-                                    MesinTipeIcon(
-                                        tipe = mesin.tipe,
-                                        tint = mesinTipeColor(mesin.tipe),
-                                        modifier = Modifier.size(12.dp).padding(bottom = Dimens.Space4),
-                                    )
-                                }
-                                Text(
-                                    text = tipe,
-                                    style = TextStyle(
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        letterSpacing = 2.sp,
-                                        // Same per-type color as the icon right before it (Tappet/Cam/D405/
-                                        // D408 each have their own), not the urgency color — the machine
-                                        // type is its own identity, independent of how close the doff is.
-                                        color = mesin?.tipe?.let { mesinTipeColor(it) } ?: colors.textFaint,
-                                    ),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier.padding(bottom = Dimens.Space4),
-                                )
                                 if (clr.icon != null) {
                                     // 15dp, not the 12dp everything else in this row uses — Material's
                                     // Schedule/Warning outlines carry more internal linework than web's
@@ -878,10 +853,8 @@ private fun CardActionsFace(
 @Composable
 private fun PausedRadarCardFront(
     est: Estimasi,
-    mesin: MesinData?,
     remaining: Long,
     corakLine: String,
-    tipe: String,
     onQuickEdit: () -> Unit,
     onLanjutkan: () -> Unit,
     onHapus: () -> Unit,
@@ -945,20 +918,6 @@ private fun PausedRadarCardFront(
                         ),
                         maxLines = 1,
                         softWrap = false,
-                    )
-                    if (mesin != null) {
-                        MesinTipeIcon(tipe = mesin.tipe, tint = mesinTipeColor(mesin.tipe), modifier = Modifier.size(12.dp))
-                    }
-                    Text(
-                        text = tipe,
-                        style = TextStyle(
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 2.sp,
-                            color = mesin?.tipe?.let { mesinTipeColor(it) } ?: colors.textFaint,
-                        ),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
                     )
                     RadarCardBadge(icon = Icons.Outlined.Pause, text = "DIJEDA", accent = Amber400)
                 }

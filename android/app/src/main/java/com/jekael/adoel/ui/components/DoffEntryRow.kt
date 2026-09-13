@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Circle
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Texture
 import androidx.compose.material3.Icon
@@ -104,19 +103,6 @@ fun DoffEntryRowContent(
                         "$num",
                         style = TextStyle(fontSize = 10.sp, fontWeight = FontWeight.Black, color = colors.textFaint),
                     )
-                }
-
-                Box(modifier = Modifier.size(20.dp), contentAlignment = Alignment.Center) {
-                    if (mesin != null) {
-                        MesinTipeIcon(tipe = mesin.tipe, tint = mesinTipeColor(mesin.tipe), modifier = Modifier.size(13.dp))
-                    } else {
-                        Icon(
-                            imageVector = Icons.Outlined.Circle,
-                            contentDescription = null,
-                            tint = colors.textFaint,
-                            modifier = Modifier.size(13.dp),
-                        )
-                    }
                 }
 
                 Text(
