@@ -93,7 +93,7 @@ export function shareHistoryText(state: DoffState): string {
     const mesin = state.db[est.mcNo];
     const corak = est.corakOverride ?? mesin?.corak ?? "—";
     const yard = est.yardOverride ?? mesin?.targetYard;
-    return formatEstimasiLine(est.mcNo, corak, yard, est.estAbsMin, est.isMatching);
+    return formatEstimasiLine(est.mcNo, corak, yard, est.estAbsMin, est.isMatching ?? false);
   };
   const berjalan = estimasiBerjalan.map(formatEst);
   const operan = estimasiOperan.map(formatEst);
