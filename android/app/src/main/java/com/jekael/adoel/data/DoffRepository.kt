@@ -523,12 +523,36 @@ class DoffRepository private constructor(private val context: Context) : DoffSta
      * punya spasi — jadi ini aman dibuang seluruhnya. Tanpa ini, satu newline yang tersisip saat
      * teks datanya diteruskan lewat aplikasi pesan pihak ketiga (di-reflow, disalin ulang dari
      * tampilan yang sudah word-wrap, dst.) sudah cukup membuat parsing gagal total dan
-     * menampilkan "Format QR Sync tidak valid" walau datanya sendiri sebenarnya utuh. Sama
-     * persis dengan sanitizeSyncText di sync.ts (web). */
-    private fun sanitizeSyncText(raw: String): String =
-        raw.filterNot {
+     * menampilkan "Format QR Sync tidak valid" walau datanya sendiri sebenarnya utuh.
+     *
+     * Diperkeras lebih jauh untuk sumber salin-tempel lain yang juga dilaporkan gagal: teks yang
+     * terbungkus tanda kutip ekstra (tersalin sebagai string JSON, bukan isinya), teks yang
+     * ter-URL-encode (%7B/%22), tanda kutip yang ter-escape (\\"), atau karakter nyasar
+     * sebelum/sesudah objek JSON-nya sendiri — diselesaikan dengan memotong tepat dari '{' pertama
+     * sampai '}' terakhir setelah semua pembersihan di atas. Sama persis dengan sanitizeSyncText
+     * di sync.ts (web). */
+    private fun sanitizeSyncText(raw: String): String {
+        var cleaned = raw.trim()
+        if (cleaned.length >= 2 && cleaned.startsWith("\"") && cleaned.endsWith("\"")) {
+            cleaned = cleaned.substring(1, cleaned.length - 1)
+        }
+        if (cleaned.contains("%7B") || cleaned.contains("%22")) {
+            cleaned = runCatching { java.net.URLDecoder.decode(cleaned, "UTF-8") }.getOrDefault(cleaned)
+        }
+        if (cleaned.contains("\\\"")) {
+            cleaned = cleaned.replace("\\\"", "\"")
+        }
+        val stripped = cleaned.filterNot {
             it.isWhitespace() || it == '\uFEFF' || it == '\u200B' || it == '\u200C' || it == '\u200D'
         }
+        val firstBrace = stripped.indexOf('{')
+        val lastBrace = stripped.lastIndexOf('}')
+        return if (firstBrace != -1 && lastBrace != -1 && lastBrace > firstBrace) {
+            stripped.substring(firstBrace, lastBrace + 1)
+        } else {
+            stripped
+        }
+    }
 
     private fun mergeHandover(current: DoffState, payload: SyncPayload): DoffState {
         val incomingAktual = (payload.aktual ?: emptyList()).filterNotNull().map(::toAktualEntry)
@@ -550,12 +574,19 @@ class DoffRepository private constructor(private val context: Context) : DoffSta
         )
     }
 
+    /** Gson mem-parse elemen array generik (cDb) sebagai Double, jadi mcNo yang ditulis sebagai
+     * angka murni ("55") ikut lewat sebagai 55.0 lalu .toString() jadi "55.0" — strip akhiran itu
+     * di sini, satu-satunya titik mcNo di file ini yang benar-benar melewati jalur generik
+     * tersebut (kunci Map<String,...> pada format objek lama sudah selalu String, tidak perlu
+     * ini). Sama persis dengan parseMesinMap di sync.ts (web). */
+    private fun stripTrailingDotZero(mcNo: String): String = mcNo.removeSuffix(".0")
+
     private fun parseMesinMap(payload: SyncPayload): Map<String, MesinData> {
         val result = mutableMapOf<String, MesinData>()
         if (!payload.cDb.isNullOrEmpty()) {
             for (item in payload.cDb) {
                 if (item.isEmpty()) continue
-                val mcNo = item.getOrNull(0)?.toString() ?: continue
+                val mcNo = stripTrailingDotZero(item.getOrNull(0)?.toString() ?: continue)
                 val tipeStr = item.getOrNull(1)?.toString() ?: "TAPPET"
                 val corak = item.getOrNull(2)?.toString() ?: "-"
                 val targetYard = (item.getOrNull(3) as? Number)?.toDouble()
