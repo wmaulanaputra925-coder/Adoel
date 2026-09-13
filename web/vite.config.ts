@@ -12,8 +12,10 @@ export default defineConfig({
     port: 3000,
     allowedHosts: true,
   },
+  // web/dist, not "../dist" — netlify.toml's `base = "web"` resolves `publish = "dist"`
+  // relative to that base directory, and the root .gitignore already expects web/dist.
   build: {
-    outDir: "../dist",
+    outDir: "dist",
     emptyOutDir: true,
   },
   plugins: [

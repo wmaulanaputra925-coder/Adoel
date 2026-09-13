@@ -1,6 +1,10 @@
 [build]
   base = "web"
-  command = "npm run build"
+  # npm crashes here (arborist bug on vitest's optional @vitest/browser-playwright/msw peer
+  # chain — TypeError: Cannot read properties of null (reading 'edgesOut'), unrelated to this
+  # project's own code); the project already builds with bun everywhere else (bun.lock, CI), so
+  # use that instead of npm, installing it if Netlify's build image doesn't already have it.
+  command = "command -v bun >/dev/null 2>&1 || npm install -g bun; bun install && bun run build"
   publish = "dist"
 
 [[redirects]]
