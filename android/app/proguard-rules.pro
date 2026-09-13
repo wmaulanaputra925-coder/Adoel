@@ -28,6 +28,16 @@
 -keepattributes *Annotation*
 -keep class com.jekael.adoel.data.Serial* { *; }
 -keepclassmembers class com.jekael.adoel.data.Serial* { *; }
+# SyncEnvelope/SyncPayload carry the QR/text handover payload the exact same way — Gson
+# reflection over their field names too — but don't match the Serial* pattern above, so a release
+# (minified) build was silently renaming "type"/"payload"/"cDb"/etc. to single letters ("a", "b", ...)
+# while every non-obfuscated build (debug, or any platform not run through R8) still emitted the
+# real names. That made QR/text sync fail between a release APK and anything else, while backup
+# export/import (Serial* only) kept working — the two paths were obfuscated inconsistently.
+-keep class com.jekael.adoel.data.SyncEnvelope { *; }
+-keep class com.jekael.adoel.data.SyncPayload { *; }
+-keepclassmembers class com.jekael.adoel.data.SyncEnvelope { *; }
+-keepclassmembers class com.jekael.adoel.data.SyncPayload { *; }
 -dontwarn com.google.gson.**
 
 # MesinTipe is (de)serialized via its enum name (.name / .valueOf), not Gson's own enum handling,
