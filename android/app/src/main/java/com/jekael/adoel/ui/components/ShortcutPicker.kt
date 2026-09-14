@@ -85,9 +85,9 @@ fun BaseShortcutPicker(
     // "add new item" panel (56dp-tall OutlinedTextField, 40dp button) instead of sitting inline as
     // just another compact, chip-sized item that wraps together with everything else.
     FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(7.dp),
+        verticalArrangement = Arrangement.spacedBy(7.dp),
+        modifier = modifier.fillMaxWidth().padding(top = Dimens.Space10),
     ) {
         // Existing shortcut chips
         shortcuts.forEach { code ->
@@ -99,7 +99,7 @@ fun BaseShortcutPicker(
                         if (isActive) Cyan600.copy(alpha = 0.22f) else colors.bgElevated2
                     )
                     .clickable { onSelect(code) }
-                    .padding(horizontal = 8.dp, vertical = 5.dp),
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
@@ -107,7 +107,7 @@ fun BaseShortcutPicker(
                     style = AppType.Caption.copy(
                         color = if (isActive) Cyan400 else colors.textSecondary,
                         fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
-                        fontSize = 11.sp,
+                        fontSize = 12.5.sp,
                     ),
                 )
             }
@@ -120,10 +120,10 @@ fun BaseShortcutPicker(
                 shape = RoundedCornerShape(6.dp),
                 color = Cyan600.copy(alpha = 0.12f),
                 border = BorderStroke(1.dp, Cyan600.copy(alpha = 0.35f)),
-                modifier = Modifier.height(26.dp),
+                modifier = Modifier.height(28.dp),
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
@@ -131,14 +131,14 @@ fun BaseShortcutPicker(
                         imageVector = Icons.Default.Add,
                         contentDescription = null,
                         tint = Cyan400,
-                        modifier = Modifier.size(12.dp),
+                        modifier = Modifier.size(13.dp),
                     )
                     Text(
                         text = "+ Simpan \"$currentTrimmed\" ke Shortcut",
                         style = AppType.Caption.copy(
                             color = Cyan400,
                             fontWeight = FontWeight.SemiBold,
-                            fontSize = 11.sp,
+                            fontSize = 12.sp,
                         ),
                     )
                 }
@@ -147,15 +147,15 @@ fun BaseShortcutPicker(
 
         if (isAdding) {
             // Compact inline editor — one wrapping item in the same flow, not a separate bar.
-            // Field width mirrors web's own 85px (Corak) / 120px (Keterangan, longer text like
+            // Field width mirrors web's own 90px (Corak) / 128px (Keterangan, longer text like
             // "GANTI BEAM") split.
-            val fieldWidth = if (itemTypeLabel == "Corak") 78.dp else 108.dp
+            val fieldWidth = if (itemTypeLabel == "Corak") 84.dp else 114.dp
             Row(
                 modifier = Modifier
                     .clip(RoundedCornerShape(6.dp))
                     .background(colors.bgElevated2)
                     .border(1.dp, Cyan400, RoundedCornerShape(6.dp))
-                    .padding(horizontal = 4.dp, vertical = 3.dp),
+                    .padding(horizontal = 5.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
@@ -163,7 +163,7 @@ fun BaseShortcutPicker(
                     if (inlineInput.isEmpty()) {
                         Text(
                             text = placeholder,
-                            style = AppType.Caption.copy(color = colors.textFaint, fontSize = 11.sp),
+                            style = AppType.Caption.copy(color = colors.textFaint, fontSize = 12.sp),
                             maxLines = 1,
                         )
                     }
@@ -171,7 +171,7 @@ fun BaseShortcutPicker(
                         value = inlineInput,
                         onValueChange = { inlineInput = it.uppercase() },
                         modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
-                        textStyle = AppType.Caption.copy(color = colors.textPrimary, fontSize = 11.sp),
+                        textStyle = AppType.Caption.copy(color = colors.textPrimary, fontSize = 12.sp),
                         singleLine = true,
                         cursorBrush = SolidColor(Cyan400),
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
@@ -185,11 +185,11 @@ fun BaseShortcutPicker(
                 ) {
                     Text(
                         text = "+ OK",
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp),
                         style = AppType.Caption.copy(
                             color = if (inlineInput.isNotBlank()) Color.White else colors.textFaint,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp,
+                            fontSize = 12.sp,
                         ),
                     )
                 }
@@ -198,8 +198,8 @@ fun BaseShortcutPicker(
                     modifier = Modifier
                         .clip(RoundedCornerShape(4.dp))
                         .clickable { isAdding = false }
-                        .padding(horizontal = 3.dp, vertical = 1.dp),
-                    style = AppType.Caption.copy(color = colors.textFaint, fontSize = 11.sp),
+                        .padding(horizontal = 4.dp, vertical = 2.dp),
+                    style = AppType.Caption.copy(color = colors.textFaint, fontSize = 12.sp),
                 )
             }
         } else {
@@ -209,10 +209,10 @@ fun BaseShortcutPicker(
                 shape = RoundedCornerShape(6.dp),
                 color = colors.bgElevated1,
                 border = BorderStroke(1.dp, colors.border),
-                modifier = Modifier.height(26.dp),
+                modifier = Modifier.height(28.dp),
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
@@ -220,14 +220,14 @@ fun BaseShortcutPicker(
                         imageVector = Icons.Default.Add,
                         contentDescription = null,
                         tint = colors.textMuted,
-                        modifier = Modifier.size(12.dp),
+                        modifier = Modifier.size(13.dp),
                     )
                     Text(
                         text = "+ Tambah $itemTypeLabel",
                         style = AppType.Caption.copy(
                             color = colors.textMuted,
                             fontWeight = FontWeight.Medium,
-                            fontSize = 11.sp,
+                            fontSize = 12.sp,
                         ),
                     )
                 }

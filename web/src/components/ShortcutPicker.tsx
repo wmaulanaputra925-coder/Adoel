@@ -48,13 +48,13 @@ function BaseShortcutPicker({
   }
 
   return (
-    <div style={{ marginTop: 6, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6 }}>
+    <div style={{ marginTop: 10, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 7 }}>
       {shortcuts.map((code) => (
         <button
           key={code}
           type="button"
           className={`chip-btn${currentTrimmed === code ? " active" : ""}`}
-          style={{ fontSize: 11, padding: "3px 8px" }}
+          style={{ fontSize: 12.5, padding: "5px 10px" }}
           onClick={() => onSelect(code)}
         >
           {code}
@@ -66,7 +66,7 @@ function BaseShortcutPicker({
           type="button"
           className="btn-link"
           style={{
-            fontSize: 11,
+            fontSize: 12,
             color: "var(--cyan-400)",
             display: "inline-flex",
             alignItems: "center",
@@ -90,12 +90,12 @@ function BaseShortcutPicker({
           type="button"
           className="btn-link"
           style={{
-            fontSize: 11,
+            fontSize: 12,
             color: "var(--text-secondary)",
             display: "inline-flex",
             alignItems: "center",
-            gap: 2,
-            padding: "2px 6px",
+            gap: 3,
+            padding: "4px 8px",
             background: "var(--bg-elevated)",
             borderRadius: 4,
             border: "1px dashed var(--border-subtle)",
@@ -103,7 +103,7 @@ function BaseShortcutPicker({
           onClick={() => setIsAdding(true)}
           title={`Tambah ${itemTypeLabel.toLowerCase()} baru ke shortcut`}
         >
-          <AddIcon size={11} />
+          <AddIcon size={12} />
           <span>+ Tambah {itemTypeLabel}</span>
         </button>
       ) : (
@@ -113,14 +113,14 @@ function BaseShortcutPicker({
             alignItems: "center",
             gap: 4,
             background: "var(--bg-elevated)",
-            padding: "2px 4px",
+            padding: "3px 4px",
             borderRadius: 4,
             border: "1px solid var(--cyan-400)",
           }}
         >
           <input
             className="field-input"
-            style={{ width: itemTypeLabel === "Corak" ? 85 : 120, padding: "2px 6px", fontSize: 11, height: 22 }}
+            style={{ width: itemTypeLabel === "Corak" ? 90 : 128, padding: "3px 7px", fontSize: 12, height: 25 }}
             placeholder={placeholder}
             value={inlineInput}
             autoFocus
@@ -137,7 +137,7 @@ function BaseShortcutPicker({
           <button
             type="button"
             className="btn primary"
-            style={{ padding: "2px 6px", fontSize: 11, height: 22 }}
+            style={{ padding: "3px 7px", fontSize: 12, height: 25 }}
             disabled={!inlineInput.trim()}
             onClick={handleAddInline}
           >
@@ -146,7 +146,7 @@ function BaseShortcutPicker({
           <button
             type="button"
             className="btn-link"
-            style={{ fontSize: 11, color: "var(--text-faint)", padding: "0 2px" }}
+            style={{ fontSize: 12, color: "var(--text-faint)", padding: "0 3px" }}
             onClick={() => setIsAdding(false)}
           >
             ✕
