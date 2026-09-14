@@ -20,28 +20,26 @@
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
 
-# Gson serializes/deserializes DoffRepository's Serial* classes by reflecting on their field
-# names (both the on-disk DataStore blob and the JSON export/import backup use this). Without
-# these keep rules, R8 renaming those fields would make every existing user's saved data and any
-# previously exported backup silently fail to parse after updating to a minified build.
+# Gson serializes/deserializes every model in com.jekael.adoel.data by reflecting on field names —
+# the on-disk DataStore blob, JSON export/import backups, and the QR/text handover payload
+# (SyncEnvelope/SyncPayload) all go through this same reflection-over-field-names path. This used
+# to be a classname-pattern rule matching only "Serial*", which missed SyncEnvelope/SyncPayload:
+# a release (minified) build silently renamed their fields to single letters, breaking QR/text
+# sync while backup export/import (Serial*, which did match) kept working — the two paths ended
+# up obfuscated inconsistently, and nothing caught it until sync failed in the field. Keeping the
+# whole package instead — it's small and model-only, no controllers/ViewModels in it — means a
+# future data class here is safe by default instead of needing its own keep rule remembered by
+# hand every time.
 -keepattributes Signature
 -keepattributes *Annotation*
--keep class com.jekael.adoel.data.Serial* { *; }
--keepclassmembers class com.jekael.adoel.data.Serial* { *; }
-# SyncEnvelope/SyncPayload carry the QR/text handover payload the exact same way — Gson
-# reflection over their field names too — but don't match the Serial* pattern above, so a release
-# (minified) build was silently renaming "type"/"payload"/"cDb"/etc. to single letters ("a", "b", ...)
-# while every non-obfuscated build (debug, or any platform not run through R8) still emitted the
-# real names. That made QR/text sync fail between a release APK and anything else, while backup
-# export/import (Serial* only) kept working — the two paths were obfuscated inconsistently.
--keep class com.jekael.adoel.data.SyncEnvelope { *; }
--keep class com.jekael.adoel.data.SyncPayload { *; }
--keepclassmembers class com.jekael.adoel.data.SyncEnvelope { *; }
--keepclassmembers class com.jekael.adoel.data.SyncPayload { *; }
+-keep class com.jekael.adoel.data.** { *; }
+-keepclassmembers class com.jekael.adoel.data.** { *; }
 -dontwarn com.google.gson.**
 
-# MesinTipe is (de)serialized via its enum name (.name / .valueOf), not Gson's own enum handling,
-# but keep the standard values()/valueOf() members regardless so that lookup can't break.
+# MesinTipe is (de)serialized via its enum name (.name / .valueOf), not Gson's own enum handling.
+# Already covered by the package-wide rule above, but pinned explicitly too — it's the one member
+# whose loss would silently produce the wrong machine type instead of a crash, so it stays safe
+# even if this file's package rule is ever narrowed later without re-checking this specific case.
 -keepclassmembers enum com.jekael.adoel.data.MesinTipe {
     public static **[] values();
     public static ** valueOf(java.lang.String);
