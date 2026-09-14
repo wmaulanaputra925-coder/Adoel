@@ -7,6 +7,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.automirrored.outlined.Undo
@@ -321,7 +322,7 @@ private fun RadarGestureGuide() {
 
         // Gesture 2: Geser ke Kiri — Emerald, warna Doffing Matching.
         GestureItem(
-            icon = Icons.Outlined.Sell,
+            icon = Icons.AutoMirrored.Outlined.ArrowBack,
             iconTint = Emerald400,
             actionLabel = "Geser ke Kiri",
             badgeText = "Doffing Matching",

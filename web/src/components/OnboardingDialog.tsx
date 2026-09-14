@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+  ArrowLeftIcon,
   ArrowRightIcon,
   BookOpenIcon,
   CheckIcon,
@@ -9,7 +10,6 @@ import {
   ScheduleIcon,
   ScissorsIcon,
   SwipeIcon,
-  TagIcon,
   TextureIcon,
   TouchAppIcon,
   UndoIcon,
@@ -209,7 +209,7 @@ export function OnboardingDialog({ onClose }: { onClose: () => void }) {
                 <div className="guide-gesture-head">
                   <div className="guide-gesture-action">
                     <span style={{ color: "var(--emerald-400)", display: "flex", alignItems: "center" }}>
-                      <TagIcon size={16} />
+                      <ArrowLeftIcon size={18} />
                     </span>
                     <span>Geser ke Kiri</span>
                   </div>
