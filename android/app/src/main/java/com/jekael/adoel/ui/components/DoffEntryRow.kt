@@ -4,9 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -41,13 +39,11 @@ import com.jekael.adoel.ui.theme.Purple400
  * inline). Each caller still supplies its own container: Riwayat wraps this in a swipeable list
  * card, Statistik in a flat tappable strip inside the shift card.
  *
- * Fixed two-row layout instead of a wrapping FlowRow — the wrap point used to depend on content
- * length (a long keterangan or corak could push time onto its own line unpredictably, so card
- * height and vertical alignment varied row to row while scrolling). Now every row is exactly two
- * lines, always: identity (No/tipe/Mc/corak) on top, result (yard/jam/keterangan) below. Corak and
- * yard are also no longer folded into one pill — corak alone can already run long, and appending
- * "(303y)" to it just made the single pill wider still; each gets its own chip so neither one's
- * length affects the other's legibility.
+ * One single-line row — No, Mc, Corak, Panjang (yard), Jam, Keterangan left to right, in that
+ * exact order — mirroring the paper serah-terima form's columns 1:1 so copying an entry off the
+ * screen onto the printed form is a straight left-to-right read instead of hopping across two
+ * lines. Corak and keterangan are the only free-typed (variable-length) fields, so they're the
+ * only two that ever ellipsize; everything else is short, fixed-format text that always fits.
  */
 @Composable
 fun DoffEntryRowContent(
@@ -75,142 +71,119 @@ fun DoffEntryRowContent(
         else -> Amber400
     }
 
-    Column(
+    // No, Mc, Corak, Panjang, Jam, Keterangan — one row, left to right, in that exact order.
+    // Corak and keterangan are the only free-typed fields, so they're the only two given
+    // weight(1f, fill = false) + a width cap: that lets them shrink first (and ellipsize past
+    // their floor) if the row ever gets tight, while the fixed-format chips (No/Mc/Panjang/Jam)
+    // never shrink at all since they're short enough they never need to.
+    Row(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Baris 1: identitas (No, tipe, Mc) rapat di kiri, corak didorong ke ujung kanan lewat
-        // SpaceBetween — bukan cuma menumpuk semua di kiri lalu membiarkan sisa lebar kartu kosong
-        // begitu saja, kartu jadi terasa penuh dan seimbang dari tepi ke tepi.
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
+        Box(
+            modifier = Modifier
+                .size(20.dp)
+                .clip(RoundedCornerShape(5.dp))
+                .background(colors.bgElevated)
+                .border(1.dp, colors.border, RoundedCornerShape(5.dp)),
+            contentAlignment = Alignment.Center,
         ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(20.dp)
-                        .clip(RoundedCornerShape(5.dp))
-                        .background(colors.bgElevated)
-                        .border(1.dp, colors.border, RoundedCornerShape(5.dp)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        "$num",
-                        style = TextStyle(fontSize = 10.sp, fontWeight = FontWeight.Black, color = colors.textFaint),
-                    )
-                }
+            Text(
+                "$num",
+                style = TextStyle(fontSize = 10.sp, fontWeight = FontWeight.Black, color = colors.textFaint),
+            )
+        }
 
+        Text(
+            entry.mcNo,
+            style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Black, color = Cyan400),
+            maxLines = 1,
+            softWrap = false,
+        )
+
+        Row(
+            modifier = Modifier
+                .weight(1f, fill = false)
+                .widthIn(max = 100.dp)
+                .clip(RoundedCornerShape(5.dp))
+                .background(colors.bgElevated)
+                .border(1.dp, colors.border, RoundedCornerShape(5.dp))
+                .padding(horizontal = 6.dp, vertical = 3.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Texture,
+                contentDescription = null,
+                tint = colors.textFaint,
+                modifier = Modifier.size(11.dp),
+            )
+            Text(
+                corak,
+                style = TextStyle(fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = colors.textSecondary),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+
+        if (yard != null) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(5.dp))
+                    .background(colors.bgElevated2)
+                    .padding(horizontal = 7.dp, vertical = 3.dp),
+            ) {
                 Text(
-                    entry.mcNo,
-                    style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Black, color = Cyan400),
+                    "${formatYard(yard)}y",
+                    style = TextStyle(fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = colors.textMuted),
                     maxLines = 1,
                     softWrap = false,
                 )
             }
+        }
 
-            // Capped (bukan weight) — sekarang berdiri sendiri di ujung kanan, bukan lagi
-            // berbagi baris dengan elemen lain, jadi lebar sisa baris tidak relevan lagi; batas
-            // ini semata mencegah corak yang diketik bebas terlalu panjang mendorong baris melebar.
-            Row(
+        // No more edit-pencil here — the row itself is the tap target (Statistik even prints
+        // "Ketuk baris untuk edit" once above the list), so a second per-row hint was redundant,
+        // not the reason anyone found the affordance.
+        Row(
+            modifier = Modifier
+                .clip(RoundedCornerShape(6.dp))
+                .background(colors.bgElevated)
+                .border(1.dp, colors.border, RoundedCornerShape(6.dp))
+                .padding(horizontal = 7.dp, vertical = 3.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Schedule,
+                contentDescription = null,
+                tint = colors.textFaint,
+                modifier = Modifier.size(11.dp),
+            )
+            Text(
+                entry.jam,
+                style = TextStyle(fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = colors.textSecondary),
+                maxLines = 1,
+                softWrap = false,
+            )
+        }
+
+        if (ketCode.isNotEmpty()) {
+            Box(
                 modifier = Modifier
-                    .widthIn(max = 160.dp)
+                    .weight(1f, fill = false)
+                    .widthIn(max = 90.dp)
                     .clip(RoundedCornerShape(5.dp))
-                    .background(colors.bgElevated)
-                    .border(1.dp, colors.border, RoundedCornerShape(5.dp))
+                    .background(ketColor.copy(alpha = 0.15f))
                     .padding(horizontal = 6.dp, vertical = 3.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                Icon(
-                    imageVector = Icons.Outlined.Texture,
-                    contentDescription = null,
-                    tint = colors.textFaint,
-                    modifier = Modifier.size(11.dp),
-                )
                 Text(
-                    corak,
-                    style = TextStyle(fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = colors.textSecondary),
+                    ketCode,
+                    style = TextStyle(fontSize = 10.sp, fontWeight = FontWeight.Black, color = ketColor),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-            }
-        }
-
-        // Baris 2: yard + jam rapat di kiri, keterangan (kalau ada) didorong ke ujung kanan —
-        // simetris dengan baris 1. Tanpa keterangan, SpaceBetween dengan satu grup saja otomatis
-        // rapat kiri (tidak ada elemen kedua untuk didorong ke kanan).
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                if (yard != null) {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(5.dp))
-                            .background(colors.bgElevated2)
-                            .padding(horizontal = 7.dp, vertical = 3.dp),
-                    ) {
-                        Text(
-                            "${formatYard(yard)}y",
-                            style = TextStyle(fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = colors.textMuted),
-                            maxLines = 1,
-                            softWrap = false,
-                        )
-                    }
-                }
-
-                // No more edit-pencil here — the row itself is the tap target (Statistik even
-                // prints "Ketuk baris untuk edit" once above the list), so a second per-row hint
-                // was redundant, not the reason anyone found the affordance.
-                Row(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(colors.bgElevated)
-                        .border(1.dp, colors.border, RoundedCornerShape(6.dp))
-                        .padding(horizontal = 7.dp, vertical = 3.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Schedule,
-                        contentDescription = null,
-                        tint = colors.textFaint,
-                        modifier = Modifier.size(11.dp),
-                    )
-                    Text(
-                        entry.jam,
-                        style = TextStyle(fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = colors.textSecondary),
-                        maxLines = 1,
-                        softWrap = false,
-                    )
-                }
-            }
-
-            if (ketCode.isNotEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .widthIn(max = 130.dp)
-                        .clip(RoundedCornerShape(5.dp))
-                        .background(ketColor.copy(alpha = 0.15f))
-                        .padding(horizontal = 6.dp, vertical = 3.dp),
-                ) {
-                    Text(
-                        ketCode,
-                        style = TextStyle(fontSize = 10.sp, fontWeight = FontWeight.Black, color = ketColor),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
             }
         }
     }

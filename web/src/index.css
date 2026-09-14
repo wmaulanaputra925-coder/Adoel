@@ -1499,37 +1499,25 @@ button:disabled {
   background: var(--bg-elevated);
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
 }
-/* ---- Shared doff-entry row: Riwayat list + Statistik shift detail (DoffEntryRow.tsx). Fixed
-   two-row layout — the old single wrapping line let content length (a long keterangan or corak)
-   decide where the wrap fell, so row height and vertical alignment varied unpredictably while
-   scrolling. Now always exactly two rows: .der-row1 (identity: No/tipe/Mc/corak), .der-row2
-   (result: yard/jam/keterangan) — each a fixed flex row of its own, never wrapping onto a third
-   line; overlong content ellipsizes within its own chip instead. Each row is also
-   justify-content: space-between between its own .der-row*-left cluster and its one right-hand
-   chip (corak on row 1, keterangan on row 2) — packing everything flush left left a wide dead gap
-   on the right on any short entry (most of them); spreading across the full row width instead
-   reads as an intentional, balanced layout rather than half-empty. ---- */
+/* ---- Shared doff-entry row: Riwayat list + Statistik shift detail (DoffEntryRow.tsx). One
+   single-line row now — No/Mc/Corak/Panjang/Jam/Keterangan left to right in that exact order,
+   matching the paper serah-terima form column for column so copying off the screen onto the
+   printed form doesn't need re-reading across two lines per entry. flex-wrap: nowrap plus the
+   row's own overflow: hidden means it never wraps onto a second line; the two free-typed fields
+   (corak, keterangan) are the only ones that can ellipsize, everything else is short and
+   fixed-format enough it never needs to. ---- */
 .doff-entry-row {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  min-width: 0;
   flex: 1 1 auto;
-  min-width: 0;
 }
-.der-row1,
-.der-row2 {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-}
-.der-row1-left,
-.der-row2-left {
+.der-row {
   display: flex;
   align-items: center;
   gap: 6px;
   min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
 }
 .der-num {
   flex-shrink: 0;
@@ -1553,13 +1541,12 @@ button:disabled {
   white-space: nowrap;
 }
 .der-corak {
-  /* Stands alone at the row's right edge now (see .der-row1's space-between), so there's no
-     sibling left to share width with — max-width alone is enough to stop a free-typed corak from
-     stretching the row, .der-corak-text's ellipsis handles the rest. Yard moved to its own chip on
-     row 2 — appending "(303y)" to this one just made a single already-long chip wider still. */
-  flex-shrink: 0;
-  max-width: 160px;
-  min-width: 0;
+  /* Free-typed, so the one field here (besides keterangan) that can actually run long — allowed
+     to shrink first (before the fixed-format chips get squeezed) down to a compact floor, with
+     .der-corak-text's ellipsis taking over past that. */
+  flex-shrink: 1;
+  max-width: 100px;
+  min-width: 32px;
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -1593,11 +1580,11 @@ button:disabled {
   white-space: nowrap;
 }
 .der-ket {
-  /* Stands alone at the row's right edge (see .der-row2's space-between) — max-width plus single-
-     line ellipsis (was a 2-line clamp) instead of flex-sharing width with a sibling. */
-  flex-shrink: 0;
-  max-width: 130px;
-  min-width: 0;
+  /* Last column, and the other free-typed field — same shrink-then-ellipsize treatment as
+     .der-corak, just capped a bit tighter since it's the last thing in an already-full row. */
+  flex-shrink: 1;
+  max-width: 90px;
+  min-width: 24px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
