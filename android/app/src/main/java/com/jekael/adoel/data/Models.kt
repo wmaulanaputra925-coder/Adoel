@@ -66,11 +66,30 @@ data class ShiftRecord(
     val operatorGrup: String = "",
 )
 
-// HB (Habis Beam) is common enough on every shift that it's worth shipping as a built-in
-// shortcut rather than making every install's operator add it by hand — the other codes
-// (P.LP/P.SN/etc.) are floor-specific enough that they stay opt-in via Pengaturan.
-val DEFAULT_KETERANGAN_SHORTCUTS = listOf("HB")
-val DEFAULT_CORAK_SHORTCUTS = emptyList<String>()
+// This is the actual day-to-day list this floor uses — shipped as the default so a fresh
+// install (or a DB reset) starts already configured instead of empty/near-empty until someone
+// manually re-adds every code they use every shift.
+val DEFAULT_KETERANGAN_SHORTCUTS = listOf(
+    "HB",
+    "P. Selvedge",
+    "P. Elektrik",
+    "P. LP",
+    "P. Snarling",
+    "Overhaul",
+    "P. Roll",
+    "TU",
+    "P. LENO",
+)
+val DEFAULT_CORAK_SHORTCUTS = listOf(
+    "15976",
+    "92976",
+    "49758",
+    "80125",
+    "66335",
+    "21242",
+    "59898",
+    "88357",
+)
 
 /** Corak dengan aturan "potongan awal 70 yard" — begitu beam lusi baru naik, kain di awal jalan
  * sering masih banyak cacat (LTK, lusi putus) sampai mesin stabil, jadi sampel Doffing Matching
