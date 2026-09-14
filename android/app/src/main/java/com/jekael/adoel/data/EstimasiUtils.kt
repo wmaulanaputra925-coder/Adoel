@@ -38,7 +38,7 @@ fun sortedByNearest(estimasi: Map<String, Estimasi>): List<Estimasi> =
 fun findClashingMachines(
     targetMcNo: String,
     allEstimasi: Collection<Estimasi>,
-    thresholdMin: Long = 10L,
+    thresholdMin: Long = 5L,
 ): List<String> {
     val targetEstimasi = allEstimasi.firstOrNull { it.mcNo == targetMcNo } ?: return emptyList()
     return allEstimasi

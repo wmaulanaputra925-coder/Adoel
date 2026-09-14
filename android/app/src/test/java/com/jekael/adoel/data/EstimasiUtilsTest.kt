@@ -53,12 +53,12 @@ class EstimasiUtilsTest {
     }
 
     @Test
-    fun findClashingMachinesUsesAbsoluteTenMinuteThresholdAndExcludesTarget() {
+    fun findClashingMachinesUsesAbsoluteFiveMinuteThresholdAndExcludesTarget() {
         val estimasi = listOf(
             est("target", 100),
-            est("before", 90),
-            est("after", 110),
-            est("outside", 111),
+            est("before", 95),
+            est("after", 105),
+            est("outside", 106),
         )
 
         assertEquals(listOf("before", "after"), findClashingMachines("target", estimasi))
