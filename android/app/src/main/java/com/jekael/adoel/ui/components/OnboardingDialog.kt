@@ -298,7 +298,7 @@ private fun RadarGestureGuide() {
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text("D408 • Corak 4500", style = AppType.Caption.copy(color = colors.textFaint, fontSize = 11.sp))
+                    Text("Corak 4500", style = AppType.Caption.copy(color = colors.textFaint, fontSize = 11.sp))
                     Text("300y", style = AppType.Caption.copy(color = colors.textFaint, fontSize = 11.sp))
                 }
             }

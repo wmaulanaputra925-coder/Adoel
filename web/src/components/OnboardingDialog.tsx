@@ -173,7 +173,7 @@ export function OnboardingDialog({ onClose }: { onClose: () => void }) {
                   </div>
                   <div style={{ height: 5, borderRadius: 3, background: "var(--cyan-500)", width: "65%" }} />
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11, color: "var(--text-faint)" }}>
-                    <span>D408 • Corak 4500</span>
+                    <span>Corak 4500</span>
                     <span>300y</span>
                   </div>
                 </div>
