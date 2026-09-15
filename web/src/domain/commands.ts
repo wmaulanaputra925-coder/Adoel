@@ -4,7 +4,7 @@
 import { absMinToTimeStr, jamKeShiftAbs, nowAbsMin, nowTimeStr } from "./format";
 import { parseDurasi, parseJam, standarisasiKeterangan } from "./parse";
 import { isPotonganAwalCorak } from "./matchingRules";
-import { POTONGAN_AWAL_YARD } from "./types";
+import { defaultMesinData, POTONGAN_AWAL_YARD } from "./types";
 import type { AktualEntry, DoffState, Estimasi, ProsesResult } from "./types";
 
 export interface CommandOutcome {
@@ -23,10 +23,18 @@ export function prosesBarisKondisiMesin(state: DoffState, ln: string, now: numbe
   if (parts.length < 2) return { result: { ok: false, msg: "Kurang data" }, newState: state };
   const mcNo = parts[0];
   if (!/^\d{1,4}$/.test(mcNo)) return { result: { ok: false, msg: "Nomor mesin tidak valid" }, newState: state };
-  const mesin = state.db[mcNo];
-  if (!mesin) return { result: { ok: false, msg: `Mc ${mcNo} belum terdaftar, tambahkan dulu di Pengaturan` }, newState: state };
+  // Mesin yang belum pernah dipakai (nomor baru — pabrik menambah mesin dari waktu ke waktu)
+  // auto-terdaftar sebagai slot kosong alih-alih ditolak, supaya konsol tidak membatasi ke
+  // rentang awal buildDefaultDb(): operator tinggal atur corak-nya di Pengaturan, persis
+  // seperti mesin 1-174 yang belum diisi.
+  let workingState = state;
+  let mesin = state.db[mcNo];
+  if (!mesin) {
+    mesin = defaultMesinData();
+    workingState = { ...state, db: { ...state.db, [mcNo]: mesin } };
+  }
   if (!mesin.corak || mesin.corak.trim() === "" || mesin.corak.trim() === "-") {
-    return { result: { ok: false, msg: `Mc ${mcNo} belum diatur, atur corak dulu di Pengaturan` }, newState: state };
+    return { result: { ok: false, msg: `Mc ${mcNo} belum diatur, atur corak dulu di Pengaturan` }, newState: workingState };
   }
 
   let estAbs: number;
@@ -35,7 +43,7 @@ export function prosesBarisKondisiMesin(state: DoffState, ln: string, now: numbe
     case "CAM": {
       // nilai = durasi tersisa dari sekarang
       const sisaMin = parseDurasi(parts[1]);
-      if (sisaMin === null) return { result: { ok: false, msg: "Durasi tidak valid" }, newState: state };
+      if (sisaMin === null) return { result: { ok: false, msg: "Durasi tidak valid" }, newState: workingState };
       estAbs = now + sisaMin;
       break;
     }
@@ -43,15 +51,15 @@ export function prosesBarisKondisiMesin(state: DoffState, ln: string, now: numbe
       // nilai = yard yang SUDAH BERJALAN saat ini (boleh diakhiri 'y')
       const yardStr = parts[1].replace(/[yY]+$/, "");
       const yardBerjalan = parseFloat(yardStr.replace(",", "."));
-      if (Number.isNaN(yardBerjalan)) return { result: { ok: false, msg: "Yard tidak valid" }, newState: state };
-      const existing = state.estimasi[mcNo];
+      if (Number.isNaN(yardBerjalan)) return { result: { ok: false, msg: "Yard tidak valid" }, newState: workingState };
+      const existing = workingState.estimasi[mcNo];
       const target = existing?.yardOverride ?? mesin.targetYard;
       if (target === null || target === undefined)
-        return { result: { ok: false, msg: "Data target kosong" }, newState: state };
+        return { result: { ok: false, msg: "Data target kosong" }, newState: workingState };
       const speed = mesin.speed;
       if (speed === null || speed === undefined)
-        return { result: { ok: false, msg: "Data speed kosong" }, newState: state };
-      if (speed <= 0) return { result: { ok: false, msg: "Speed harus > 0" }, newState: state };
+        return { result: { ok: false, msg: "Data speed kosong" }, newState: workingState };
+      if (speed <= 0) return { result: { ok: false, msg: "Speed harus > 0" }, newState: workingState };
       const sisaMin = Math.round((target - yardBerjalan) / speed);
       estAbs = now + sisaMin;
       break;
@@ -62,16 +70,16 @@ export function prosesBarisKondisiMesin(state: DoffState, ln: string, now: numbe
       let jamCounterStr = parts[1];
       if (jamCounterStr.toLowerCase() === "c" && parts.length >= 3) jamCounterStr = parts[2];
       const jamMin = parseJam(jamCounterStr);
-      if (jamMin === null) return { result: { ok: false, msg: "Jam counter tidak valid" }, newState: state };
+      if (jamMin === null) return { result: { ok: false, msg: "Jam counter tidak valid" }, newState: workingState };
       const koreksi = mesin.koreksi;
       if (koreksi === null || koreksi === undefined)
-        return { result: { ok: false, msg: "Menit koreksi kosong" }, newState: state };
+        return { result: { ok: false, msg: "Menit koreksi kosong" }, newState: workingState };
       estAbs = jamKeShiftAbs(jamMin) + Math.round(koreksi);
       break;
     }
   }
 
-  const existing = state.estimasi[mcNo];
+  const existing = workingState.estimasi[mcNo];
   const newEst: Estimasi = {
     mcNo,
     estAbsMin: estAbs,
@@ -81,8 +89,8 @@ export function prosesBarisKondisiMesin(state: DoffState, ln: string, now: numbe
     pausedAtAbsMin: null,
   };
   const newState: DoffState = {
-    ...state,
-    estimasi: { ...state.estimasi, [mcNo]: newEst },
+    ...workingState,
+    estimasi: { ...workingState.estimasi, [mcNo]: newEst },
   };
 
   return {
@@ -97,8 +105,14 @@ export function prosesBarisUmum(state: DoffState, ln: string): CommandOutcome {
   if (parts.length === 0) return { result: { ok: false, msg: "Kosong" }, newState: state };
   const mcNo = parts[0];
   if (!/^\d{1,4}$/.test(mcNo)) return { result: { ok: false, msg: "Nomor mesin tidak valid" }, newState: state };
-  const mesin = state.db[mcNo];
-  if (!mesin) return { result: { ok: false, msg: `Mc ${mcNo} belum terdaftar, tambahkan dulu di Pengaturan` }, newState: state };
+  // Sama seperti prosesBarisKondisiMesin — nomor baru auto-terdaftar sebagai slot kosong,
+  // bukan ditolak, supaya konsol tidak membatasi ke rentang awal buildDefaultDb().
+  let workingState = state;
+  let mesin = state.db[mcNo];
+  if (!mesin) {
+    mesin = defaultMesinData();
+    workingState = { ...state, db: { ...state.db, [mcNo]: mesin } };
+  }
 
   const jam = nowTimeStr();
   let customYard: number | null = null;
@@ -111,7 +125,7 @@ export function prosesBarisUmum(state: DoffState, ln: string): CommandOutcome {
       const isDelta = ydMatch[1] === "+";
       const num = parseFloat(ydMatch[2].replace(",", "."));
       if (!Number.isNaN(num)) {
-        const standard = state.estimasi[mcNo]?.yardOverride ?? mesin.targetYard;
+        const standard = workingState.estimasi[mcNo]?.yardOverride ?? mesin.targetYard;
         // '+' = delta dari target standar (mis. "+5" = 5 yard lewat target).
         // Tanpa '+' = nilai absolut.
         customYard = isDelta && standard !== null && standard !== undefined ? standard + num : num;
@@ -121,7 +135,7 @@ export function prosesBarisUmum(state: DoffState, ln: string): CommandOutcome {
     ketTokens.push(token);
   }
 
-  const prevEst = state.estimasi[mcNo] ?? null;
+  const prevEst = workingState.estimasi[mcNo] ?? null;
   const effectiveCorak = prevEst?.corakOverride ?? mesin.corak;
 
   const extra = standarisasiKeterangan(ketTokens.join(" ").trim());
@@ -130,11 +144,11 @@ export function prosesBarisUmum(state: DoffState, ln: string): CommandOutcome {
   // Doffing Matching memotong 70 yard pertama pada corak yang termasuk aturan potongan awal,
   // bukan sepanjang target standar mesin — tanpa ini Riwayat mencatat panjang standar (mis. 303y)
   // untuk potongan yang nyatanya 70y. Yard yang diketik operator selalu menang.
-  if (customYard === null && extra.includes("MATCHING") && isPotonganAwalCorak(state, effectiveCorak)) {
+  if (customYard === null && extra.includes("MATCHING") && isPotonganAwalCorak(workingState, effectiveCorak)) {
     customYard = POTONGAN_AWAL_YARD;
   }
 
-  const entryId = state.nextId;
+  const entryId = workingState.nextId;
   const entry: AktualEntry = {
     id: entryId,
     mcNo,
@@ -144,12 +158,12 @@ export function prosesBarisUmum(state: DoffState, ln: string): CommandOutcome {
     customYard,
     tsEpochMin: nowAbsMin(),
   };
-  const { [mcNo]: _removed, ...restEstimasi } = state.estimasi;
+  const { [mcNo]: _removed, ...restEstimasi } = workingState.estimasi;
   const newState: DoffState = {
-    ...state,
+    ...workingState,
     nextId: entryId + 1,
     estimasi: restEstimasi,
-    aktual: [entry, ...state.aktual],
+    aktual: [entry, ...workingState.aktual],
   };
 
   return {

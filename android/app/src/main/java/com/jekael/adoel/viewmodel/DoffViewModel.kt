@@ -82,7 +82,13 @@ class DoffViewModel @JvmOverloads constructor(
         // 4 digits, matching web's commands.ts — the mill adds machines over time, so the console
         // must not cap what Pengaturan will happily let you create (that form takes 4 digits too).
         if (!mcNo.matches(Regex("^\\d{1,4}$"))) return ProsesResult.Err("Nomor mesin tidak valid")
-        val mesin = _state.value.db[mcNo] ?: return ProsesResult.Err("Mc $mcNo belum terdaftar, tambahkan dulu di Pengaturan")
+        // A number the console has never seen before auto-registers as a blank slot instead of
+        // being rejected — otherwise the console would still cap out at buildDefaultDb()'s 174
+        // even though the regex above already accepts any 4-digit number. Operator sets its
+        // corak in Pengaturan same as any other blank slot (1-174 included).
+        val mesin: MesinData = _state.value.db[mcNo] ?: MesinData().also { blank ->
+            updateState { s -> s.copy(db = s.db + (mcNo to blank)) }
+        }
         if (mesin.corak.isBlank() || mesin.corak.trim() == "-")
             return ProsesResult.Err("Mc $mcNo belum diatur, atur corak dulu di Pengaturan")
 
@@ -131,7 +137,11 @@ class DoffViewModel @JvmOverloads constructor(
         if (parts.isEmpty()) return ProsesResult.Err("Kosong")
         val mcNo = parts[0]
         if (!mcNo.matches(Regex("^\\d{1,4}$"))) return ProsesResult.Err("Nomor mesin tidak valid")
-        val mesin = _state.value.db[mcNo] ?: return ProsesResult.Err("Mc $mcNo belum terdaftar, tambahkan dulu di Pengaturan")
+        // Sama seperti prosesBarisKondisiMesin — nomor baru auto-terdaftar sebagai slot kosong,
+        // bukan ditolak, supaya konsol tidak membatasi ke rentang awal buildDefaultDb().
+        val mesin: MesinData = _state.value.db[mcNo] ?: MesinData().also { blank ->
+            updateState { s -> s.copy(db = s.db + (mcNo to blank)) }
+        }
 
         val jam = nowTimeStr()
         var customYard: Double? = null
