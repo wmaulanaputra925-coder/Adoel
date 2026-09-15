@@ -24,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.jekael.adoel.data.MesinTipe
 import com.jekael.adoel.data.formatYard
 import com.jekael.adoel.ui.theme.AppType
 import com.jekael.adoel.ui.theme.Cyan600
@@ -31,31 +32,49 @@ import com.jekael.adoel.ui.theme.Dimens
 import com.jekael.adoel.ui.theme.LocalAppColors
 
 /**
- * Fast path for the two machine fields that actually change often on the floor — corak and
- * target yard — reachable by tapping a RadarCard directly instead of the full Pengaturan > Mesin
- * flow (search, open, edit, save, close, close). Deliberately scoped to just these two fields;
- * tipe/speed/koreksi change far less often and stay behind the full Settings editor.
+ * Fast path for the machine fields that actually change often on the floor — tipe mesin, corak
+ * and target yard — reachable by tapping a RadarCard directly instead of the full Pengaturan >
+ * Mesin flow (search, open, edit, save, close, close). Speed/koreksi only show up when the
+ * selected tipe actually needs them (D405/D408) and are only overwritten if the operator edits
+ * them while that tipe is selected — switching tipe away and back doesn't lose the other tipe's
+ * calibration. The fuller helpers (koreksi +/- stepper, "hitung dari jam") stay behind the full
+ * Settings editor (MesinEditPanel) — this dialog is deliberately just the plain fields.
  */
 @Composable
 fun QuickEditCorakDialog(
     mcNo: String,
+    tipe: MesinTipe,
     corak: String,
     targetYard: Double?,
+    speed: Double?,
+    koreksi: Double?,
     onDismiss: () -> Unit,
-    onSave: (corak: String, targetYard: Double?) -> Unit,
+    onSave: (tipe: MesinTipe, corak: String, targetYard: Double?, speed: Double?, koreksi: Double?) -> Unit,
     corakShortcuts: List<String>? = null,
     onAddCorakShortcut: (String) -> Unit = {},
     showToast: ((String) -> Unit)? = null,
 ) {
     val colors = LocalAppColors.current
+    var tipeInput by remember(mcNo) { mutableStateOf(tipe) }
     var corakInput by remember(mcNo) { mutableStateOf(if (corak == "-") "" else corak) }
     var targetYardInput by remember(mcNo) { mutableStateOf(targetYard?.let { formatYard(it) } ?: "") }
+    var speedInput by remember(mcNo) { mutableStateOf(speed?.let { formatYard(it) } ?: "") }
+    var koreksiInput by remember(mcNo) { mutableStateOf(koreksi?.let { formatYard(it) } ?: "") }
 
     FloatingEditDialog(onDismissRequest = onDismiss) {
         Text(
             text = "Ganti Cepat — Mc $mcNo",
             style = AppType.DialogTitle.copy(color = colors.textPrimary),
         )
+
+        Spacer(Modifier.height(Dimens.Space16))
+
+        FieldLabel("Tipe Mesin")
+        Row(horizontalArrangement = Arrangement.spacedBy(Dimens.Space8)) {
+            MesinTipe.entries.forEach { t ->
+                ChipBtn(t.name, tipeInput == t) { tipeInput = t }
+            }
+        }
 
         Spacer(Modifier.height(Dimens.Space16))
 
@@ -93,6 +112,38 @@ fun QuickEditCorakDialog(
             singleLine = true,
         )
 
+        if (tipeInput == MesinTipe.D405) {
+            Spacer(Modifier.height(Dimens.Space16))
+            FieldLabel("Speed (yard/menit)")
+            OutlinedTextField(
+                value = speedInput,
+                onValueChange = { speedInput = it },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("contoh: 0.158", color = colors.textFaint) },
+                colors = outlinedFieldColors(),
+                shape = RoundedCornerShape(Dimens.RadiusControl),
+                textStyle = AppType.FieldText.copy(color = colors.textPrimary),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                singleLine = true,
+            )
+        }
+
+        if (tipeInput == MesinTipe.D408) {
+            Spacer(Modifier.height(Dimens.Space16))
+            FieldLabel("Koreksi Counter (menit)")
+            OutlinedTextField(
+                value = koreksiInput,
+                onValueChange = { koreksiInput = it },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("contoh: 0 atau -15", color = colors.textFaint) },
+                colors = outlinedFieldColors(),
+                shape = RoundedCornerShape(Dimens.RadiusControl),
+                textStyle = AppType.FieldText.copy(color = colors.textPrimary),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                singleLine = true,
+            )
+        }
+
         Spacer(Modifier.height(Dimens.Space20))
 
         Row(horizontalArrangement = Arrangement.spacedBy(Dimens.Space8)) {
@@ -113,7 +164,20 @@ fun QuickEditCorakDialog(
                     } else {
                         targetYardInput.trim().replace(',', '.').toDoubleOrNull() ?: targetYard
                     }
-                    onSave(trimmed, yard)
+                    // A tipe that isn't currently selected keeps its old speed/koreksi untouched —
+                    // only the active tipe's field is allowed to overwrite it, so switching tipe
+                    // away and back doesn't silently wipe the other tipe's calibration.
+                    val newSpeed = if (tipeInput == MesinTipe.D405) {
+                        if (speedInput.isBlank()) null else speedInput.trim().replace(',', '.').toDoubleOrNull() ?: speed
+                    } else {
+                        speed
+                    }
+                    val newKoreksi = if (tipeInput == MesinTipe.D408) {
+                        if (koreksiInput.isBlank()) null else koreksiInput.trim().replace(',', '.').toDoubleOrNull() ?: koreksi
+                    } else {
+                        koreksi
+                    }
+                    onSave(tipeInput, trimmed, yard, newSpeed, newKoreksi)
                 },
                 modifier = Modifier.weight(1f).height(48.dp),
                 shape = RoundedCornerShape(Dimens.RadiusControl),

@@ -564,11 +564,17 @@ fun MainScreen(
         val mesin = state.db[quickEditMcNo] ?: MesinData()
         QuickEditCorakDialog(
             mcNo = quickEditMcNo,
+            tipe = mesin.tipe,
             corak = mesin.corak,
             targetYard = mesin.targetYard,
+            speed = mesin.speed,
+            koreksi = mesin.koreksi,
             onDismiss = { activeOverlay = ActiveOverlay.None },
-            onSave = { corak, targetYard ->
-                doffVm.setMesin(quickEditMcNo, mesin.copy(corak = corak, targetYard = targetYard))
+            onSave = { tipe, corak, targetYard, speed, koreksi ->
+                doffVm.setMesin(
+                    quickEditMcNo,
+                    mesin.copy(tipe = tipe, corak = corak, targetYard = targetYard, speed = speed, koreksi = koreksi),
+                )
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 uiVm.showToast("Mc $quickEditMcNo disimpan ✓")
                 activeOverlay = ActiveOverlay.None
