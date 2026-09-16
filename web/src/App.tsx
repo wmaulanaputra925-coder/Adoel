@@ -169,10 +169,9 @@ function AppInner() {
   }
 
   function openGuidedDoffing(mcNo: string) {
-    if (!state.db[mcNo]) {
-      showToast(`⚠ Mc ${mcNo} tidak ditemukan`);
-      return;
-    }
+    // A number the console has never seen before is fine — GuidedDoffingSheet itself detects an
+    // unregistered/unconfigured machine (null mesin or blank corak) and offers the quick
+    // corak/yard setup inline (needsSetup), same as openGuidedEstimasi already does.
     setGuidedDoffingMcNo(mcNo);
   }
 

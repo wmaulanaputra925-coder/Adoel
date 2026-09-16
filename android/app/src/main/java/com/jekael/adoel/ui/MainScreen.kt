@@ -394,25 +394,18 @@ fun MainScreen(
         // asks which one was meant.
         ConsoleBar(
             onEstimasiClick = { mcNo ->
-                if (state.db[mcNo] == null) {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    uiVm.showToast("⚠ Mc $mcNo tidak ditemukan")
-                } else {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    // GuidedEstimasiSheet itself detects an unconfigured machine (blank corak) and
-                    // offers the quick corak/yard setup inline before the value step (§3) — no
-                    // separate routing needed here for that case.
-                    activeOverlay = ActiveOverlay.GuidedEstimasi(mcNo)
-                }
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                // A number the console has never seen before is fine — GuidedEstimasiSheet itself
+                // detects an unregistered/unconfigured machine (null mesin or blank corak) and
+                // offers the quick corak/yard setup inline before the value step (§3), same as any
+                // blank slot from buildDefaultDb(). No separate routing needed here for that case.
+                activeOverlay = ActiveOverlay.GuidedEstimasi(mcNo)
             },
             onDoffingClick = { mcNo ->
-                if (state.db[mcNo] == null) {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    uiVm.showToast("⚠ Mc $mcNo tidak ditemukan")
-                } else {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    activeOverlay = ActiveOverlay.GuidedDoffing(mcNo)
-                }
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                // Same as onEstimasiClick — GuidedDoffingSheet handles an unregistered machine the
+                // same way.
+                activeOverlay = ActiveOverlay.GuidedDoffing(mcNo)
             },
             onUndo = {
                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)

@@ -70,7 +70,11 @@ fun TambahAktSheet(
     fun doSave() {
         if (showCheck) return
         val mcNoTrim = mcNoInput.trim()
-        if (db[mcNoTrim] == null) {
+        // No db membership check — mcNo here is only ever used for prefill convenience (mesin
+        // above) and the AktualEntry record itself, neither of which needs the machine to already
+        // exist in db. Requiring pre-registration would just be the same artificial cap the
+        // console dropped for live entries.
+        if (mcNoTrim.isEmpty()) {
             onInvalidMcNo()
             return
         }

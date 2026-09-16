@@ -35,8 +35,12 @@ export function TambahAktualDialog({
 
   function handleSave() {
     const mcTrim = mcNo.trim();
-    if (!state.db[mcTrim]) {
-      showToast(`⚠ Mc ${mcTrim || "..."} tidak ditemukan di database`);
+    // No db membership check — mcNo here is only ever used for prefill convenience (mesin
+    // above) and the AktualEntry record itself, neither of which needs the machine to already
+    // exist in db. Requiring pre-registration would just be the same artificial cap the
+    // console dropped for live entries.
+    if (!mcTrim) {
+      showToast("⚠ Nomor mesin wajib diisi");
       return;
     }
     const jamMin = parseJam(jam.trim());
