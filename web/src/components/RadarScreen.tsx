@@ -55,6 +55,25 @@ export function RadarScreen({ onEditWaktu }: { onEditWaktu: (mcNo: string) => vo
   const shiftEndAbs = currentShiftStartAbsMin(nowAbs) + 8 * 60;
   const activeMenunggu = menunggu;
 
+  // Anchor for the leading break-gap card — frozen at the nowAbs value from the moment this
+  // became the nearest upcoming machine with nothing overdue, not recomputed every tick, so the
+  // gap's total duration stays fixed while only BreakGapCard's own live "remaining" text shrinks.
+  // Without this, gapMin and remainingMin are both derived from the same live nowAbs and shrink in
+  // lockstep, so elapsedFraction reads permanently ~0 — the progress bar never visibly fills.
+  // Resets (via the render-time setState pattern, not an effect, so there's no one-frame lag) when
+  // a different machine becomes first, or this same machine's estimate gets edited — same fix as
+  // Android's leadingGapAnchor (MainScreen.kt): a freshly edited estimate is a fresh "now" for the
+  // anchor's purposes, otherwise correcting it to something sooner can compute a shrunken or even
+  // negative gap against a stale anchor and silently drop a card that, from right now, still holds.
+  const leadingFirst = segera.length === 0 ? (activeMenunggu[0] ?? null) : null;
+  const leadingAnchorKey = leadingFirst ? `${leadingFirst.mcNo}:${leadingFirst.estAbsMin}` : null;
+  const [leadingGapAnchor, setLeadingGapAnchor] = useState(nowAbs);
+  const [prevLeadingAnchorKey, setPrevLeadingAnchorKey] = useState<string | null>(null);
+  if (leadingAnchorKey !== prevLeadingAnchorKey) {
+    setPrevLeadingAnchorKey(leadingAnchorKey);
+    setLeadingGapAnchor(nowAbs);
+  }
+
   if (all.length === 0) {
     return (
       <div className="scroll-area">
@@ -210,10 +229,11 @@ export function RadarScreen({ onEditWaktu }: { onEditWaktu: (mcNo: string) => vo
             </span>
           </div>
 
-          {/* Leading break gap (jeda waktu aktif sebelum mesin pertama) */}
-          {segera.length === 0 && activeMenunggu[0] && activeMenunggu[0].estAbsMin - nowAbs >= BREAK_GAP_THRESHOLD_MIN && (
+          {/* Leading break gap (jeda waktu aktif sebelum mesin pertama) — gapMin anchors to
+              leadingGapAnchor (frozen), not live nowAbs; see that declaration's comment. */}
+          {segera.length === 0 && activeMenunggu[0] && activeMenunggu[0].estAbsMin - leadingGapAnchor >= BREAK_GAP_THRESHOLD_MIN && (
             <BreakGapCard
-              gapMin={activeMenunggu[0].estAbsMin - nowAbs}
+              gapMin={activeMenunggu[0].estAbsMin - leadingGapAnchor}
               nextMcNo={activeMenunggu[0].mcNo}
               nextAbsMin={activeMenunggu[0].estAbsMin}
               nowAbs={nowAbs}

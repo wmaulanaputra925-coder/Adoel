@@ -195,9 +195,16 @@ fun MainScreen(
     // so the gap's total duration stays fixed while only the live remaining time (read straight
     // from nowAbs in BreakGapCard) shrinks — otherwise both numbers shrink in lockstep and the
     // progress bar reads permanently empty (elapsedFraction stuck at ~0).
+    //
+    // estAbsMin has to be in the key too, not just mcNo — otherwise correcting that same machine's
+    // estimate to something sooner (a very normal edit: the first guess was too long) computes the
+    // new gap against a now-stale anchor from whenever this became the nearest machine, which can
+    // easily land under BREAK_GAP_THRESHOLD_MIN or even go negative, silently dropping a card that,
+    // measured from right now, should still be showing. A fresh estimate is a fresh "now" for this
+    // anchor's purposes.
     val noSegera = segeraList.isEmpty()
-    val firstMenungguMcNo = menungguList.firstOrNull()?.mcNo
-    val leadingGapAnchor = remember(noSegera, firstMenungguMcNo) { nowAbs }
+    val firstMenunggu = menungguList.firstOrNull()
+    val leadingGapAnchor = remember(noSegera, firstMenunggu?.mcNo, firstMenunggu?.estAbsMin) { nowAbs }
 
     // Flag long idle stretches between two upcoming doffs so the operator knows when it's
     // actually safe to step away, instead of having to eyeball the gap between two times.
