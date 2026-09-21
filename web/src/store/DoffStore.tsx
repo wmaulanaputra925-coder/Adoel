@@ -36,6 +36,7 @@ interface DoffStore {
   deleteHistoryEntry: (shiftId: number, id: number) => void;
   addHistoryEntry: (shiftId: number, mcNo: string, jam: string, ket: string, corakOverride: string | null, customYard: number | null) => void;
   finishShift: () => void;
+  clearShiftNoArchive: () => void;
   setMesin: (mcNo: string, data: MesinData) => void;
   resetMesin: (mcNo: string) => void;
   resetDb: () => void;
@@ -348,6 +349,18 @@ export function DoffStoreProvider({ children }: { children: ReactNode }) {
     });
   }, [clearUndo]);
 
+  // Jalan pintas destruktif: buang baris estimasi aktif dan riwayat doffing shift berjalan
+  // sekaligus, TANPA membuat arsip shift di Statistik sama sekali — beda dari finishShift, yang
+  // selalu mengarsipkan aktual (hanya estimasi yang dibuang tanpa arsip di sana). Dipakai kalau
+  // operator perlu mengosongkan papan karena keliru input, bukan menutup shift sungguhan.
+  const clearShiftNoArchive = useCallback(() => {
+    clearUndo();
+    setState((s) => {
+      if (s.aktual.length === 0 && Object.keys(s.estimasi).length === 0) return s;
+      return { ...s, estimasi: {}, aktual: [] };
+    });
+  }, [clearUndo]);
+
   const setMesin = useCallback((mcNo: string, data: MesinData) => {
     setState((s) => ({ ...s, db: { ...s.db, [mcNo]: data } }));
   }, []);
@@ -523,6 +536,7 @@ export function DoffStoreProvider({ children }: { children: ReactNode }) {
       deleteHistoryEntry,
       addHistoryEntry,
       finishShift,
+      clearShiftNoArchive,
       setMesin,
       resetMesin,
       resetDb,
@@ -567,6 +581,7 @@ export function DoffStoreProvider({ children }: { children: ReactNode }) {
       deleteHistoryEntry,
       addHistoryEntry,
       finishShift,
+      clearShiftNoArchive,
       setMesin,
       resetMesin,
       resetDb,

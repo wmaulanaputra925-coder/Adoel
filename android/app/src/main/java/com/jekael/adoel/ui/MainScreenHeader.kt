@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.BarChart
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.MoreVert
@@ -70,6 +71,7 @@ internal fun MainScreenHeader(
     onSyncClick: () -> Unit,
     onShare: () -> Unit,
     onFinishShift: () -> Unit,
+    onClearShiftNoArchive: () -> Unit,
     showFinishShift: Boolean,
     onStatistik: () -> Unit,
     page: Page,
@@ -271,6 +273,11 @@ internal fun MainScreenHeader(
                         text = { Text("Selesai Shift") },
                         leadingIcon = { Icon(Icons.Outlined.Flag, contentDescription = null) },
                         onClick = { actionsExpanded = false; onFinishShift() },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Hapus Semua (Tanpa Arsip)") },
+                        leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = null) },
+                        onClick = { actionsExpanded = false; onClearShiftNoArchive() },
                     )
                 }
             }

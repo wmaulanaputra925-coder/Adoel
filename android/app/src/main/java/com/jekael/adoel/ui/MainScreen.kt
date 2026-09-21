@@ -386,6 +386,7 @@ fun MainScreen(
             onSyncClick = { syncOpen = true },
             onShare = { shareHistory(context, state) },
             onFinishShift = { handlers.handleFinishShift() },
+            onClearShiftNoArchive = { handlers.handleClearShiftNoArchive() },
             showFinishShift = hasPreviousShiftData,
             onStatistik = { activeOverlay = ActiveOverlay.Statistik },
             page = page,

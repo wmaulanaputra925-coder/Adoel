@@ -21,6 +21,7 @@ import {
   BarChartIcon,
   CalendarIcon,
   CheckCircleIcon,
+  DeleteIcon,
   FlagIcon,
   HistoryIcon,
   MoreVertIcon,
@@ -42,7 +43,7 @@ type Screen = "main" | "statistik" | "settings" | "mesin";
 function AppInner() {
   const { state, setMesin, setOnboardingSeen, setOperator, markOperatorAsked, undo, redo, canUndo, canRedo } = useDoffStore();
   const { showToast } = useUiStore();
-  const { handleEstimasiSubmit, handleAktualSubmit, handleFinishShift } = useConsoleHandlers();
+  const { handleEstimasiSubmit, handleAktualSubmit, handleFinishShift, handleClearShiftNoArchive } = useConsoleHandlers();
   const [page, setPage] = useState<Page>("RADAR");
   const [screen, setScreen] = useState<Screen>("main");
   const [guidedEstimasiMcNo, setGuidedEstimasiMcNo] = useState<string | null>(null);
@@ -314,6 +315,16 @@ function AppInner() {
                   <button className="dropdown-item danger" onClick={onFinishShiftAction}>
                     <FlagIcon size={16} />
                     <span>Selesai Shift</span>
+                  </button>
+                  <button
+                    className="dropdown-item danger"
+                    onClick={() => {
+                      setActionsMenuOpen(false);
+                      handleClearShiftNoArchive();
+                    }}
+                  >
+                    <DeleteIcon size={16} />
+                    <span>Hapus Semua (Tanpa Arsip)</span>
                   </button>
                 </div>
               )}

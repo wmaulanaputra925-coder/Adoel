@@ -350,6 +350,15 @@ class DoffViewModel @JvmOverloads constructor(
         s.copy(estimasi = emptyMap())
     }
 
+    // Destructive shortcut: wipe active estimasi and the current shift's doffing history
+    // together, WITHOUT archiving a shift record at all — unlike finishShift, which always
+    // archives aktual (only estimasi is discarded without archiving there). For clearing the
+    // board after a mistaken input, not for actually closing out a shift.
+    fun clearShiftNoArchive() = updateState { s ->
+        if (s.aktual.isEmpty() && s.estimasi.isEmpty()) return@updateState s
+        s.copy(estimasi = emptyMap(), aktual = emptyList())
+    }
+
     fun setThemeMode(mode: String) = updateState { s ->
         s.copy(themeMode = mode)
     }

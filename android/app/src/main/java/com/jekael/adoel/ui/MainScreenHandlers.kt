@@ -231,6 +231,30 @@ internal class MainScreenHandlers(
         }
     }
 
+    // Destructive shortcut: wipe active estimasi and the current shift's doffing history
+    // together, WITHOUT archiving anything — unlike handleFinishShift, which always archives
+    // aktual into Riwayat. For clearing the board after a mistaken input, not for closing a
+    // shift out.
+    fun handleClearShiftNoArchive() {
+        val state = doffVm.state.value
+        if (state.aktual.isEmpty() && state.estimasi.isEmpty()) {
+            uiVm.showToast("Tidak ada yang perlu dihapus")
+            return
+        }
+        val confirmMsg = if (state.aktual.isNotEmpty()) {
+            "Hapus semua? ${state.estimasi.size} estimasi aktif dan ${state.aktual.size} riwayat doffing akan dihapus PERMANEN — TIDAK diarsipkan ke Riwayat."
+        } else {
+            "Hapus semua? ${state.estimasi.size} estimasi aktif akan dihapus permanen."
+        }
+        uiVm.showConfirm(confirmMsg) {
+            NotificationHelper.cancelAll(context, state.estimasi.keys.toList())
+            doffVm.clearShiftNoArchive()
+            undoRedo.clear()
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            uiVm.showToast("Semua baris dihapus ✓")
+        }
+    }
+
     private fun rescheduleEstimasi(est: Estimasi?) {
         est?.let {
             if (it.pausedAtAbsMin == null) {

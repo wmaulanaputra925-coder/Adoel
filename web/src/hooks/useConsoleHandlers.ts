@@ -24,6 +24,7 @@ export function useConsoleHandlers() {
     hapusAktualById,
     restoreAktual,
     finishShift,
+    clearShiftNoArchive,
     pushUndo,
   } = store;
   const { showToast, showConfirm } = useUiStore();
@@ -175,6 +176,29 @@ export function useConsoleHandlers() {
     });
   }
 
+  // Jalan pintas destruktif: kosongkan estimasi aktif + riwayat doffing berjalan tanpa
+  // mengarsipkan apa pun — beda dari handleFinishShift, yang selalu mengarsipkan riwayat doffing
+  // ke Statistik. Dipakai untuk mengosongkan papan setelah input keliru, bukan menutup shift.
+  function handleClearShiftNoArchive() {
+    const doffCount = state.aktual.length;
+    const estCount = Object.keys(state.estimasi).length;
+    if (doffCount === 0 && estCount === 0) {
+      showToast("Tidak ada data untuk dihapus");
+      return;
+    }
+
+    const confirmMsg =
+      doffCount > 0
+        ? `Hapus semua? ${estCount} estimasi aktif dan ${doffCount} riwayat doffing akan dihapus PERMANEN — TIDAK diarsipkan ke Statistik.`
+        : `Hapus semua? ${estCount} estimasi aktif akan dihapus permanen.`;
+
+    showConfirm(confirmMsg, () => {
+      clearShiftNoArchive();
+      vibrate(20);
+      showToast("Semua baris dihapus ✓");
+    });
+  }
+
   return {
     handleEstimasiSubmit,
     handleAktualSubmit,
@@ -184,6 +208,7 @@ export function useConsoleHandlers() {
     handleLanjutkan,
     handleHapusAktual,
     handleFinishShift,
+    handleClearShiftNoArchive,
     flashError,
   };
 }
