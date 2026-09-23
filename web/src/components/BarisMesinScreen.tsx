@@ -41,49 +41,36 @@ export function BarisMesinScreen({ onClose }: { onClose: () => void }) {
     return Object.entries(state.db).filter(([, v]) => v.corak !== "" && v.corak !== "-");
   }, [state.db]);
 
-  // Ringkasan corak yang sedang diproduksi di tiap mesin
+  // Ringkasan jumlah mesin per corak, untuk filter chip horizontal
   const corakSummary = useMemo(() => {
-    const map = new Map<string, { corak: string; machines: string[]; tipes: Set<MesinTipe> }>();
-    for (const [mcNo, v] of configuredEntries) {
+    const map = new Map<string, number>();
+    for (const [, v] of configuredEntries) {
       const c = v.corak.trim().toUpperCase();
-      if (!map.has(c)) {
-        map.set(c, { corak: c, machines: [], tipes: new Set() });
-      }
-      const item = map.get(c)!;
-      item.machines.push(mcNo);
-      item.tipes.add(v.tipe);
+      map.set(c, (map.get(c) ?? 0) + 1);
     }
-    return Array.from(map.values())
-      .map((item) => ({
-        ...item,
-        machines: item.machines.sort((a, b) => (parseInt(a, 10) || 0) - (parseInt(b, 10) || 0)),
-      }))
-      .sort((a, b) => b.machines.length - a.machines.length || a.corak.localeCompare(b.corak));
+    return Array.from(map.entries())
+      .map(([corak, count]) => ({ corak, count }))
+      .sort((a, b) => b.count - a.count || a.corak.localeCompare(b.corak));
   }, [configuredEntries]);
 
-  // Daftar mesin yang difilter dan dikelompokkan per tipe
-  const groupedEntries = useMemo(() => {
+  // Daftar mesin yang difilter, urut nomor mesin (flat, tanpa pengelompokan tipe)
+  const sortedEntries = useMemo(() => {
     const searchTrim = search.trim().toUpperCase();
-    const filtered = configuredEntries.filter(([k, v]) => {
-      // Filter klik corak spesifik
-      if (selectedCorak && v.corak.trim().toUpperCase() !== selectedCorak) return false;
+    return configuredEntries
+      .filter(([k, v]) => {
+        // Filter klik corak spesifik
+        if (selectedCorak && v.corak.trim().toUpperCase() !== selectedCorak) return false;
 
-      // Filter pencarian (nomor mesin atau nama corak)
-      if (searchTrim) {
-        const mcMatch = k.includes(searchTrim);
-        const corakMatch = v.corak.toUpperCase().includes(searchTrim);
-        if (!mcMatch && !corakMatch) return false;
-      }
+        // Filter pencarian (nomor mesin atau nama corak)
+        if (searchTrim) {
+          const mcMatch = k.includes(searchTrim);
+          const corakMatch = v.corak.toUpperCase().includes(searchTrim);
+          if (!mcMatch && !corakMatch) return false;
+        }
 
-      return true;
-    });
-
-    return TIPE_LIST.map((tipe) => ({
-      tipe,
-      rows: filtered
-        .filter(([, v]) => v.tipe === tipe)
-        .sort((a, b) => (parseInt(a[0], 10) || 0) - (parseInt(b[0], 10) || 0)),
-    })).filter((g) => g.rows.length > 0);
+        return true;
+      })
+      .sort((a, b) => (parseInt(a[0], 10) || 0) - (parseInt(b[0], 10) || 0));
   }, [configuredEntries, selectedCorak, search]);
 
   const searchedTarget = useMemo(() => {
@@ -141,73 +128,28 @@ export function BarisMesinScreen({ onClose }: { onClose: () => void }) {
       </div>
 
       <div className="overlay-body" style={{ paddingBottom: 92 }}>
-        {/* Ringkasan Corak yang Sedang Diproduksi */}
-        <div className="corak-summary-card">
-          <div className="corak-summary-header">
-            <div className="corak-summary-title">
-              <TextureIcon size={16} />
-              <span>Corak Sedang Produksi</span>
-            </div>
-            <div className="corak-summary-badges">
-              <span className="corak-summary-badge active">
-                <span className="status-dot active" />
-                {configuredEntries.length} Mesin ({corakSummary.length} Corak)
-              </span>
-              {selectedCorak && (
-                <button
-                  type="button"
-                  className="corak-summary-badge active"
-                  style={{ border: "none", cursor: "pointer" }}
-                  onClick={() => setSelectedCorak(null)}
-                  title="Hapus filter corak"
-                >
-                  <span>Corak: {selectedCorak}</span>
-                  <CloseIcon size={12} />
-                </button>
-              )}
-            </div>
+        {/* Filter Corak Horizontal Cepat */}
+        {corakSummary.length > 0 && (
+          <div className="corak-filter-row">
+            <button
+              type="button"
+              className={`corak-filter-chip${selectedCorak === null ? " active" : ""}`}
+              onClick={() => setSelectedCorak(null)}
+            >
+              Semua ({configuredEntries.length})
+            </button>
+            {corakSummary.map((item) => (
+              <button
+                key={item.corak}
+                type="button"
+                className={`corak-filter-chip${selectedCorak === item.corak ? " active" : ""}`}
+                onClick={() => setSelectedCorak(selectedCorak === item.corak ? null : item.corak)}
+              >
+                {item.corak} ({item.count})
+              </button>
+            ))}
           </div>
-
-          {corakSummary.length === 0 ? (
-            <div style={{ fontSize: 12, color: "var(--text-faint)", padding: "8px 0" }}>
-              Belum ada mesin yang dikonfigurasi corak-nya.
-            </div>
-          ) : (
-            <div className="corak-summary-grid">
-              {corakSummary.map((item) => {
-                const isSelected = selectedCorak === item.corak;
-                return (
-                  <div
-                    key={item.corak}
-                    className={`corak-summary-item${isSelected ? " selected" : ""}`}
-                    onClick={() => setSelectedCorak(isSelected ? null : item.corak)}
-                    title={`Klik untuk memfilter daftar mesin corak ${item.corak}`}
-                  >
-                    <div className="corak-summary-item-top">
-                      <span className="corak-summary-name">{item.corak}</span>
-                      <span className="corak-summary-count">{item.machines.length} mc</span>
-                    </div>
-                    <div className="corak-mc-pills-row">
-                      {item.machines.map((m) => (
-                        <span
-                          key={m}
-                          className="corak-mc-pill"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            loadFrom(m, state.db[m] ?? defaultMesinData());
-                          }}
-                          title={`Akses cepat: edit Mc ${m}`}
-                        >
-                          {m}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+        )}
 
         {searchedTarget && (
           <button
@@ -224,7 +166,7 @@ export function BarisMesinScreen({ onClose }: { onClose: () => void }) {
           </button>
         )}
 
-        {groupedEntries.length === 0 && (
+        {sortedEntries.length === 0 && (
           <div className="empty-state-card" style={{ margin: "24px 0" }}>
             <div className="empty-state-title">
               {search.trim() || selectedCorak ? "Mesin Tidak Ditemukan" : "Belum Ada Mesin Terkonfigurasi"}
@@ -237,46 +179,40 @@ export function BarisMesinScreen({ onClose }: { onClose: () => void }) {
           </div>
         )}
 
-        {groupedEntries.map(({ tipe, rows }) => (
-          <div key={tipe} style={{ marginBottom: 18 }}>
-            <div className="mesin-group-head" style={{ color: TIPE_COLOR[tipe] }}>
-              <MesinTipeIcon tipe={tipe} size={15} />
-              <span>{tipe}</span>
-              <span className="count">{rows.length} mesin</span>
+        {sortedEntries.map(([k, v]) => (
+          <div
+            className="machine-list-item"
+            key={k}
+            onClick={() => loadFrom(k, v)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                loadFrom(k, v);
+              }
+            }}
+            role="button"
+            tabIndex={0}
+            aria-label={`Edit pengaturan Mc ${k}`}
+          >
+            <span className="mc-badge">{k}</span>
+            <div className="corak-info">
+              <TextureIcon size={14} />
+              <span className="corak-text">{v.corak || "-"}</span>
             </div>
-            {rows.map(([k, v]) => (
-              <div
-                className="machine-list-item"
-                key={k}
-                onClick={() => loadFrom(k, v)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    loadFrom(k, v);
-                  }
-                }}
-                role="button"
-                tabIndex={0}
-                aria-label={`Edit pengaturan Mc ${k}`}
-              >
-                <span className="mc-badge">{k}</span>
-                <div className="corak-info">
-                  <TextureIcon size={13} />
-                  <span className="corak-text">{v.corak || "-"}</span>
-                </div>
-                <div className="meta-tags">
-                  {v.targetYard != null && <span className="meta-tag">{v.targetYard}y</span>}
-                  {v.speed != null && v.tipe === "D405" && <span className="meta-tag">{v.speed}y/m</span>}
-                  {v.koreksi != null && v.tipe === "D408" && (
-                    <span className="meta-tag">{v.koreksi > 0 ? `+${v.koreksi}` : v.koreksi}m</span>
-                  )}
-                </div>
+            <div className="meta-tags">
+              <span className="meta-tag tipe-tag" style={{ color: TIPE_COLOR[v.tipe] }}>
+                {v.tipe}
+              </span>
+              {v.targetYard != null && <span className="meta-tag">{v.targetYard}y</span>}
+              {v.speed != null && v.tipe === "D405" && <span className="meta-tag">{v.speed}y/m</span>}
+              {v.koreksi != null && v.tipe === "D408" && (
+                <span className="meta-tag">{v.koreksi > 0 ? `+${v.koreksi}` : v.koreksi}m</span>
+              )}
+            </div>
 
-                <span className="machine-item-chevron" aria-hidden="true">
-                  <ChevronRightIcon size={16} />
-                </span>
-              </div>
-            ))}
+            <span className="machine-item-chevron" aria-hidden="true">
+              <ChevronRightIcon size={16} />
+            </span>
           </div>
         ))}
       </div>

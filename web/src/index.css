@@ -1830,21 +1830,7 @@ button:disabled {
   gap: 12px;
 }
 
-/* ---- Pengaturan > Mesin: grouped-by-tipe headers + floating one-at-a-time console ---- */
-.mesin-group-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 4px;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-}
-.mesin-group-head .count {
-  font-size: 11px;
-  color: var(--text-faint);
-  font-weight: 700;
-}
+/* ---- Pengaturan > Mesin: floating one-at-a-time console ---- */
 .mesin-console {
   position: absolute;
   left: 12px;
@@ -2519,16 +2505,18 @@ textarea.json-box {
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   min-width: 0;
   color: var(--text-primary);
-  font-weight: 600;
+  font-weight: 800;
 }
 .machine-list-item .corak-info svg {
   flex-shrink: 0;
   display: inline-block;
+  color: var(--cyan-400);
 }
 .machine-list-item .corak-text {
+  font-size: 14.5px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2548,6 +2536,11 @@ textarea.json-box {
   color: var(--text-faint);
   border: 1px solid var(--border);
 }
+.machine-list-item .meta-tag.tipe-tag {
+  font-weight: 800;
+  border-color: currentColor;
+  background: color-mix(in srgb, currentColor 12%, var(--bg-elevated));
+}
 .machine-list-item .machine-item-chevron {
   display: flex;
   align-items: center;
@@ -2561,137 +2554,48 @@ textarea.json-box {
   transform: translateX(2px);
 }
 
-/* Ringkasan Produksi Corak Aktif Card */
-.corak-summary-card {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 14px;
-  margin-bottom: 6px;
+/* Filter Corak Horizontal Cepat */
+.corak-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   flex-shrink: 0;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+  margin-bottom: 4px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 2px 1px 6px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
-.corak-summary-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 10px;
+.corak-filter-row::-webkit-scrollbar {
+  display: none;
 }
-.corak-summary-title {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 800;
-  color: var(--text-primary);
-  letter-spacing: -0.01em;
-}
-.corak-summary-badges {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-.corak-summary-badge {
+.corak-filter-chip {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 2px 7px;
-  border-radius: 6px;
-  font-size: 10.5px;
-  font-weight: 700;
-  line-height: 1.2;
-}
-.corak-summary-badge.active {
-  background: rgba(16, 185, 129, 0.14);
-  color: #10b981;
-  border: 1px solid rgba(16, 185, 129, 0.3);
-}
-.corak-summary-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
-  gap: 8px;
-}
-.corak-summary-item {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 10px 11px;
+  padding: 7px 13px;
+  min-height: 32px;
   border-radius: 10px;
-  background: var(--bg-elevated-2);
+  font-size: 12.5px;
+  font-weight: 700;
   border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
   cursor: pointer;
-  text-align: left;
+  white-space: nowrap;
+  flex-shrink: 0;
+  line-height: 1;
   transition: all 0.15s ease;
 }
-.corak-summary-item:hover {
+.corak-filter-chip:hover {
   border-color: var(--cyan-500);
-  background: color-mix(in srgb, var(--cyan-500) 8%, var(--bg-elevated-2));
-  transform: translateY(-1px);
-}
-.corak-summary-item.selected {
-  border-color: var(--cyan-400);
-  background: color-mix(in srgb, var(--cyan-500) 16%, var(--bg-elevated-2));
-  box-shadow: 0 0 10px rgba(34, 211, 238, 0.15);
-}
-.corak-summary-item-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-}
-.corak-summary-name {
-  font-size: 13.5px;
-  font-weight: 800;
   color: var(--text-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
-.corak-summary-count {
-  font-size: 11px;
-  font-weight: 800;
+.corak-filter-chip.active {
+  background: color-mix(in srgb, var(--cyan-500) 18%, var(--bg-elevated-2));
+  border-color: var(--cyan-400);
   color: var(--cyan-400);
-  background: rgba(6, 182, 212, 0.14);
-  border: 1px solid rgba(6, 182, 212, 0.25);
-  padding: 1.5px 6px;
-  border-radius: 5px;
-  white-space: nowrap;
-}
-.corak-mc-pills-row {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-wrap: wrap;
-  margin-top: 1px;
-}
-.corak-mc-pill {
-  font-size: 10px;
   font-weight: 800;
-  color: var(--text-secondary);
-  background: var(--bg-elevated);
-  padding: 1.5px 5.5px;
-  border-radius: 4px;
-  border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
-  cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
-}
-.corak-mc-pill:hover {
-  background: color-mix(in srgb, var(--cyan-500) 18%, var(--bg-elevated));
-  border-color: var(--cyan-500);
-  color: var(--cyan-400);
-}
-
-.status-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-.status-dot.active {
-  background: #10b981;
-  box-shadow: 0 0 5px rgba(16, 185, 129, 0.6);
 }
 
 /* Settings Section Cards */
