@@ -60,13 +60,19 @@ export function RadarScreen({ onEditWaktu }: { onEditWaktu: (mcNo: string) => vo
   // gap's total duration stays fixed while only BreakGapCard's own live "remaining" text shrinks.
   // Without this, gapMin and remainingMin are both derived from the same live nowAbs and shrink in
   // lockstep, so elapsedFraction reads permanently ~0 — the progress bar never visibly fills.
-  // Resets (via the render-time setState pattern, not an effect, so there's no one-frame lag) when
-  // a different machine becomes first, or this same machine's estimate gets edited — same fix as
-  // Android's leadingGapAnchor (MainScreen.kt): a freshly edited estimate is a fresh "now" for the
-  // anchor's purposes, otherwise correcting it to something sooner can compute a shrunken or even
-  // negative gap against a stale anchor and silently drop a card that, from right now, still holds.
+  //
+  // Keyed on mcNo only, NOT estAbsMin. gapMin = estAbsMin - anchor, and anchor <= nowAbs always
+  // (it's a past-or-present snapshot), so gapMin >= (estAbsMin - nowAbs) = the live remaining time,
+  // always — a stale anchor can only make the card MORE likely to still show, never hide one that
+  // should still be up. Resetting on estAbsMin too (an earlier version of this did, matching a since-
+  // corrected mistake in Android's MainScreen.kt) was itself the bug: editing this same machine's
+  // estimate would collapse the anchor back to nowAbs, so a card already comfortably showing (its
+  // live remaining ticked under BREAK_GAP_THRESHOLD_MIN a while ago, but still visible on the older,
+  // larger anchor-based gap) would suddenly re-evaluate against a fresh anchor and vanish. Editing
+  // the estimate should only smoothly move the displayed number, never yank the anchor out from
+  // under it — same fix as Android's leadingGapAnchor.
   const leadingFirst = segera.length === 0 ? (activeMenunggu[0] ?? null) : null;
-  const leadingAnchorKey = leadingFirst ? `${leadingFirst.mcNo}:${leadingFirst.estAbsMin}` : null;
+  const leadingAnchorKey = leadingFirst?.mcNo ?? null;
   const [leadingGapAnchor, setLeadingGapAnchor] = useState(nowAbs);
   const [prevLeadingAnchorKey, setPrevLeadingAnchorKey] = useState<string | null>(null);
   if (leadingAnchorKey !== prevLeadingAnchorKey) {

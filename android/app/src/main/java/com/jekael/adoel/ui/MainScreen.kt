@@ -196,15 +196,20 @@ fun MainScreen(
     // from nowAbs in BreakGapCard) shrinks — otherwise both numbers shrink in lockstep and the
     // progress bar reads permanently empty (elapsedFraction stuck at ~0).
     //
-    // estAbsMin has to be in the key too, not just mcNo — otherwise correcting that same machine's
-    // estimate to something sooner (a very normal edit: the first guess was too long) computes the
-    // new gap against a now-stale anchor from whenever this became the nearest machine, which can
-    // easily land under BREAK_GAP_THRESHOLD_MIN or even go negative, silently dropping a card that,
-    // measured from right now, should still be showing. A fresh estimate is a fresh "now" for this
-    // anchor's purposes.
+    // Deliberately mcNo-only, NOT estAbsMin — a previous version of this comment argued the
+    // opposite and was wrong. gapMin = estAbsMin - anchor, and anchor <= nowAbs always (it's a
+    // past-or-present snapshot), so gapMin >= (estAbsMin - nowAbs) = the live remaining time,
+    // always. A stale anchor can only make the card MORE likely to still show, never hide one
+    // that should still be up — so it was never the source of a disappearing-on-edit bug.
+    // Resetting on estAbsMin *was* the bug: it made editing this same machine's estimate collapse
+    // the anchor back to nowAbs, so a card already comfortably showing (its live remaining ticked
+    // down under BREAK_GAP_THRESHOLD_MIN a while ago, but still visible on the old, larger anchor-
+    // based gap) would suddenly re-evaluate against a fresh anchor and vanish — exactly the report
+    // this went out to fix. Editing the estimate should only smoothly move the displayed number,
+    // never yank the anchor out from under it.
     val noSegera = segeraList.isEmpty()
     val firstMenunggu = menungguList.firstOrNull()
-    val leadingGapAnchor = remember(noSegera, firstMenunggu?.mcNo, firstMenunggu?.estAbsMin) { nowAbs }
+    val leadingGapAnchor = remember(noSegera, firstMenunggu?.mcNo) { nowAbs }
 
     // Flag long idle stretches between two upcoming doffs so the operator knows when it's
     // actually safe to step away, instead of having to eyeball the gap between two times.
