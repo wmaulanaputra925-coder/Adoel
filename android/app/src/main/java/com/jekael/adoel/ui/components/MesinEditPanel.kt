@@ -55,48 +55,6 @@ internal fun MesinEditPanel(
 
         Spacer(Modifier.height(Dimens.Space16))
 
-        FieldLabel("Status Produksi")
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Dimens.Space8),
-        ) {
-            val isRunning = f.isActive
-            OutlinedButton(
-                onClick = { onFormChange(f.copy(isActive = true)) },
-                modifier = Modifier.weight(1f).height(44.dp),
-                shape = RoundedCornerShape(Dimens.RadiusControl),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor = if (isRunning) Emerald500.copy(alpha = 0.15f) else colors.bgElevated2,
-                    contentColor = if (isRunning) Emerald500 else colors.textMuted,
-                ),
-                border = BorderStroke(1.dp, if (isRunning) Emerald500 else colors.border),
-            ) {
-                Text(
-                    text = "● Aktif (ON)",
-                    fontWeight = if (isRunning) FontWeight.Bold else FontWeight.Normal,
-                    fontSize = 13.sp,
-                )
-            }
-            OutlinedButton(
-                onClick = { onFormChange(f.copy(isActive = false)) },
-                modifier = Modifier.weight(1f).height(44.dp),
-                shape = RoundedCornerShape(Dimens.RadiusControl),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor = if (!isRunning) Amber500.copy(alpha = 0.15f) else colors.bgElevated2,
-                    contentColor = if (!isRunning) Amber500 else colors.textMuted,
-                ),
-                border = BorderStroke(1.dp, if (!isRunning) Amber500 else colors.border),
-            ) {
-                Text(
-                    text = "● Stop (OFF)",
-                    fontWeight = if (!isRunning) FontWeight.Bold else FontWeight.Normal,
-                    fontSize = 13.sp,
-                )
-            }
-        }
-
-        Spacer(Modifier.height(Dimens.Space16))
-
         FieldLabel("Tipe Mesin")
         Row(horizontalArrangement = Arrangement.spacedBy(Dimens.Space8)) {
             MesinTipe.entries.forEach { t ->

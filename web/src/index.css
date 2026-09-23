@@ -2561,55 +2561,6 @@ textarea.json-box {
   transform: translateX(2px);
 }
 
-.machine-list-item.is-stopped {
-  opacity: 0.72;
-  border-style: dashed;
-  border-color: rgba(245, 158, 11, 0.4);
-  background: color-mix(in srgb, var(--amber-500) 5%, var(--bg-elevated-2));
-}
-.machine-list-item.is-stopped:hover {
-  opacity: 1;
-  border-color: var(--amber-500);
-  background: color-mix(in srgb, var(--amber-500) 10%, var(--bg-elevated-2));
-}
-
-.machine-status-toggle-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  padding: 4px 9px;
-  border-radius: 8px;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  border: 1px solid transparent;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  user-select: none;
-  min-height: 28px;
-}
-.machine-status-toggle-btn.on {
-  background: rgba(16, 185, 129, 0.14);
-  color: #10b981;
-  border-color: rgba(16, 185, 129, 0.35);
-}
-.machine-status-toggle-btn.on:hover {
-  background: rgba(16, 185, 129, 0.25);
-  border-color: #10b981;
-  transform: scale(1.03);
-}
-.machine-status-toggle-btn.off {
-  background: rgba(245, 158, 11, 0.14);
-  color: #f59e0b;
-  border-color: rgba(245, 158, 11, 0.4);
-}
-.machine-status-toggle-btn.off:hover {
-  background: rgba(245, 158, 11, 0.25);
-  border-color: #f59e0b;
-  transform: scale(1.03);
-}
-
 /* Ringkasan Produksi Corak Aktif Card */
 .corak-summary-card {
   background: var(--bg-elevated);
@@ -2656,11 +2607,6 @@ textarea.json-box {
   background: rgba(16, 185, 129, 0.14);
   color: #10b981;
   border: 1px solid rgba(16, 185, 129, 0.3);
-}
-.corak-summary-badge.stopped {
-  background: rgba(245, 158, 11, 0.14);
-  color: #f59e0b;
-  border: 1px solid rgba(245, 158, 11, 0.3);
 }
 .corak-summary-grid {
   display: grid;
@@ -2737,51 +2683,6 @@ textarea.json-box {
   color: var(--cyan-400);
 }
 
-/* Status Filter Tabs */
-.machine-status-tabs {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-  margin: 4px 0 8px;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  padding: 4px 1px 6px;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-.machine-status-tabs::-webkit-scrollbar {
-  display: none;
-}
-.machine-status-tab {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 8px 14px;
-  min-height: 36px;
-  border-radius: 10px;
-  font-size: 12.5px;
-  font-weight: 700;
-  border: 1px solid var(--border);
-  background: var(--bg-elevated);
-  color: var(--text-secondary);
-  cursor: pointer;
-  white-space: nowrap;
-  flex-shrink: 0;
-  line-height: 1;
-  transition: all 0.15s ease;
-}
-.machine-status-tab:hover {
-  border-color: var(--cyan-500);
-  color: var(--text-primary);
-}
-.machine-status-tab.active {
-  background: color-mix(in srgb, var(--cyan-500) 18%, var(--bg-elevated-2));
-  border-color: var(--cyan-400);
-  color: var(--cyan-400);
-  font-weight: 800;
-}
 .status-dot {
   width: 7px;
   height: 7px;
@@ -2791,10 +2692,6 @@ textarea.json-box {
 .status-dot.active {
   background: #10b981;
   box-shadow: 0 0 5px rgba(16, 185, 129, 0.6);
-}
-.status-dot.stopped {
-  background: #f59e0b;
-  box-shadow: 0 0 5px rgba(245, 158, 11, 0.6);
 }
 
 /* Settings Section Cards */

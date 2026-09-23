@@ -1,17 +1,14 @@
 package com.jekael.adoel.ui.components
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -27,10 +24,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
@@ -45,8 +40,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jekael.adoel.data.*
 import com.jekael.adoel.ui.theme.*
-
-private enum class MesinStatusFilter { ALL, ACTIVE, STOPPED }
 
 private data class CorakSummaryItem(
     val corak: String,
@@ -177,7 +170,6 @@ internal fun MesinTab(
     var form by remember { mutableStateOf<MesinData?>(null) }
     var hadExistingData by remember { mutableStateOf(false) }
     var search by remember { mutableStateOf("") }
-    var statusFilter by remember { mutableStateOf(MesinStatusFilter.ALL) }
     var selectedCorak by remember { mutableStateOf<String?>(null) }
     var consoleHeight by remember { mutableStateOf(0.dp) }
 
@@ -187,34 +179,16 @@ internal fun MesinTab(
         hadExistingData = mesin.corak.isNotEmpty() && mesin.corak != "-"
     }
 
-    fun toggleMachineActive(mcNo: String, current: MesinData) {
-        val nextActive = !current.isActive
-        onSetMesin(mcNo, current.copy(isActive = nextActive))
-        if (nextActive) {
-            showToast("Mc $mcNo diaktifkan (ON) ✓")
-        } else {
-            showToast("Mc $mcNo stop produksi sementara (OFF) ⏸")
-        }
-    }
-
     // Mesin terkonfigurasi
     val configuredEntries = remember(state.db) {
         state.db.entries.filter { (_, v) -> v.corak.isNotEmpty() && v.corak != "-" }
     }
 
-    val activeProduksiEntries = remember(configuredEntries) {
-        configuredEntries.filter { (_, v) -> v.isActive }
-    }
-
-    val stoppedProduksiEntries = remember(configuredEntries) {
-        configuredEntries.filter { (_, v) -> !v.isActive }
-    }
-
-    // Ringkasan corak aktif
-    val activeCorakSummary = remember(activeProduksiEntries) {
+    // Ringkasan corak
+    val corakSummary = remember(configuredEntries) {
         val map = mutableMapOf<String, MutableList<String>>()
         val tipeMap = mutableMapOf<String, MutableSet<MesinTipe>>()
-        for ((mcNo, v) in activeProduksiEntries) {
+        for ((mcNo, v) in configuredEntries) {
             val c = v.corak.trim().uppercase()
             map.getOrPut(c) { mutableListOf() }.add(mcNo)
             tipeMap.getOrPut(c) { mutableSetOf() }.add(v.tipe)
@@ -229,11 +203,9 @@ internal fun MesinTab(
     }
 
     // Filtered entries
-    val filteredEntries = remember(configuredEntries, statusFilter, selectedCorak, search) {
+    val filteredEntries = remember(configuredEntries, selectedCorak, search) {
         val searchTrim = search.trim().uppercase()
         configuredEntries.filter { (k, v) ->
-            if (statusFilter == MesinStatusFilter.ACTIVE && !v.isActive) return@filter false
-            if (statusFilter == MesinStatusFilter.STOPPED && v.isActive) return@filter false
             if (selectedCorak != null && v.corak.trim().uppercase() != selectedCorak) return@filter false
             if (searchTrim.isNotEmpty()) {
                 val mcMatch = k.contains(searchTrim)
@@ -324,13 +296,14 @@ internal fun MesinTab(
                                 ) {
                                     Box(Modifier.size(6.dp).clip(CircleShape).background(Emerald500))
                                     Text(
-                                        "${activeProduksiEntries.size} Mesin Aktif (${activeCorakSummary.size} Corak)",
+                                        "${configuredEntries.size} Mesin (${corakSummary.size} Corak)",
                                         style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Emerald500),
                                     )
                                 }
                             }
-                            if (stoppedProduksiEntries.isNotEmpty()) {
+                            if (selectedCorak != null) {
                                 Surface(
+                                    modifier = Modifier.clickable { selectedCorak = null },
                                     shape = RoundedCornerShape(12.dp),
                                     color = Amber500.copy(alpha = 0.15f),
                                 ) {
@@ -339,10 +312,15 @@ internal fun MesinTab(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                                     ) {
-                                        Box(Modifier.size(6.dp).clip(CircleShape).background(Amber500))
                                         Text(
-                                            "${stoppedProduksiEntries.size} Stop Sementara",
+                                            "Corak: $selectedCorak",
                                             style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Amber500),
+                                        )
+                                        Icon(
+                                            Icons.Outlined.Close,
+                                            contentDescription = "Hapus filter corak",
+                                            tint = Amber500,
+                                            modifier = Modifier.size(12.dp),
                                         )
                                     }
                                 }
@@ -350,9 +328,9 @@ internal fun MesinTab(
                         }
                     }
 
-                    if (activeCorakSummary.isEmpty()) {
+                    if (corakSummary.isEmpty()) {
                         Text(
-                            "Tidak ada mesin yang aktif berproduksi saat ini.",
+                            "Belum ada mesin yang dikonfigurasi corak-nya.",
                             style = AppType.BodySmall.copy(color = colors.textFaint),
                         )
                     } else {
@@ -362,12 +340,12 @@ internal fun MesinTab(
                         // card — and an odd count left a whole empty cell. Each card now goes to
                         // whichever column is currently shorter, so the two sides stay level and
                         // nothing is padded out to match a neighbour.
-                        val corakColumns = remember(activeCorakSummary) {
+                        val corakColumns = remember(corakSummary) {
                             val left = mutableListOf<CorakSummaryItem>()
                             val right = mutableListOf<CorakSummaryItem>()
                             var leftHeight = 0
                             var rightHeight = 0
-                            activeCorakSummary.forEach { item ->
+                            corakSummary.forEach { item ->
                                 // Height in rough lines: the corak name, plus however many rows its
                                 // mc pills wrap into (~4 fit across a half-width card). Only used to
                                 // decide which column to drop the card in, never to lay it out.
@@ -407,78 +385,6 @@ internal fun MesinTab(
                 }
             }
 
-            // 2. Status Filter Tabs
-            item(key = "status_filter_tabs") {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                        .padding(vertical = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    FilterChip(
-                        selected = statusFilter == MesinStatusFilter.ALL && selectedCorak == null,
-                        onClick = {
-                            statusFilter = MesinStatusFilter.ALL
-                            selectedCorak = null
-                        },
-                        label = { Text("Semua (${configuredEntries.size})") },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = Cyan600,
-                            selectedLabelColor = Color.White,
-                            containerColor = colors.bgElevated2,
-                            labelColor = colors.textSecondary,
-                        ),
-                    )
-                    FilterChip(
-                        selected = statusFilter == MesinStatusFilter.ACTIVE && selectedCorak == null,
-                        onClick = {
-                            statusFilter = MesinStatusFilter.ACTIVE
-                            selectedCorak = null
-                        },
-                        leadingIcon = { Box(Modifier.size(6.dp).clip(CircleShape).background(Emerald500)) },
-                        label = { Text("Aktif (${activeProduksiEntries.size})") },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = Cyan600,
-                            selectedLabelColor = Color.White,
-                            containerColor = colors.bgElevated2,
-                            labelColor = colors.textSecondary,
-                        ),
-                    )
-                    if (stoppedProduksiEntries.isNotEmpty()) {
-                        FilterChip(
-                            selected = statusFilter == MesinStatusFilter.STOPPED && selectedCorak == null,
-                            onClick = {
-                                statusFilter = MesinStatusFilter.STOPPED
-                                selectedCorak = null
-                            },
-                            leadingIcon = { Box(Modifier.size(6.dp).clip(CircleShape).background(Amber500)) },
-                            label = { Text("Stop (${stoppedProduksiEntries.size})") },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = Cyan600,
-                                selectedLabelColor = Color.White,
-                                containerColor = colors.bgElevated2,
-                                labelColor = colors.textSecondary,
-                            ),
-                        )
-                    }
-                    if (selectedCorak != null) {
-                        FilterChip(
-                            selected = true,
-                            onClick = { selectedCorak = null },
-                            trailingIcon = {
-                                Icon(Icons.Outlined.Close, contentDescription = "Clear", modifier = Modifier.size(14.dp))
-                            },
-                            label = { Text("Corak: $selectedCorak") },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = Amber500.copy(alpha = 0.2f),
-                                selectedLabelColor = Amber500,
-                            ),
-                        )
-                    }
-                }
-            }
-
             if (unconfigured != null) {
                 item(key = "unconfigured_banner") {
                     val (n, m, isNew) = unconfigured
@@ -504,7 +410,7 @@ internal fun MesinTab(
 
             if (groupedEntries.isEmpty()) {
                 item(key = "empty") {
-                    val isFiltered = search.isNotBlank() || selectedCorak != null || statusFilter != MesinStatusFilter.ALL
+                    val isFiltered = search.isNotBlank() || selectedCorak != null
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -533,7 +439,7 @@ internal fun MesinTab(
                 }
             }
 
-            // 3. Machine Group Rows
+            // 2. Machine Group Rows
             groupedEntries.forEach { (tipe, rows) ->
                 item(key = "head_${tipe.name}") {
                     Row(
@@ -563,40 +469,13 @@ internal fun MesinTab(
                     }
                 }
                 items(rows, key = { (k, _) -> k }) { (k, v) ->
-                    val isRunning = v.isActive
-                    // Toggling a machine ON/OFF is a tap away and repaints the whole row — dim,
-                    // tint and border all at once. Eased rather than swapped so the row reads as
-                    // changing state instead of blinking into a different one.
-                    val runningAlpha by animateFloatAsState(
-                        targetValue = if (isRunning) 1f else 0.72f,
-                        animationSpec = tween(180),
-                        label = "mesinRowAlpha",
-                    )
-                    val runningBg by animateColorAsState(
-                        targetValue = if (isRunning) {
-                            colors.bgElevated2
-                        } else {
-                            Amber500.copy(alpha = 0.05f).compositeOver(colors.bgElevated2)
-                        },
-                        animationSpec = tween(180),
-                        label = "mesinRowBg",
-                    )
-                    val runningBorder by animateColorAsState(
-                        targetValue = if (isRunning) colors.border else Amber500.copy(alpha = 0.4f),
-                        animationSpec = tween(180),
-                        label = "mesinRowBorder",
-                    )
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .animateItem()
-                            .alpha(runningAlpha)
                             .elevatedListCard(
-                                backgroundColor = runningBg,
-                                borderColor = runningBorder,
-                                // Dash pattern can't tween, so it still flips outright — the tint
-                                // and border colour easing around it carry the transition.
-                                dashedBorder = !isRunning,
+                                backgroundColor = colors.bgElevated2,
+                                borderColor = colors.border,
                             )
                             .clickable { loadFrom(k, v) }
                             .padding(horizontal = Dimens.Space12, vertical = 8.dp),
@@ -614,36 +493,13 @@ internal fun MesinTab(
                             tint = colors.textFaint,
                             modifier = Modifier.size(13.dp),
                         )
-                        Row(
+                        Text(
+                            v.corak,
+                            style = AppType.FieldText.copy(color = colors.textPrimary),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.weight(1f),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        ) {
-                            Text(
-                                v.corak,
-                                style = AppType.FieldText.copy(color = colors.textPrimary),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                // Unweighted, this Text would claim the row's whole width before the
-                                // STOP badge below gets a turn to be measured, squeezing/hiding the
-                                // badge instead of the corak text shrinking to make room for it (the
-                                // way web's flexbox does automatically). weight(fill = false) makes
-                                // Compose measure the badge first and gives corak only what's left.
-                                modifier = Modifier.weight(1f, fill = false),
-                            )
-                            if (!isRunning) {
-                                Surface(
-                                    shape = RoundedCornerShape(4.dp),
-                                    color = Amber500.copy(alpha = 0.18f),
-                                ) {
-                                    Text(
-                                        "STOP",
-                                        style = TextStyle(fontSize = 9.sp, fontWeight = FontWeight.Black, color = Amber500),
-                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
-                                    )
-                                }
-                            }
-                        }
+                        )
 
                         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                             if (v.targetYard != null) {
@@ -658,34 +514,6 @@ internal fun MesinTab(
                             }
                         }
 
-                        // Toggle ON/OFF button
-                        Surface(
-                            modifier = Modifier.clickable { toggleMachineActive(k, v) },
-                            shape = RoundedCornerShape(12.dp),
-                            color = if (isRunning) Emerald500.copy(alpha = 0.15f) else Amber500.copy(alpha = 0.15f),
-                            border = BorderStroke(1.dp, if (isRunning) Emerald500.copy(alpha = 0.4f) else Amber500.copy(alpha = 0.4f)),
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(6.dp)
-                                        .clip(CircleShape)
-                                        .background(if (isRunning) Emerald500 else Amber500),
-                                )
-                                Text(
-                                    if (isRunning) "ON" else "OFF",
-                                    style = TextStyle(
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (isRunning) Emerald500 else Amber500,
-                                    ),
-                                )
-                            }
-                        }
                         Icon(
                             imageVector = Icons.Outlined.ChevronRight,
                             contentDescription = null,

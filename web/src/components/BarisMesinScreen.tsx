@@ -28,13 +28,10 @@ function parseMesinNum(raw: string): number | null {
   return Number.isNaN(n) ? null : n;
 }
 
-type StatusFilter = "ALL" | "ACTIVE" | "STOPPED";
-
 export function BarisMesinScreen({ onClose }: { onClose: () => void }) {
   const { state, setMesin, resetMesin } = useDoffStore();
   const { showToast, showConfirm } = useUiStore();
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const [selectedCorak, setSelectedCorak] = useState<string | null>(null);
   const [activeMcNo, setActiveMcNo] = useState<string | null>(null);
   const [form, setForm] = useState<MesinData | null>(null);
@@ -44,20 +41,10 @@ export function BarisMesinScreen({ onClose }: { onClose: () => void }) {
     return Object.entries(state.db).filter(([, v]) => v.corak !== "" && v.corak !== "-");
   }, [state.db]);
 
-  // Mesin yang aktif berproduksi (isActive !== false)
-  const activeProduksiEntries = useMemo(() => {
-    return configuredEntries.filter(([, v]) => v.isActive !== false);
-  }, [configuredEntries]);
-
-  // Mesin yang sedang stop produksi sementara (isActive === false)
-  const stoppedProduksiEntries = useMemo(() => {
-    return configuredEntries.filter(([, v]) => v.isActive === false);
-  }, [configuredEntries]);
-
-  // Ringkasan lengkap corak yang sedang AKTIF berproduksi di tiap mesin
-  const activeCorakSummary = useMemo(() => {
+  // Ringkasan corak yang sedang diproduksi di tiap mesin
+  const corakSummary = useMemo(() => {
     const map = new Map<string, { corak: string; machines: string[]; tipes: Set<MesinTipe> }>();
-    for (const [mcNo, v] of activeProduksiEntries) {
+    for (const [mcNo, v] of configuredEntries) {
       const c = v.corak.trim().toUpperCase();
       if (!map.has(c)) {
         map.set(c, { corak: c, machines: [], tipes: new Set() });
@@ -72,16 +59,12 @@ export function BarisMesinScreen({ onClose }: { onClose: () => void }) {
         machines: item.machines.sort((a, b) => (parseInt(a, 10) || 0) - (parseInt(b, 10) || 0)),
       }))
       .sort((a, b) => b.machines.length - a.machines.length || a.corak.localeCompare(b.corak));
-  }, [activeProduksiEntries]);
+  }, [configuredEntries]);
 
   // Daftar mesin yang difilter dan dikelompokkan per tipe
   const groupedEntries = useMemo(() => {
     const searchTrim = search.trim().toUpperCase();
     const filtered = configuredEntries.filter(([k, v]) => {
-      // Filter status (Aktif / Stop Sementara)
-      if (statusFilter === "ACTIVE" && v.isActive === false) return false;
-      if (statusFilter === "STOPPED" && v.isActive !== false) return false;
-
       // Filter klik corak spesifik
       if (selectedCorak && v.corak.trim().toUpperCase() !== selectedCorak) return false;
 
@@ -101,7 +84,7 @@ export function BarisMesinScreen({ onClose }: { onClose: () => void }) {
         .filter(([, v]) => v.tipe === tipe)
         .sort((a, b) => (parseInt(a[0], 10) || 0) - (parseInt(b[0], 10) || 0)),
     })).filter((g) => g.rows.length > 0);
-  }, [configuredEntries, statusFilter, selectedCorak, search]);
+  }, [configuredEntries, selectedCorak, search]);
 
   const searchedTarget = useMemo(() => {
     const n = search.trim();
@@ -118,7 +101,7 @@ export function BarisMesinScreen({ onClose }: { onClose: () => void }) {
 
   function loadFrom(mcNo: string, mesin: MesinData) {
     setActiveMcNo(mcNo);
-    setForm({ ...mesin, isActive: mesin.isActive !== false });
+    setForm({ ...mesin });
   }
 
   function jumpToSearch() {
@@ -128,23 +111,10 @@ export function BarisMesinScreen({ onClose }: { onClose: () => void }) {
     loadFrom(n, mesin);
   }
 
-  function handleToggleStatus(mcNo: string, e: React.MouseEvent) {
-    e.stopPropagation();
-    const current = state.db[mcNo];
-    if (!current) return;
-    const nextActive = current.isActive === false;
-    setMesin(mcNo, { ...current, isActive: nextActive });
-    if (nextActive) {
-      showToast(`Mc ${mcNo} diaktifkan (ON) ✓`);
-    } else {
-      showToast(`Mc ${mcNo} stop produksi sementara (OFF) ⏸`);
-    }
-  }
-
   function handleSave(savedForm: MesinData) {
     if (!activeMcNo) return;
     const corak = savedForm.corak.trim() || "-";
-    setMesin(activeMcNo, { ...savedForm, corak, isActive: savedForm.isActive !== false });
+    setMesin(activeMcNo, { ...savedForm, corak });
     showToast(`Mc ${activeMcNo} (${savedForm.tipe}) disimpan ✓`);
     setActiveMcNo(null);
     setForm(null);
@@ -171,7 +141,7 @@ export function BarisMesinScreen({ onClose }: { onClose: () => void }) {
       </div>
 
       <div className="overlay-body" style={{ paddingBottom: 92 }}>
-        {/* Ringkasan Lengkap Corak yang Sedang Aktif Produksi */}
+        {/* Ringkasan Corak yang Sedang Diproduksi */}
         <div className="corak-summary-card">
           <div className="corak-summary-header">
             <div className="corak-summary-title">
@@ -181,24 +151,30 @@ export function BarisMesinScreen({ onClose }: { onClose: () => void }) {
             <div className="corak-summary-badges">
               <span className="corak-summary-badge active">
                 <span className="status-dot active" />
-                {activeProduksiEntries.length} Mesin Aktif ({activeCorakSummary.length} Corak)
+                {configuredEntries.length} Mesin ({corakSummary.length} Corak)
               </span>
-              {stoppedProduksiEntries.length > 0 && (
-                <span className="corak-summary-badge stopped">
-                  <span className="status-dot stopped" />
-                  {stoppedProduksiEntries.length} Stop Sementara
-                </span>
+              {selectedCorak && (
+                <button
+                  type="button"
+                  className="corak-summary-badge active"
+                  style={{ border: "none", cursor: "pointer" }}
+                  onClick={() => setSelectedCorak(null)}
+                  title="Hapus filter corak"
+                >
+                  <span>Corak: {selectedCorak}</span>
+                  <CloseIcon size={12} />
+                </button>
               )}
             </div>
           </div>
 
-          {activeCorakSummary.length === 0 ? (
+          {corakSummary.length === 0 ? (
             <div style={{ fontSize: 12, color: "var(--text-faint)", padding: "8px 0" }}>
-              Tidak ada mesin yang aktif berproduksi saat ini.
+              Belum ada mesin yang dikonfigurasi corak-nya.
             </div>
           ) : (
             <div className="corak-summary-grid">
-              {activeCorakSummary.map((item) => {
+              {corakSummary.map((item) => {
                 const isSelected = selectedCorak === item.corak;
                 return (
                   <div
@@ -233,58 +209,6 @@ export function BarisMesinScreen({ onClose }: { onClose: () => void }) {
           )}
         </div>
 
-        {/* Filter Status Produksi & Tombol Reset Corak Filter */}
-        <div className="machine-status-tabs">
-          <button
-            type="button"
-            className={`machine-status-tab${statusFilter === "ALL" && !selectedCorak ? " active" : ""}`}
-            onClick={() => {
-              setStatusFilter("ALL");
-              setSelectedCorak(null);
-            }}
-          >
-            Semua ({configuredEntries.length})
-          </button>
-          <button
-            type="button"
-            className={`machine-status-tab${statusFilter === "ACTIVE" && !selectedCorak ? " active" : ""}`}
-            onClick={() => {
-              setStatusFilter("ACTIVE");
-              setSelectedCorak(null);
-            }}
-          >
-            <span className="status-dot active" />
-            Aktif Produksi ({activeProduksiEntries.length})
-          </button>
-          {stoppedProduksiEntries.length > 0 && (
-            <button
-              type="button"
-              className={`machine-status-tab${statusFilter === "STOPPED" && !selectedCorak ? " active" : ""}`}
-              onClick={() => {
-                setStatusFilter("STOPPED");
-                setSelectedCorak(null);
-              }}
-            >
-              <span className="status-dot stopped" />
-              Stop Sementara ({stoppedProduksiEntries.length})
-            </button>
-          )}
-
-          {selectedCorak && (
-            <button
-              type="button"
-              className="machine-status-tab active"
-              style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
-              onClick={() => setSelectedCorak(null)}
-              title="Hapus filter corak"
-            >
-              <TextureIcon size={12} />
-              <span>Corak: {selectedCorak}</span>
-              <CloseIcon size={14} />
-            </button>
-          )}
-        </div>
-
         {searchedTarget && (
           <button
             className="settings-action-btn primary"
@@ -303,13 +227,11 @@ export function BarisMesinScreen({ onClose }: { onClose: () => void }) {
         {groupedEntries.length === 0 && (
           <div className="empty-state-card" style={{ margin: "24px 0" }}>
             <div className="empty-state-title">
-              {search.trim() || selectedCorak || statusFilter !== "ALL"
-                ? "Mesin Tidak Ditemukan"
-                : "Belum Ada Mesin Terkonfigurasi"}
+              {search.trim() || selectedCorak ? "Mesin Tidak Ditemukan" : "Belum Ada Mesin Terkonfigurasi"}
             </div>
             <div className="empty-state-subtitle">
-              {search.trim() || selectedCorak || statusFilter !== "ALL"
-                ? "Coba sesuaikan kata kunci pencarian atau bersihkan filter status"
+              {search.trim() || selectedCorak
+                ? "Coba sesuaikan kata kunci pencarian atau bersihkan filter corak"
                 : "Masukkan nomor mesin pada kolom di bawah untuk mulai mengatur corak & tipe"}
             </div>
           </div>
@@ -322,78 +244,39 @@ export function BarisMesinScreen({ onClose }: { onClose: () => void }) {
               <span>{tipe}</span>
               <span className="count">{rows.length} mesin</span>
             </div>
-            {rows.map(([k, v]) => {
-              const isRunning = v.isActive !== false;
-              return (
-                <div
-                  className={`machine-list-item${!isRunning ? " is-stopped" : ""}`}
-                  key={k}
-                  onClick={() => loadFrom(k, v)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      loadFrom(k, v);
-                    }
-                  }}
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`Edit pengaturan Mc ${k}`}
-                >
-                  <span className="mc-badge">{k}</span>
-                  <div className="corak-info">
-                    <TextureIcon size={13} />
-                    <span className="corak-text">{v.corak || "-"}</span>
-                    {!isRunning && (
-                      <span
-                        style={{
-                          fontSize: 10,
-                          fontWeight: 800,
-                          color: "var(--amber-400)",
-                          background: "rgba(245, 158, 11, 0.15)",
-                          padding: "1px 5px",
-                          borderRadius: 4,
-                          marginLeft: 4,
-                        }}
-                      >
-                        STOP
-                      </span>
-                    )}
-                  </div>
-                  <div className="meta-tags">
-                    {v.targetYard != null && <span className="meta-tag">{v.targetYard}y</span>}
-                    {v.speed != null && v.tipe === "D405" && <span className="meta-tag">{v.speed}y/m</span>}
-                    {v.koreksi != null && v.tipe === "D408" && (
-                      <span className="meta-tag">{v.koreksi > 0 ? `+${v.koreksi}` : v.koreksi}m</span>
-                    )}
-                  </div>
-
-                  {/* Tombol ON / OFF Aksi Stop & Aktif Produksi Sementara */}
-                  <button
-                    type="button"
-                    className={`machine-status-toggle-btn ${isRunning ? "on" : "off"}`}
-                    onClick={(e) => handleToggleStatus(k, e)}
-                    title={isRunning ? `Mc ${k} aktif. Klik untuk stop sementara (OFF)` : `Mc ${k} stop sementara. Klik untuk aktifkan (ON)`}
-                    aria-label={isRunning ? `Matikan produksi Mc ${k}` : `Aktifkan produksi Mc ${k}`}
-                  >
-                    {isRunning ? (
-                      <>
-                        <span className="status-dot active" />
-                        <span>ON</span>
-                      </>
-                    ) : (
-                      <>
-                        <span className="status-dot stopped" />
-                        <span>OFF</span>
-                      </>
-                    )}
-                  </button>
-
-                  <span className="machine-item-chevron" aria-hidden="true">
-                    <ChevronRightIcon size={16} />
-                  </span>
+            {rows.map(([k, v]) => (
+              <div
+                className="machine-list-item"
+                key={k}
+                onClick={() => loadFrom(k, v)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    loadFrom(k, v);
+                  }
+                }}
+                role="button"
+                tabIndex={0}
+                aria-label={`Edit pengaturan Mc ${k}`}
+              >
+                <span className="mc-badge">{k}</span>
+                <div className="corak-info">
+                  <TextureIcon size={13} />
+                  <span className="corak-text">{v.corak || "-"}</span>
                 </div>
-              );
-            })}
+                <div className="meta-tags">
+                  {v.targetYard != null && <span className="meta-tag">{v.targetYard}y</span>}
+                  {v.speed != null && v.tipe === "D405" && <span className="meta-tag">{v.speed}y/m</span>}
+                  {v.koreksi != null && v.tipe === "D408" && (
+                    <span className="meta-tag">{v.koreksi > 0 ? `+${v.koreksi}` : v.koreksi}m</span>
+                  )}
+                </div>
+
+                <span className="machine-item-chevron" aria-hidden="true">
+                  <ChevronRightIcon size={16} />
+                </span>
+              </div>
+            ))}
           </div>
         ))}
       </div>
@@ -471,10 +354,7 @@ function MesinEditDialog({
   onReset: () => void;
 }) {
   const { showToast } = useUiStore();
-  const [form, setForm] = useState<MesinData>({
-    ...initialForm,
-    isActive: initialForm.isActive !== false,
-  });
+  const [form, setForm] = useState<MesinData>({ ...initialForm });
   const [targetYardText, setTargetYardText] = useState(
     initialForm.targetYard != null ? formatYard(initialForm.targetYard) : "",
   );
@@ -529,11 +409,8 @@ function MesinEditDialog({
       targetYard,
       speed,
       koreksi,
-      isActive: form.isActive !== false,
     });
   };
-
-  const isRunning = form.isActive !== false;
 
   return (
     <div className="dialog-backdrop" onClick={onClose}>
@@ -551,37 +428,6 @@ function MesinEditDialog({
           </div>
           <button className="icon-btn" onClick={onClose} aria-label="Tutup">
             <CloseIcon />
-          </button>
-        </div>
-
-        {/* Status Produksi ON / OFF */}
-        <div className="field-label">Status Produksi</div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 16 }}>
-          <button
-            type="button"
-            className={`settings-theme-btn${isRunning ? " active" : ""}`}
-            style={{
-              borderColor: isRunning ? "#10b981" : "var(--border)",
-              color: isRunning ? "#10b981" : "var(--text-muted)",
-              background: isRunning ? "rgba(16, 185, 129, 0.12)" : "var(--bg-elevated-2)",
-            }}
-            onClick={() => setForm({ ...form, isActive: true })}
-          >
-            <span className="status-dot active" />
-            <span>Aktif Produksi (ON)</span>
-          </button>
-          <button
-            type="button"
-            className={`settings-theme-btn${!isRunning ? " active" : ""}`}
-            style={{
-              borderColor: !isRunning ? "#f59e0b" : "var(--border)",
-              color: !isRunning ? "#f59e0b" : "var(--text-muted)",
-              background: !isRunning ? "rgba(245, 158, 11, 0.12)" : "var(--bg-elevated-2)",
-            }}
-            onClick={() => setForm({ ...form, isActive: false })}
-          >
-            <span className="status-dot stopped" />
-            <span>Stop Sementara (OFF)</span>
           </button>
         </div>
 
