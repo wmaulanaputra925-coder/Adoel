@@ -1,20 +1,17 @@
 import { formatYard } from "../domain/format";
 import type { AktualEntry, MesinData } from "../domain/types";
-import { ScheduleIcon, TextureIcon } from "./Icons";
+import { RulerIcon, ScheduleIcon, TextureIcon } from "./Icons";
 
 /**
  * The one row layout for a recorded doff, shared by Riwayat and by Statistik's shift detail so the
  * two can't drift apart again — they used to be two hand-written layouts saying the same thing in
- * different shapes (Riwayat stacked a big mc number over a corak line; Statistik ran everything
- * inline). Each caller still supplies its own container: Riwayat a list card with edit/hapus
- * buttons after this, Statistik a flat tappable strip inside the shift card.
+ * different shapes. Each caller still supplies its own container: Riwayat a list card with
+ * edit/hapus buttons after this, Statistik a flat tappable strip inside the shift card.
  *
- * One single-line row — No, Mc, Corak, Panjang (yard), Jam, Keterangan left to right, in that
- * exact order — mirroring the paper serah-terima form's columns 1:1 so copying an entry off the
- * screen onto the printed form is a straight left-to-right read instead of hopping across two
- * lines. Corak and keterangan are the only free-typed (variable-length) fields, so they're the
- * only two that ever ellipsize; everything else is short, fixed-format text that always fits.
- * Port 1:1 dari DoffEntryRow.kt (Android).
+ * Two lines: top is No, Mc (the prominent badge — the thing you're actually scanning the column
+ * for), Corak; bottom is Panjang (yard), Jam, Keterangan. Corak and keterangan are the only
+ * free-typed (variable-length) fields, so they're the only two that ever ellipsize; everything
+ * else is short, fixed-format text that always fits. Port 1:1 dari DoffEntryRow.kt (Android).
  */
 export function DoffEntryRowContent({
   num,
@@ -36,28 +33,39 @@ export function DoffEntryRowContent({
 
   return (
     <span className="der-row">
-      <span className="der-num">{num}</span>
-      {/* Just the number — the surrounding chips already make it obvious this is the machine. */}
-      <span className="der-mcno">{entry.mcNo}</span>
-      <span className="der-corak">
-        <TextureIcon size={11} />
-        <span className="der-corak-text">{corak}</span>
-      </span>
-      {yard != null && <span className="der-yard">{formatYard(yard)}y</span>}
-      {/* No more edit-pencil here — the row itself is the tap target (Statistik even prints
-          "Ketuk baris untuk edit" once above the list), so a second per-row hint was redundant,
-          not the reason anyone found the affordance. */}
-      <span className="der-time">
-        <ScheduleIcon size={11} />
-        {entry.jam}
-      </span>
-      {ketCode.length > 0 && (
-        <span
-          className={`der-ket${ketCode === "MATCHING" ? " ket-matching" : ketCode === "HB" ? " ket-hb" : ""}`}
-        >
-          {ketCode}
+      <span className="der-top">
+        <span className="der-num">{num}</span>
+        <span className="der-mc-badge">
+          <span className="der-mc-label">MC</span>
+          <span className="der-mc-number">{entry.mcNo}</span>
         </span>
-      )}
+        <span className="der-corak">
+          <TextureIcon size={12} />
+          <span className="der-corak-text">{corak}</span>
+        </span>
+      </span>
+      <span className="der-bottom">
+        {yard != null && (
+          <span className="der-yard">
+            <RulerIcon size={11} />
+            {formatYard(yard)}y
+          </span>
+        )}
+        {/* No more edit-pencil here — the row itself is the tap target (Statistik even prints
+            "Ketuk baris untuk edit" once above the list), so a second per-row hint was redundant,
+            not the reason anyone found the affordance. */}
+        <span className="der-time">
+          <ScheduleIcon size={11} />
+          {entry.jam}
+        </span>
+        {ketCode.length > 0 && (
+          <span
+            className={`der-ket${ketCode === "MATCHING" ? " ket-matching" : ketCode === "HB" ? " ket-hb" : ""}`}
+          >
+            {ketCode}
+          </span>
+        )}
+      </span>
     </span>
   );
 }

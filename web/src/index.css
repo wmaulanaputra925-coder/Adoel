@@ -1499,13 +1499,11 @@ button:disabled {
   background: var(--bg-elevated);
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
 }
-/* ---- Shared doff-entry row: Riwayat list + Statistik shift detail (DoffEntryRow.tsx). One
-   single-line row now — No/Mc/Corak/Panjang/Jam/Keterangan left to right in that exact order,
-   matching the paper serah-terima form column for column so copying off the screen onto the
-   printed form doesn't need re-reading across two lines per entry. flex-wrap: nowrap plus the
-   row's own overflow: hidden means it never wraps onto a second line; the two free-typed fields
-   (corak, keterangan) are the only ones that can ellipsize, everything else is short and
-   fixed-format enough it never needs to. ---- */
+/* ---- Shared doff-entry row: Riwayat list + Statistik shift detail (DoffEntryRow.tsx). Two
+   lines — top is No/Mc/Corak (Mc is the one thing you're actually scanning the column for, so it
+   gets its own big badge), bottom is Panjang/Jam/Keterangan. Corak and keterangan are the only
+   free-typed (variable-length) fields, so they're the only two that ever ellipsize; everything
+   else is short and fixed-format enough it never needs to. ---- */
 .doff-entry-row {
   display: flex;
   min-width: 0;
@@ -1513,40 +1511,84 @@ button:disabled {
 }
 .der-row {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 6px;
   min-width: 0;
   flex: 1 1 auto;
-  overflow: hidden;
+}
+.der-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
 .der-num {
   flex-shrink: 0;
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   border-radius: 5px;
   background: var(--bg-elevated);
   border: 1px solid var(--border-subtle);
   color: var(--text-faint);
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 800;
   display: inline-flex;
   align-items: center;
   justify-content: center;
 }
-.der-mcno {
-  font-size: 14px;
-  font-weight: 800;
-  color: var(--cyan-400);
+.der-mc-badge {
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  padding: 2px 8px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--cyan-500) 14%, var(--bg-elevated));
+  border: 1px solid color-mix(in srgb, var(--cyan-500) 35%, transparent);
+}
+.der-mc-label {
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--cyan-400);
+}
+.der-mc-number {
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--text-primary);
   white-space: nowrap;
 }
 .der-corak {
-  /* Free-typed, so the one field here (besides keterangan) that can actually run long — allowed
-     to shrink first (before the fixed-format chips get squeezed) down to a compact floor, with
-     .der-corak-text's ellipsis taking over past that. */
-  flex-shrink: 1;
-  max-width: 100px;
-  min-width: 32px;
+  flex: 1 1 auto;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+.der-corak svg {
+  flex-shrink: 0;
+  color: var(--cyan-400);
+}
+.der-corak-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.der-bottom {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding-left: 34px;
+}
+.der-yard,
+.der-time {
+  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -1555,35 +1597,20 @@ button:disabled {
   color: var(--text-secondary);
   background: var(--bg-elevated);
   border: 1px solid var(--border-subtle);
-  border-radius: 5px;
-  padding: 3px 6px;
-}
-.der-corak svg {
-  flex-shrink: 0;
-  color: var(--text-faint);
-}
-.der-corak-text {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.der-yard {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  font-size: 11.5px;
-  font-weight: 700;
-  color: var(--text-muted);
-  background: var(--bg-elevated-2);
-  border-radius: 5px;
+  border-radius: 6px;
   padding: 3px 7px;
   white-space: nowrap;
 }
+.der-yard svg,
+.der-time svg {
+  flex-shrink: 0;
+  color: var(--text-faint);
+}
 .der-ket {
-  /* Last column, and the other free-typed field — same shrink-then-ellipsize treatment as
-     .der-corak, just capped a bit tighter since it's the last thing in an already-full row. */
+  /* The other free-typed field — allowed to shrink and ellipsize past a compact floor if the
+     bottom row ever gets tight. */
   flex-shrink: 1;
-  max-width: 90px;
+  max-width: 110px;
   min-width: 24px;
   white-space: nowrap;
   overflow: hidden;
@@ -1608,24 +1635,6 @@ button:disabled {
 .der-ket.ket-hb {
   color: var(--purple-400, #c084fc);
   background: rgba(192, 132, 252, 0.15);
-}
-.der-time {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 11.5px;
-  font-weight: 700;
-  color: var(--text-secondary);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-subtle);
-  border-radius: 6px;
-  padding: 3px 7px;
-  white-space: nowrap;
-}
-.der-time svg {
-  flex-shrink: 0;
-  color: var(--text-faint);
 }
 
 .doff-row .actions {
