@@ -127,14 +127,14 @@ private fun MachineListItem(
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             MetaTag(mesin.tipe.name, tint = mesinTipeColor(mesin.tipe))
             if (mesin.targetYard != null) {
-                MetaTag("${formatYard(mesin.targetYard)}y", icon = Icons.Outlined.Straighten)
+                MetaTag("${formatYard(mesin.targetYard)}y", tint = Cyan400, icon = Icons.Outlined.Straighten)
             }
             if (mesin.speed != null && mesin.tipe == MesinTipe.D405) {
-                MetaTag("${formatYard(mesin.speed)}y/m")
+                MetaTag("${formatYard(mesin.speed)}y/m", tint = Emerald400)
             }
             val koreksi = mesin.koreksi
             if (koreksi != null && mesin.tipe == MesinTipe.D408) {
-                MetaTag(if (koreksi > 0) "+${formatYard(koreksi)}m" else "${formatYard(koreksi)}m")
+                MetaTag(if (koreksi > 0) "+${formatYard(koreksi)}m" else "${formatYard(koreksi)}m", tint = Amber400)
             }
         }
 
