@@ -30,7 +30,6 @@ import com.jekael.adoel.data.MesinData
 import com.jekael.adoel.data.formatYard
 import com.jekael.adoel.ui.theme.Amber400
 import com.jekael.adoel.ui.theme.Cyan400
-import com.jekael.adoel.ui.theme.Cyan500
 import com.jekael.adoel.ui.theme.Emerald400
 import com.jekael.adoel.ui.theme.LocalAppColors
 import com.jekael.adoel.ui.theme.Purple400
@@ -91,25 +90,7 @@ fun DoffEntryRowContent(
                 )
             }
 
-            Column(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Cyan500.copy(alpha = 0.14f))
-                    .border(1.dp, Cyan500.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
-                    .padding(horizontal = 8.dp, vertical = 2.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Text(
-                    "MC",
-                    style = TextStyle(fontSize = 8.sp, fontWeight = FontWeight.Black, letterSpacing = 0.5.sp, color = Cyan400),
-                )
-                Text(
-                    entry.mcNo,
-                    style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Black, color = colors.textPrimary),
-                    maxLines = 1,
-                    softWrap = false,
-                )
-            }
+            McBadgeBox(mcNo = entry.mcNo)
 
             Row(
                 modifier = Modifier.weight(1f, fill = false),

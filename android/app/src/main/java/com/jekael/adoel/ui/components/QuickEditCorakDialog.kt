@@ -4,14 +4,12 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -79,15 +77,10 @@ fun QuickEditCorakDialog(
         Spacer(Modifier.height(Dimens.Space16))
 
         FieldLabel("Corak")
-        OutlinedTextField(
+        ClearableOutlinedTextField(
             value = corakInput,
             onValueChange = { corakInput = it },
-            modifier = Modifier.fillMaxWidth(),
-            colors = outlinedFieldColors(),
-            shape = RoundedCornerShape(Dimens.RadiusControl),
-            textStyle = AppType.FieldText.copy(color = colors.textPrimary),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            singleLine = true,
         )
         CorakShortcutPicker(
             value = corakInput,
@@ -100,47 +93,32 @@ fun QuickEditCorakDialog(
         Spacer(Modifier.height(Dimens.Space16))
 
         FieldLabel("Target Yard")
-        OutlinedTextField(
+        ClearableOutlinedTextField(
             value = targetYardInput,
             onValueChange = { targetYardInput = it },
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("opsional", color = colors.textFaint) },
-            colors = outlinedFieldColors(),
-            shape = RoundedCornerShape(Dimens.RadiusControl),
-            textStyle = AppType.FieldText.copy(color = colors.textPrimary),
+            placeholder = "opsional",
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            singleLine = true,
         )
 
         if (tipeInput == MesinTipe.D405) {
             Spacer(Modifier.height(Dimens.Space16))
             FieldLabel("Speed (yard/menit)")
-            OutlinedTextField(
+            ClearableOutlinedTextField(
                 value = speedInput,
                 onValueChange = { speedInput = it },
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("contoh: 0.158", color = colors.textFaint) },
-                colors = outlinedFieldColors(),
-                shape = RoundedCornerShape(Dimens.RadiusControl),
-                textStyle = AppType.FieldText.copy(color = colors.textPrimary),
+                placeholder = "contoh: 0.158",
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                singleLine = true,
             )
         }
 
         if (tipeInput == MesinTipe.D408) {
             Spacer(Modifier.height(Dimens.Space16))
             FieldLabel("Koreksi Counter (menit)")
-            OutlinedTextField(
+            ClearableOutlinedTextField(
                 value = koreksiInput,
                 onValueChange = { koreksiInput = it },
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("contoh: 0 atau -15", color = colors.textFaint) },
-                colors = outlinedFieldColors(),
-                shape = RoundedCornerShape(Dimens.RadiusControl),
-                textStyle = AppType.FieldText.copy(color = colors.textPrimary),
+                placeholder = "contoh: 0 atau -15",
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                singleLine = true,
             )
         }
 

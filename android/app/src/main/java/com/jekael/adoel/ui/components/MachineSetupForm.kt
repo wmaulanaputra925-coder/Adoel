@@ -57,15 +57,10 @@ internal fun MachineSetupForm(
     }
     Spacer(Modifier.height(Dimens.Space16))
     FieldLabel("Corak")
-    OutlinedTextField(
+    ClearableOutlinedTextField(
         value = corak,
         onValueChange = { corak = it.uppercase() },
-        modifier = Modifier.fillMaxWidth(),
-        colors = outlinedFieldColors(),
-        shape = RoundedCornerShape(Dimens.RadiusControl),
-        textStyle = AppType.FieldText.copy(color = colors.textPrimary),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-        singleLine = true,
     )
     CorakShortcutPicker(
         value = corak,
@@ -76,31 +71,21 @@ internal fun MachineSetupForm(
     )
     Spacer(Modifier.height(Dimens.Space12))
     FieldLabel("Target Yard")
-    OutlinedTextField(
+    ClearableOutlinedTextField(
         value = targetYard,
         onValueChange = { targetYard = it },
-        modifier = Modifier.fillMaxWidth(),
-        placeholder = { Text("cth: 303", color = colors.textFaint) },
-        colors = outlinedFieldColors(),
-        shape = RoundedCornerShape(Dimens.RadiusControl),
-        textStyle = AppType.FieldText.copy(color = colors.textPrimary),
+        placeholder = "cth: 303",
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-        singleLine = true,
     )
 
     if (tipe == MesinTipe.D405) {
         Spacer(Modifier.height(Dimens.Space12))
         FieldLabel("Speed (yard/menit)")
-        OutlinedTextField(
+        ClearableOutlinedTextField(
             value = speed,
             onValueChange = { speed = it },
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("cth: 0.158", color = colors.textFaint) },
-            colors = outlinedFieldColors(),
-            shape = RoundedCornerShape(Dimens.RadiusControl),
-            textStyle = AppType.FieldText.copy(color = colors.textPrimary),
+            placeholder = "cth: 0.158",
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            singleLine = true,
         )
     }
     if (tipe == MesinTipe.D408) {
@@ -108,24 +93,20 @@ internal fun MachineSetupForm(
         FieldLabel("Koreksi (menit)")
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             OutlinedButton(onClick = { nudge(-1.0) }, modifier = Modifier.size(48.dp), contentPadding = PaddingValues(0.dp), border = BorderStroke(1.dp, colors.border)) { Text("-") }
-            OutlinedTextField(
+            ClearableOutlinedTextField(
                 value = koreksi,
                 onValueChange = { koreksi = it },
                 modifier = Modifier.weight(1f),
-                placeholder = { Text("cth: 18", color = colors.textFaint) },
-                colors = outlinedFieldColors(),
-                shape = RoundedCornerShape(Dimens.RadiusControl),
-                textStyle = AppType.FieldText.copy(color = colors.textPrimary),
+                placeholder = "cth: 18",
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                singleLine = true,
             )
             OutlinedButton(onClick = { nudge(1.0) }, modifier = Modifier.size(48.dp), contentPadding = PaddingValues(0.dp), border = BorderStroke(1.dp, colors.border)) { Text("+") }
         }
         Spacer(Modifier.height(Dimens.Space12))
         FieldLabel("Hitung Koreksi dari Selisih")
         Row(horizontalArrangement = Arrangement.spacedBy(Dimens.Space8)) {
-            OutlinedTextField(value = waktuAktual, onValueChange = { waktuAktual = it }, modifier = Modifier.weight(1f), label = { Text("Waktu Aktual") }, colors = outlinedFieldColors(), shape = RoundedCornerShape(Dimens.RadiusControl), textStyle = AppType.FieldText.copy(color = colors.textPrimary), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), singleLine = true)
-            OutlinedTextField(value = bacaanCounter, onValueChange = { bacaanCounter = it }, modifier = Modifier.weight(1f), label = { Text("Bacaan Counter") }, colors = outlinedFieldColors(), shape = RoundedCornerShape(Dimens.RadiusControl), textStyle = AppType.FieldText.copy(color = colors.textPrimary), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), singleLine = true)
+            ClearableOutlinedTextField(value = waktuAktual, onValueChange = { waktuAktual = it }, modifier = Modifier.weight(1f), label = "Waktu Aktual", keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal))
+            ClearableOutlinedTextField(value = bacaanCounter, onValueChange = { bacaanCounter = it }, modifier = Modifier.weight(1f), label = "Bacaan Counter", keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal))
         }
         Spacer(Modifier.height(Dimens.Space8))
         OutlinedButton(

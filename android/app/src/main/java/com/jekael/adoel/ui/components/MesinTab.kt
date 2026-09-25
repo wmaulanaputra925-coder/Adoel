@@ -1,12 +1,15 @@
 package com.jekael.adoel.ui.components
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.stickyHeader
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -17,6 +20,7 @@ import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Straighten
 import androidx.compose.material.icons.outlined.Texture
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -24,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
@@ -40,27 +45,109 @@ import com.jekael.adoel.ui.theme.*
 
 /** Small bordered pill for a row's secondary specs (target yard, D405 speed, D408 koreksi, or the
  * tipe mesin tag when [tint] is given) — kept as a distinct tag rather than plain inline text so
- * several can sit side by side without running into each other visually. */
+ * several can sit side by side without running into each other visually. [icon] adds a leading
+ * glyph (the ruler for target yard) so the tag reads at a glance instead of needing the unit
+ * suffix to disambiguate it. */
 @Composable
-private fun MetaTag(text: String, tint: Color? = null) {
+private fun MetaTag(text: String, tint: Color? = null, icon: ImageVector? = null) {
     val colors = LocalAppColors.current
     Surface(
         shape = RoundedCornerShape(6.dp),
         color = tint?.copy(alpha = 0.14f) ?: colors.bgElevated,
         border = BorderStroke(1.dp, tint?.copy(alpha = 0.4f) ?: colors.border),
     ) {
-        Text(
-            text,
-            style = TextStyle(
-                fontSize = 11.sp,
-                fontWeight = if (tint != null) FontWeight.Bold else FontWeight.SemiBold,
-                color = tint ?: colors.textFaint,
-            ),
+        Row(
             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(3.dp),
+        ) {
+            if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = tint ?: colors.textFaint,
+                    modifier = Modifier.size(10.dp),
+                )
+            }
+            Text(
+                text,
+                style = TextStyle(
+                    fontSize = 11.sp,
+                    fontWeight = if (tint != null) FontWeight.Bold else FontWeight.SemiBold,
+                    color = tint ?: colors.textFaint,
+                ),
+            )
+        }
+    }
+}
+
+/** One row in the Daftar Mesin list — the [McBadgeBox] (same badge Riwayat/Statistik use for a
+ * machine number) up front, corak as the bold highlight next to it, then tipe/yard/speed/koreksi
+ * as supporting tags. */
+@Composable
+private fun MachineListItem(
+    mcNo: String,
+    mesin: MesinData,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = LocalAppColors.current
+    Row(
+        modifier = modifier
+            .elevatedListCard(
+                backgroundColor = colors.bgElevated2,
+                borderColor = colors.border,
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = Dimens.Space12, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(Dimens.Space10),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        McBadgeBox(mcNo = mcNo, numberFontSize = 15.sp)
+
+        Row(
+            modifier = Modifier.weight(1f),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Texture,
+                contentDescription = null,
+                tint = Cyan400,
+                modifier = Modifier.size(14.dp),
+            )
+            Text(
+                mesin.corak,
+                style = TextStyle(fontSize = 14.5.sp, fontWeight = FontWeight.Black, color = colors.textPrimary),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            MetaTag(mesin.tipe.name, tint = mesinTipeColor(mesin.tipe))
+            if (mesin.targetYard != null) {
+                MetaTag("${formatYard(mesin.targetYard)}y", icon = Icons.Outlined.Straighten)
+            }
+            if (mesin.speed != null && mesin.tipe == MesinTipe.D405) {
+                MetaTag("${formatYard(mesin.speed)}y/m")
+            }
+            val koreksi = mesin.koreksi
+            if (koreksi != null && mesin.tipe == MesinTipe.D408) {
+                MetaTag(if (koreksi > 0) "+${formatYard(koreksi)}m" else "${formatYard(koreksi)}m")
+            }
+        }
+
+        Icon(
+            imageVector = Icons.Outlined.ChevronRight,
+            contentDescription = null,
+            tint = colors.textFaint,
+            modifier = Modifier.size(16.dp),
         )
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun MesinTab(
     state: DoffState,
@@ -111,7 +198,8 @@ internal fun MesinTab(
             if (searchTrim.isNotEmpty()) {
                 val mcMatch = k.contains(searchTrim)
                 val corakMatch = v.corak.uppercase().contains(searchTrim)
-                if (!mcMatch && !corakMatch) return@filter false
+                val tipeMatch = v.tipe.name.contains(searchTrim)
+                if (!mcMatch && !corakMatch && !tipeMatch) return@filter false
             }
             true
         }.sortedBy { (k, _) -> k.toIntOrNull() ?: 0 }
@@ -133,19 +221,30 @@ internal fun MesinTab(
         } else null
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    // Wide enough (landscape phones, tablets) gets more columns so the list uses the spare
+    // horizontal room instead of stretching each row into a lot of empty space — same
+    // breakpoints as web's .machine-list-grid.
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val columns = when {
+            maxWidth >= 940.dp -> 3
+            maxWidth >= 660.dp -> 2
+            else -> 1
+        }
+        val rowedEntries = remember(sortedEntries, columns) { sortedEntries.chunked(columns) }
+
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             item(key = "top_spacer") { Spacer(Modifier.height(10.dp + headerHeight + Dimens.Space16)) }
 
-            // 1. Filter Corak Horizontal Cepat
+            // 1. Filter Corak Horizontal Cepat — sticky supaya tetap terlihat saat daftar di-scroll
             if (corakSummary.isNotEmpty()) {
-                item(key = "corak_filter_row") {
+                stickyHeader(key = "corak_filter_row") {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .background(colors.bg)
                             .horizontalScroll(rememberScrollState())
                             .padding(vertical = 4.dp),
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -232,60 +331,27 @@ internal fun MesinTab(
                 }
             }
 
-            // 2. Machine Rows (urut nomor mesin, tanpa pengelompokan tipe)
-            items(sortedEntries, key = { (k, _) -> k }) { (k, v) ->
+            // 2. Machine Rows (urut nomor mesin, tanpa pengelompokan tipe) — dikelompokkan per
+            // baris grid sebanyak [columns] supaya layar lebar/landscape memakai ruang kosongnya,
+            // bukan meregangkan tiap baris jadi satu kolom penuh terus.
+            items(rowedEntries, key = { row -> row.first().key }) { rowItems ->
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .animateItem()
-                        .elevatedListCard(
-                            backgroundColor = colors.bgElevated2,
-                            borderColor = colors.border,
-                        )
-                        .clickable { loadFrom(k, v) }
-                        .padding(horizontal = Dimens.Space12, vertical = 8.dp),
+                    modifier = Modifier.fillMaxWidth().animateItem(),
                     horizontalArrangement = Arrangement.spacedBy(Dimens.Space10),
-                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(
-                        k,
-                        style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary),
-                        modifier = Modifier.width(36.dp),
-                    )
-                    Icon(
-                        imageVector = Icons.Outlined.Texture,
-                        contentDescription = null,
-                        tint = Cyan400,
-                        modifier = Modifier.size(14.dp),
-                    )
-                    Text(
-                        v.corak,
-                        style = TextStyle(fontSize = 14.5.sp, fontWeight = FontWeight.Black, color = colors.textPrimary),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f),
-                    )
-
-                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        MetaTag(v.tipe.name, tint = mesinTipeColor(v.tipe))
-                        if (v.targetYard != null) {
-                            MetaTag("${formatYard(v.targetYard)}y")
-                        }
-                        if (v.speed != null && v.tipe == MesinTipe.D405) {
-                            MetaTag("${formatYard(v.speed)}y/m")
-                        }
-                        val koreksi = v.koreksi
-                        if (koreksi != null && v.tipe == MesinTipe.D408) {
-                            MetaTag(if (koreksi > 0) "+${formatYard(koreksi)}m" else "${formatYard(koreksi)}m")
-                        }
+                    rowItems.forEach { (k, v) ->
+                        MachineListItem(
+                            mcNo = k,
+                            mesin = v,
+                            onClick = { loadFrom(k, v) },
+                            modifier = Modifier.weight(1f),
+                        )
                     }
-
-                    Icon(
-                        imageVector = Icons.Outlined.ChevronRight,
-                        contentDescription = null,
-                        tint = colors.textFaint,
-                        modifier = Modifier.size(16.dp),
-                    )
+                    // Baris terakhir bisa lebih pendek dari [columns] — sisanya diisi spacer supaya
+                    // kartu yang ada tetap selebar 1/columns, bukan melar mengisi baris.
+                    repeat(columns - rowItems.size) {
+                        Spacer(Modifier.weight(1f))
+                    }
                 }
             }
             item(key = "bottom_spacer") { Spacer(Modifier.height(consoleHeight + Dimens.Space16)) }

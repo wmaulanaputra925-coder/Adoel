@@ -4,14 +4,12 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -61,31 +59,21 @@ fun OperatorDialog(
         Spacer(Modifier.height(Dimens.Space16))
 
         FieldLabel("Nama Operator")
-        OutlinedTextField(
+        ClearableOutlinedTextField(
             value = namaInput,
             onValueChange = { namaInput = it },
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("mis. Wahyu Maulana", color = colors.textFaint) },
-            colors = outlinedFieldColors(),
-            shape = RoundedCornerShape(Dimens.RadiusControl),
-            textStyle = AppType.FieldText.copy(color = colors.textPrimary),
+            placeholder = "mis. Wahyu Maulana",
             keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
-            singleLine = true,
         )
 
         Spacer(Modifier.height(Dimens.Space16))
 
         FieldLabel("Grup")
-        OutlinedTextField(
+        ClearableOutlinedTextField(
             value = grupInput,
             onValueChange = { grupInput = it },
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("mis. B", color = colors.textFaint) },
-            colors = outlinedFieldColors(),
-            shape = RoundedCornerShape(Dimens.RadiusControl),
-            textStyle = AppType.FieldText.copy(color = colors.textPrimary),
+            placeholder = "mis. B",
             keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters),
-            singleLine = true,
         )
 
         Spacer(Modifier.height(Dimens.Space20))

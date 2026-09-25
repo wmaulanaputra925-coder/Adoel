@@ -19,8 +19,16 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Cancel
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldColors
@@ -42,6 +50,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
+import com.jekael.adoel.ui.theme.AppType
 import com.jekael.adoel.ui.theme.Cyan500
 import com.jekael.adoel.ui.theme.Dimens
 import com.jekael.adoel.ui.theme.LocalAppColors
@@ -72,6 +81,49 @@ fun outlinedFieldColors(): TextFieldColors {
         cursorColor = Cyan500,
         focusedContainerColor = colors.bgElevated2,
         unfocusedContainerColor = colors.bgElevated2,
+    )
+}
+
+/**
+ * The one text field used across every form dialog — an [OutlinedTextField] with a trailing
+ * clear (X) button that only appears once there's something to clear, so operators don't have to
+ * select-all/backspace to fix a mistyped number. Port 1:1 dari ClearableInput.tsx (web).
+ */
+@Composable
+fun ClearableOutlinedTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    placeholder: String? = null,
+    label: String? = null,
+    textStyle: TextStyle = AppType.FieldText,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    singleLine: Boolean = true,
+) {
+    val colors = LocalAppColors.current
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = modifier.fillMaxWidth(),
+        label = label?.let { { Text(it, color = colors.textFaint) } },
+        placeholder = placeholder?.let { { Text(it, color = colors.textFaint) } },
+        trailingIcon = if (value.isNotEmpty()) {
+            {
+                IconButton(onClick = { onValueChange("") }) {
+                    Icon(
+                        imageVector = Icons.Outlined.Cancel,
+                        contentDescription = "Hapus semua",
+                        tint = colors.textFaint,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            }
+        } else null,
+        colors = outlinedFieldColors(),
+        shape = RoundedCornerShape(Dimens.RadiusControl),
+        textStyle = textStyle.copy(color = colors.textPrimary),
+        keyboardOptions = keyboardOptions,
+        singleLine = singleLine,
     )
 }
 

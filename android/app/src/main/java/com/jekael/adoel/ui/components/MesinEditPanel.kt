@@ -48,10 +48,13 @@ internal fun MesinEditPanel(
     var bacaanCounterText by remember(mcNo) { mutableStateOf("") }
 
     FloatingEditDialog(onDismissRequest = onClose) {
-        Text(
-            text = "Mc $mcNo",
-            style = AppType.NumberLarge.copy(color = colors.textPrimary),
-        )
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Dimens.Space10)) {
+            McBadgeBox(mcNo = mcNo, numberFontSize = 20.sp)
+            Text(
+                text = "Edit Pengaturan Mc $mcNo",
+                style = AppType.NumberLarge.copy(fontSize = 17.sp, color = colors.textPrimary),
+            )
+        }
 
         Spacer(Modifier.height(Dimens.Space16))
 
@@ -65,15 +68,10 @@ internal fun MesinEditPanel(
         Spacer(Modifier.height(Dimens.Space20))
 
         FieldLabel("Corak")
-        OutlinedTextField(
+        ClearableOutlinedTextField(
             value = f.corak,
             onValueChange = { onFormChange(f.copy(corak = it)) },
-            modifier = Modifier.fillMaxWidth(),
-            colors = outlinedFieldColors(),
-            shape = RoundedCornerShape(Dimens.RadiusControl),
-            textStyle = AppType.FieldText.copy(color = colors.textPrimary),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            singleLine = true,
         )
         CorakShortcutPicker(
             value = f.corak,
@@ -86,37 +84,27 @@ internal fun MesinEditPanel(
         Spacer(Modifier.height(Dimens.Space16))
 
         FieldLabel("Target Yard")
-        OutlinedTextField(
+        ClearableOutlinedTextField(
             value = targetYardText,
             onValueChange = {
                 targetYardText = it
                 onFormChange(f.copy(targetYard = it.replace(',', '.').toDoubleOrNull()))
             },
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("opsional", color = colors.textFaint) },
-            colors = outlinedFieldColors(),
-            shape = RoundedCornerShape(Dimens.RadiusControl),
-            textStyle = AppType.FieldText.copy(color = colors.textPrimary),
+            placeholder = "opsional",
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            singleLine = true,
         )
 
         if (f.tipe == MesinTipe.D405) {
             Spacer(Modifier.height(Dimens.Space16))
             FieldLabel("Speed (yard/menit)")
-            OutlinedTextField(
+            ClearableOutlinedTextField(
                 value = speedText,
                 onValueChange = {
                     speedText = it
                     onFormChange(f.copy(speed = it.replace(',', '.').toDoubleOrNull()))
                 },
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("cth: 0.158", color = colors.textFaint) },
-                colors = outlinedFieldColors(),
-                shape = RoundedCornerShape(Dimens.RadiusControl),
-                textStyle = AppType.FieldText.copy(color = colors.textPrimary),
+                placeholder = "cth: 0.158",
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                singleLine = true,
             )
         }
 
@@ -129,19 +117,15 @@ internal fun MesinEditPanel(
                     koreksiText = formatYard(value)
                     onFormChange(f.copy(koreksi = value))
                 }, modifier = Modifier.size(48.dp), contentPadding = PaddingValues(0.dp)) { Text("-") }
-                OutlinedTextField(
+                ClearableOutlinedTextField(
                     value = koreksiText,
                     onValueChange = {
                         koreksiText = it
                         onFormChange(f.copy(koreksi = it.replace(',', '.').toDoubleOrNull()))
                     },
                     modifier = Modifier.weight(1f),
-                    placeholder = { Text("cth: 18", color = colors.textFaint) },
-                    colors = outlinedFieldColors(),
-                    shape = RoundedCornerShape(Dimens.RadiusControl),
-                    textStyle = AppType.FieldText.copy(color = colors.textPrimary),
+                    placeholder = "cth: 18",
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    singleLine = true,
                 )
                 OutlinedButton(onClick = {
                     val value = (koreksiText.replace(',', '.').toDoubleOrNull() ?: 0.0) + 1.0
@@ -153,29 +137,21 @@ internal fun MesinEditPanel(
             Spacer(Modifier.height(Dimens.Space12))
             FieldLabel("Hitung Koreksi dari Selisih")
             Row(horizontalArrangement = Arrangement.spacedBy(Dimens.Space8)) {
-                OutlinedTextField(
+                ClearableOutlinedTextField(
                     value = waktuAktualText,
                     onValueChange = { waktuAktualText = it },
                     modifier = Modifier.weight(1f),
-                    label = { Text("Waktu Aktual", color = colors.textFaint) },
-                    placeholder = { Text("12.48", color = colors.textFaint) },
-                    colors = outlinedFieldColors(),
-                    shape = RoundedCornerShape(Dimens.RadiusControl),
-                    textStyle = AppType.FieldText.copy(color = colors.textPrimary),
+                    label = "Waktu Aktual",
+                    placeholder = "12.48",
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    singleLine = true,
                 )
-                OutlinedTextField(
+                ClearableOutlinedTextField(
                     value = bacaanCounterText,
                     onValueChange = { bacaanCounterText = it },
                     modifier = Modifier.weight(1f),
-                    label = { Text("Bacaan Counter", color = colors.textFaint) },
-                    placeholder = { Text("12.30", color = colors.textFaint) },
-                    colors = outlinedFieldColors(),
-                    shape = RoundedCornerShape(Dimens.RadiusControl),
-                    textStyle = AppType.FieldText.copy(color = colors.textPrimary),
+                    label = "Bacaan Counter",
+                    placeholder = "12.30",
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    singleLine = true,
                 )
             }
             Spacer(Modifier.height(Dimens.Space8))

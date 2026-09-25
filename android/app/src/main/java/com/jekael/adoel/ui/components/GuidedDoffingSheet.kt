@@ -265,18 +265,11 @@ private fun YardDeltaField(standardYard: Double?, yardInput: String, onYardInput
     }
 
     FieldLabelWithIcon(icon = Icons.Outlined.Straighten, text = "Yard aktual")
-    OutlinedTextField(
+    ClearableOutlinedTextField(
         value = yardInput,
         onValueChange = onYardInputChange,
-        modifier = Modifier.fillMaxWidth(),
-        placeholder = {
-            if (standardYard != null) Text("Standar: ${formatYard(standardYard)}y", color = colors.textFaint)
-        },
-        colors = outlinedFieldColors(),
-        shape = RoundedCornerShape(Dimens.RadiusControl),
-        textStyle = AppType.FieldText.copy(color = colors.textPrimary),
+        placeholder = standardYard?.let { "Standar: ${formatYard(it)}y" },
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-        singleLine = true,
     )
     Spacer(Modifier.height(10.dp))
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -321,15 +314,10 @@ private fun KeteranganStep(
     }
 
     FieldLabelWithIcon(icon = Icons.Outlined.Sell, text = "Keterangan Doffing")
-    OutlinedTextField(
+    ClearableOutlinedTextField(
         value = ket,
         onValueChange = { ket = it.uppercase() },
-        modifier = Modifier.fillMaxWidth(),
-        placeholder = { Text("Ketik keterangan (HB, P.LP, dll)", color = colors.textFaint) },
-        colors = outlinedFieldColors(),
-        shape = RoundedCornerShape(Dimens.RadiusControl),
-        textStyle = AppType.FieldText.copy(color = colors.textPrimary),
-        singleLine = true,
+        placeholder = "Ketik keterangan (HB, P.LP, dll)",
     )
     KeteranganShortcutPicker(
         value = ket,
@@ -342,19 +330,12 @@ private fun KeteranganStep(
     Spacer(Modifier.height(14.dp))
     FieldLabelWithIcon(icon = Icons.Outlined.Straighten, text = "Yard aktual (opsional)")
     Row(horizontalArrangement = Arrangement.spacedBy(Dimens.Space8), verticalAlignment = Alignment.CenterVertically) {
-        OutlinedTextField(
+        ClearableOutlinedTextField(
             value = yardInput,
             onValueChange = { yardInput = it },
             modifier = Modifier.weight(1f),
-            placeholder = {
-                val hint = if (standardYard != null) "Standar: ${formatYard(standardYard)}y" else "cth: 70"
-                Text(hint, color = colors.textFaint)
-            },
-            colors = outlinedFieldColors(),
-            shape = RoundedCornerShape(Dimens.RadiusControl),
-            textStyle = AppType.FieldText.copy(color = colors.textPrimary),
+            placeholder = if (standardYard != null) "Standar: ${formatYard(standardYard)}y" else "cth: 70",
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            singleLine = true,
         )
         // Numeric keyboard has no "+" key — only HB in practice ever needs the cut read as a delta
         // off standard, so one toggle covers that instead of a whole row of +/-N buttons most

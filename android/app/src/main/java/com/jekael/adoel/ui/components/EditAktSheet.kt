@@ -115,30 +115,21 @@ fun EditAktSheet(
             Spacer(Modifier.height(Dimens.Space20))
 
             FieldLabel("Jam")
-            OutlinedTextField(
+            ClearableOutlinedTextField(
                 value = jamInput,
                 onValueChange = { jamInput = it },
-                modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
-                placeholder = { Text("14.30", color = colors.textFaint) },
-                colors = outlinedFieldColors(),
-                shape = RoundedCornerShape(Dimens.RadiusControl),
-                textStyle = AppType.FieldText.copy(color = colors.textPrimary),
+                modifier = Modifier.focusRequester(focusRequester),
+                placeholder = "14.30",
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
-                singleLine = true,
             )
 
             Spacer(Modifier.height(Dimens.Space16))
 
             FieldLabel("Corak")
-            OutlinedTextField(
+            ClearableOutlinedTextField(
                 value = corakInput,
                 onValueChange = { corakInput = it },
-                modifier = Modifier.fillMaxWidth(),
-                colors = outlinedFieldColors(),
-                shape = RoundedCornerShape(Dimens.RadiusControl),
-                textStyle = AppType.FieldText.copy(color = colors.textPrimary),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
-                singleLine = true,
             )
             CorakShortcutPicker(
                 value = corakInput,
@@ -151,21 +142,11 @@ fun EditAktSheet(
             Spacer(Modifier.height(Dimens.Space16))
 
             FieldLabel("Panjang / Batas Potong (yard)")
-            OutlinedTextField(
+            ClearableOutlinedTextField(
                 value = yardInput,
                 onValueChange = { yardInput = it },
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = {
-                    val standar = mesin?.targetYard
-                    if (standar != null) {
-                        Text("Standar: ${formatYard(standar)}y", color = colors.textFaint)
-                    }
-                },
-                colors = outlinedFieldColors(),
-                shape = RoundedCornerShape(Dimens.RadiusControl),
-                textStyle = AppType.FieldText.copy(color = colors.textPrimary),
+                placeholder = mesin?.targetYard?.let { "Standar: ${formatYard(it)}y" },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
-                singleLine = true,
             )
 
             Spacer(Modifier.height(Dimens.Space16))
