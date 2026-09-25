@@ -4,6 +4,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -100,6 +101,7 @@ private fun SectionHeader(
                     modifier = Modifier
                         .clip(RoundedCornerShape(6.dp))
                         .background(badgeColor.copy(alpha = 0.15f))
+                        .border(1.dp, badgeColor.copy(alpha = 0.35f), RoundedCornerShape(6.dp))
                         .padding(6.dp),
                 ) {
                     Icon(icon, contentDescription = null, tint = badgeColor, modifier = Modifier.size(16.dp))
@@ -269,6 +271,11 @@ internal fun DataTab(
                                     colors.bgElevated2
                                 },
                             )
+                            .border(
+                                1.dp,
+                                if (notifGranted && state.notifEnabled) Emerald500.copy(alpha = 0.4f) else colors.border,
+                                RoundedCornerShape(4.dp),
+                            )
                             .padding(horizontal = 6.dp, vertical = 2.dp),
                     ) {
                         Text(
@@ -362,6 +369,7 @@ internal fun DataTab(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(4.dp))
                                 .background(colors.bgElevated2)
+                                .border(1.dp, colors.border, RoundedCornerShape(4.dp))
                                 .padding(horizontal = 6.dp, vertical = 2.dp),
                         ) {
                             Text(
@@ -421,6 +429,7 @@ internal fun DataTab(
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(Dimens.RadiusControl))
                         .background(colors.bgElevated2)
+                        .border(1.dp, colors.border, RoundedCornerShape(Dimens.RadiusControl))
                         .padding(12.dp),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -487,6 +496,7 @@ internal fun DataTab(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(4.dp))
                                 .background(colors.bgElevated2)
+                                .border(1.dp, colors.border, RoundedCornerShape(4.dp))
                                 .padding(horizontal = 6.dp, vertical = 2.dp),
                         ) {
                             Text(
@@ -546,6 +556,7 @@ internal fun DataTab(
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(Dimens.RadiusControl))
                         .background(colors.bgElevated2)
+                        .border(1.dp, colors.border, RoundedCornerShape(Dimens.RadiusControl))
                         .padding(12.dp),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -612,6 +623,7 @@ internal fun DataTab(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(4.dp))
                                 .background(colors.bgElevated2)
+                                .border(1.dp, colors.border, RoundedCornerShape(4.dp))
                                 .padding(horizontal = 6.dp, vertical = 2.dp),
                         ) {
                             Text(
@@ -668,6 +680,7 @@ internal fun DataTab(
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(Dimens.RadiusControl))
                         .background(colors.bgElevated2)
+                        .border(1.dp, colors.border, RoundedCornerShape(Dimens.RadiusControl))
                         .padding(12.dp),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -845,6 +858,7 @@ private fun ShortcutTagChip(
         modifier = Modifier
             .clip(RoundedCornerShape(6.dp))
             .background(colors.bgElevated2)
+            .border(1.dp, colors.border, RoundedCornerShape(6.dp))
             .padding(start = 8.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
     ) {
         Text(

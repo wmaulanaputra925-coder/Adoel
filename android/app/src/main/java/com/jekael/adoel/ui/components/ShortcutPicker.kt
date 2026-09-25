@@ -89,15 +89,16 @@ fun BaseShortcutPicker(
         verticalArrangement = Arrangement.spacedBy(7.dp),
         modifier = modifier.fillMaxWidth().padding(top = Dimens.Space10),
     ) {
-        // Existing shortcut chips
+        // Existing shortcut chips — tinted+bordered when active, neutral+bordered otherwise
+        // (matches the meta-tag/corak-chip-filter pill language used everywhere else now: a pill
+        // always carries its own border, not just a flat fill, active or not).
         shortcuts.forEach { code ->
             val isActive = currentTrimmed.equals(code, ignoreCase = true)
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(6.dp))
-                    .background(
-                        if (isActive) Cyan600.copy(alpha = 0.22f) else colors.bgElevated2
-                    )
+                    .background(if (isActive) Cyan500.copy(alpha = 0.16f) else colors.bgElevated)
+                    .border(1.dp, if (isActive) Cyan400.copy(alpha = 0.45f) else colors.border, RoundedCornerShape(6.dp))
                     .clickable { onSelect(code) }
                     .padding(horizontal = 10.dp, vertical = 6.dp),
                 contentAlignment = Alignment.Center,
