@@ -2,8 +2,10 @@ package com.jekael.adoel.ui.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -16,6 +18,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -24,7 +27,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jekael.adoel.data.MesinTipe
 import com.jekael.adoel.data.formatYard
-import com.jekael.adoel.ui.theme.AppType
 import com.jekael.adoel.ui.theme.Cyan600
 import com.jekael.adoel.ui.theme.Dimens
 import com.jekael.adoel.ui.theme.LocalAppColors
@@ -60,10 +62,23 @@ fun QuickEditCorakDialog(
     var koreksiInput by remember(mcNo) { mutableStateOf(koreksi?.let { formatYard(it) } ?: "") }
 
     FloatingEditDialog(onDismissRequest = onDismiss) {
-        Text(
-            text = "Ganti Cepat — Mc $mcNo",
-            style = AppType.DialogTitle.copy(color = colors.textPrimary),
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Dimens.Space10),
+        ) {
+            McBadgeBox(mcNo = mcNo, boxWidth = 42.dp, boxHeight = 42.dp, numberFontSize = 16.sp)
+            Column {
+                Text(
+                    text = "Ganti Cepat",
+                    style = TextStyle(fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = colors.textPrimary),
+                )
+                Text(
+                    text = "Mc $mcNo · ${tipeInput.name}",
+                    style = TextStyle(fontSize = 11.sp, color = colors.textFaint),
+                )
+            }
+        }
 
         Spacer(Modifier.height(Dimens.Space16))
 

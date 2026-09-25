@@ -86,12 +86,23 @@ fun GuidedDoffingSheet(
     }
 
     FloatingEditDialog(onDismissRequest = onDismiss) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Dimens.Space8)) {
-            Icon(imageVector = Icons.Outlined.ContentCut, contentDescription = null, tint = colors.textPrimary, modifier = Modifier.size(18.dp))
-            Text(
-                text = "Catat Doffing — Mc $mcNo",
-                style = AppType.DialogTitle.copy(color = colors.textPrimary),
-            )
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Dimens.Space10)) {
+            McBadgeBox(mcNo = mcNo, boxWidth = 44.dp, boxHeight = 44.dp, numberFontSize = 17.sp)
+            Column {
+                Text(
+                    text = "Catat Doffing",
+                    style = TextStyle(fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = colors.textPrimary),
+                )
+                val subtitle = remember(activeMesin) {
+                    buildList {
+                        add("Mc $mcNo")
+                        add(activeMesin?.corak?.takeIf { it.isNotBlank() && it != "-" } ?: "Belum diatur")
+                        activeMesin?.targetYard?.let { add("${formatYard(it)}y") }
+                        activeMesin?.tipe?.let { add(it.name) }
+                    }.joinToString(" • ")
+                }
+                Text(subtitle, style = TextStyle(fontSize = 11.5.sp, color = colors.textFaint))
+            }
         }
         Spacer(Modifier.height(Dimens.Space16))
 

@@ -13,10 +13,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.jekael.adoel.data.AktualEntry
 import com.jekael.adoel.data.MesinData
 import com.jekael.adoel.data.formatYard
@@ -104,11 +106,17 @@ fun EditAktSheet(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Dimens.Space12),
             ) {
-                Text(
-                    text = "Mc ${entry.mcNo}",
-                    style = AppType.NumberLarge.copy(color = colors.textPrimary),
-                )
-                Spacer(Modifier.weight(1f))
+                McBadgeBox(mcNo = entry.mcNo, boxWidth = 42.dp, boxHeight = 42.dp, numberFontSize = 16.sp)
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Edit Riwayat Potongan",
+                        style = TextStyle(fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = colors.textPrimary),
+                    )
+                    Text(
+                        text = "Mc ${entry.mcNo} · Jam ${entry.jam}",
+                        style = TextStyle(fontSize = 11.sp, color = colors.textFaint),
+                    )
+                }
                 IconButton(onClick = onDelete) { TrashIcon() }
             }
 

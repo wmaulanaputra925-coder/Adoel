@@ -2,21 +2,28 @@ package com.jekael.adoel.ui.components
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ContentCut
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.jekael.adoel.data.MesinData
 import com.jekael.adoel.data.formatYard
 import com.jekael.adoel.data.minOfDayToTimeStr
@@ -107,10 +114,37 @@ fun TambahAktSheet(
     }
 
     FloatingEditDialog(onDismissRequest = onClose) {
-        Text(
-            text = "Tambah Potongan",
-            style = AppType.NumberLarge.copy(color = colors.textPrimary),
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Dimens.Space10),
+        ) {
+            val mcTrim = mcNoInput.trim()
+            if (mcTrim.isNotEmpty()) {
+                McBadgeBox(mcNo = mcTrim, boxWidth = 42.dp, boxHeight = 42.dp, numberFontSize = 16.sp)
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(42.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(Cyan500.copy(alpha = 0.14f))
+                        .border(1.dp, Cyan500.copy(alpha = 0.35f), RoundedCornerShape(10.dp)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(imageVector = Icons.Outlined.ContentCut, contentDescription = null, tint = Cyan400, modifier = Modifier.size(18.dp))
+                }
+            }
+            Column {
+                Text(
+                    text = "Tambah Potongan",
+                    style = TextStyle(fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = colors.textPrimary),
+                )
+                Text(
+                    text = if (mcTrim.isNotEmpty() && mesin != null) "${mesin.corak} · ${mesin.tipe.name}" else "Catat doffing manual",
+                    style = TextStyle(fontSize = 11.sp, color = colors.textFaint),
+                )
+            }
+        }
 
         Spacer(Modifier.height(Dimens.Space20))
 

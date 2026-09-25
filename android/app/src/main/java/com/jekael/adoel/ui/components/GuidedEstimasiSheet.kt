@@ -5,6 +5,8 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -13,24 +15,29 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.jekael.adoel.data.MesinData
 import com.jekael.adoel.data.MesinTipe
 import com.jekael.adoel.data.absMinToTimeStr
 import com.jekael.adoel.data.estAbsD408
 import com.jekael.adoel.data.estimasiFieldHint
+import com.jekael.adoel.data.formatYard
 import com.jekael.adoel.data.nowAbsMin
 import com.jekael.adoel.data.parseDurasi
 import com.jekael.adoel.data.parseJam
 import com.jekael.adoel.data.sisaMenitD405
 import com.jekael.adoel.ui.theme.AppType
+import com.jekael.adoel.ui.theme.Cyan400
 import com.jekael.adoel.ui.theme.Cyan500
 import com.jekael.adoel.ui.theme.Cyan600
 import com.jekael.adoel.ui.theme.Dimens
@@ -79,10 +86,38 @@ fun GuidedEstimasiSheet(
     }
 
     FloatingEditDialog(onDismissRequest = onDismiss) {
-        Text(
-            text = "Update Estimasi — Mc $mcNo (${tipe.name})",
-            style = AppType.DialogTitle.copy(color = colors.textPrimary),
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Dimens.Space10),
+        ) {
+            McBadgeBox(mcNo = mcNo, boxWidth = 44.dp, boxHeight = 44.dp, numberFontSize = 17.sp)
+            Column {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        text = "Update Estimasi",
+                        style = TextStyle(fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = colors.textPrimary),
+                    )
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(Cyan500.copy(alpha = 0.12f))
+                            .border(1.dp, Cyan500.copy(alpha = 0.3f), RoundedCornerShape(4.dp))
+                            .padding(horizontal = 6.dp, vertical = 1.dp),
+                    ) {
+                        Text(tipe.name, style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Cyan400))
+                    }
+                }
+                val subtitle = remember(activeMesin) {
+                    buildList {
+                        add("Mc $mcNo")
+                        add(activeMesin?.corak?.takeIf { it.isNotBlank() && it != "-" } ?: "Belum diatur")
+                        activeMesin?.targetYard?.let { add("${formatYard(it)}y") }
+                    }.joinToString(" • ")
+                }
+                Text(subtitle, style = TextStyle(fontSize = 11.5.sp, color = colors.textFaint))
+            }
+        }
         Spacer(Modifier.height(Dimens.Space16))
 
         if (needQuickCorakSetup) {

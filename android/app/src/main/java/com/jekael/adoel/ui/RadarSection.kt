@@ -246,8 +246,8 @@ private fun UrgencyBandHeader(label: String, count: Int, color: Color, icon: Ima
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Icon(imageVector = icon, contentDescription = null, tint = animatedColor, modifier = Modifier.size(15.dp))
             Text(
-                text = label.uppercase(),
-                style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Black, letterSpacing = 0.4.sp, color = animatedColor),
+                text = label,
+                style = TextStyle(fontSize = 13.5.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.1).sp, color = animatedColor),
             )
         }
         Surface(
