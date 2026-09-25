@@ -14,10 +14,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -81,6 +83,39 @@ fun Modifier.elevatedListCard(
             else it.border(1.dp, resolvedBorderColor, shape)
         }
         .background(backgroundColor)
+}
+
+/**
+ * Glossy variant of [elevatedListCard]: a subtle top-lit vertical gradient (from [baseColor] to a
+ * touch darker at the bottom) plus a thin top-edge sheen, instead of [elevatedListCard]'s flat
+ * tone — AI Studio's `.machine-list-item`/`.radar-card-front` card treatment, ported where asked
+ * (RadarCard's front face, Riwayat's row) rather than swapped in everywhere: most of the app still
+ * reads its depth off [elevatedListCard]'s flat tonal system, and this is a second variant living
+ * alongside it, not a replacement for it.
+ */
+@Composable
+fun Modifier.glossyListCard(
+    baseColor: Color,
+    borderColor: Color? = null,
+): Modifier {
+    val colors = LocalAppColors.current
+    val shape = RoundedCornerShape(Dimens.RadiusCard)
+    val gradient = Brush.verticalGradient(listOf(baseColor, lerp(baseColor, Color.Black, 0.04f)))
+    return this
+        .softCardShadow(shape)
+        .clip(shape)
+        .background(gradient)
+        .drawWithContent {
+            drawContent()
+            val y = 0.5.dp.toPx()
+            drawLine(
+                color = Color.White.copy(alpha = 0.08f),
+                start = Offset(0f, y),
+                end = Offset(size.width, y),
+                strokeWidth = 1.dp.toPx(),
+            )
+        }
+        .border(1.dp, borderColor ?: colors.border, shape)
 }
 
 private fun Modifier.dashedRoundedBorder(color: Color, cornerRadius: Dp, strokeWidth: Dp = 1.dp): Modifier =

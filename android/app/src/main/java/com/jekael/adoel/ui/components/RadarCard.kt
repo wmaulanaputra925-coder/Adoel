@@ -405,7 +405,7 @@ fun RadarCard(
                     // to that outer local, not the receiver, so 8 * density fails to typecheck.
                     cameraDistance = 8 * this.density
                 }
-                .elevatedListCard(backgroundColor = lerp(faceBg, Red500, 0.16f * pressCharge.value))
+                .glossyListCard(baseColor = lerp(faceBg, Red500, 0.16f * pressCharge.value))
                 // Swipe is the fast path, but TalkBack intercepts swipe gestures for its own
                 // navigation before they ever reach this card — without this, a screen-reader
                 // user would have no way at all to doff or delete. These custom actions surface

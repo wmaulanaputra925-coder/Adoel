@@ -203,7 +203,7 @@ private fun DoffingRow(
             onEdit = onEdit,
             modifier = Modifier
                 .fillMaxWidth()
-                .elevatedListCard(backgroundColor = colors.bgElevated)
+                .glossyListCard(baseColor = colors.bgElevated)
                 .clickable(onClick = onEdit)
                 .semantics(mergeDescendants = true) {
                     customActions = listOf(
