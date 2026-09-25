@@ -94,10 +94,7 @@ private fun MachineListItem(
     val colors = LocalAppColors.current
     Row(
         modifier = modifier
-            .elevatedListCard(
-                backgroundColor = colors.bgElevated2,
-                borderColor = colors.border,
-            )
+            .glossyListCard(baseColor = colors.bgElevated2, borderColor = colors.border)
             .clickable(onClick = onClick)
             .padding(horizontal = Dimens.Space12, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(Dimens.Space10),

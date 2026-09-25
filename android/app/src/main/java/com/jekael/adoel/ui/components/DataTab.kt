@@ -59,14 +59,16 @@ import java.util.Locale
 
 /** Each settings group sits in its own elevated card — matches the web app's
  * `.settings-section-card` (a flat divider-separated Column read as one long list there, one
- * setting per card here so a group's boundary is unambiguous while scrolling). */
+ * setting per card here so a group's boundary is unambiguous while scrolling), including its
+ * glossy gradient treatment (`.settings-section-card` uses the exact same formula as
+ * `.machine-list-item`/`.radar-card-front` — see [glossyListCard]). */
 @Composable
 private fun SectionCard(content: @Composable ColumnScope.() -> Unit) {
     val colors = LocalAppColors.current
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .elevatedListCard(backgroundColor = colors.bgElevated)
+            .glossyListCard(baseColor = colors.bgElevated)
             .padding(Dimens.Space16),
         verticalArrangement = Arrangement.spacedBy(Dimens.Space12),
         content = content,
