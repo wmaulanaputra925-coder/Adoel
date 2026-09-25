@@ -99,6 +99,7 @@ fun MainScreen(
     var activeOverlay by rememberSaveable(stateSaver = ActiveOverlaySaver) { mutableStateOf<ActiveOverlay>(ActiveOverlay.None) }
     var syncOpen by rememberSaveable { mutableStateOf(false) }
     var autoQrDismissed by rememberSaveable { mutableStateOf(false) }
+    var operatorDialogOpen by rememberSaveable { mutableStateOf(false) }
     var showRemaining by rememberSaveable { mutableStateOf(false) }
 
     var consoleBarHeight by remember { mutableStateOf(0.dp) }
@@ -397,6 +398,9 @@ fun MainScreen(
             page = page,
             onPageSelect = { page = it },
             onHeightMeasured = { headerHeight = it },
+            operatorNama = state.operatorNama,
+            operatorGrup = state.operatorGrup,
+            onOperatorClick = { operatorDialogOpen = true },
             haptic = haptic,
             modifier = Modifier.align(Alignment.TopCenter).fillMaxWidth(),
         )
@@ -482,13 +486,36 @@ fun MainScreen(
                 onAddCorakPotonganAwal = { sc -> doffVm.addCorakPotonganAwal(sc) },
                 onRemoveCorakPotonganAwal = { sc -> doffVm.removeCorakPotonganAwal(sc) },
                 onResetCorakPotonganAwal = { doffVm.resetCorakPotonganAwal() },
+                notifGranted = permission.notifGranted,
+                onRequestNotifPermission = {
+                    if (Build.VERSION.SDK_INT >= 33) {
+                        notifPermLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    }
+                },
+                onSetNotifEnabled = { enabled ->
+                    doffVm.setNotifEnabled(enabled)
+                    if (enabled) {
+                        NotificationHelper.rescheduleAll(context, state.estimasi.values, leadMinutes = state.notifLeadMinutes.toLong())
+                    } else {
+                        NotificationHelper.cancelAll(context, state.estimasi.keys.toList())
+                    }
+                },
+                onSetNotifLeadMinutes = { min ->
+                    doffVm.setNotifLeadMinutes(min)
+                    if (state.notifEnabled) {
+                        NotificationHelper.rescheduleAll(context, state.estimasi.values, leadMinutes = min.toLong())
+                    }
+                },
+                onTestNotification = { NotificationHelper.sendTestNotification(context) },
                 onImport = { json ->
                     uiVm.showConfirm("Pulihkan data dari file ini? Semua data saat ini akan diganti.") {
                         val oldKeys = state.estimasi.keys.toList()
                         doffVm.importJson(json) { imported ->
                             if (imported != null) {
                                 NotificationHelper.cancelAll(context, oldKeys)
-                                NotificationHelper.rescheduleAll(context, imported.estimasi.values)
+                                if (imported.notifEnabled) {
+                                    NotificationHelper.rescheduleAll(context, imported.estimasi.values, leadMinutes = imported.notifLeadMinutes.toLong())
+                                }
                                 uiVm.showToast("Data dipulihkan ✓")
                             } else {
                                 uiVm.showToast("⚠ File cadangan tidak valid")
@@ -672,6 +699,23 @@ fun MainScreen(
 
     if (syncOpen && !shouldShowAutoQr) {
         SyncDialog(onClose = { syncOpen = false })
+    }
+
+    // Identitas operator bisa diubah kapan saja lewat header/menu, bukan cuma sekali di awal —
+    // dipisah dari alur pertanyaan pertama-kali di atas karena operatorAsked sudah true saat ini
+    // dibuka, jadi gatenya sendiri.
+    if (operatorDialogOpen) {
+        OperatorDialog(
+            nama = state.operatorNama,
+            grup = state.operatorGrup,
+            isFirstLaunch = false,
+            onDismiss = { operatorDialogOpen = false },
+            onSave = { nama, grup ->
+                doffVm.setOperator(nama, grup)
+                uiVm.showToast("Identitas operator disimpan ✓")
+                operatorDialogOpen = false
+            },
+        )
     }
 
     ConfirmDialog(

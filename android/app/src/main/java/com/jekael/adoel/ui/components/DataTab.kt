@@ -25,6 +25,9 @@ import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.LightMode
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.NotificationsActive
+import androidx.compose.material.icons.outlined.NotificationsOff
 import androidx.compose.material.icons.outlined.RestartAlt
 import androidx.compose.material.icons.outlined.Sell
 import androidx.compose.material.icons.outlined.Storage
@@ -127,6 +130,11 @@ internal fun DataTab(
     onAddCorakPotonganAwal: (String) -> Unit,
     onRemoveCorakPotonganAwal: (String) -> Unit,
     onResetCorakPotonganAwal: () -> Unit,
+    notifGranted: Boolean,
+    onRequestNotifPermission: () -> Unit,
+    onSetNotifEnabled: (Boolean) -> Unit,
+    onSetNotifLeadMinutes: (Int) -> Unit,
+    onTestNotification: () -> Unit,
     onOpenHelp: () -> Unit,
     onOpenAbout: () -> Unit,
     showToast: (String) -> Unit,
@@ -240,7 +248,107 @@ internal fun DataTab(
             }
         }
 
-        // 3. Shortcut Keterangan
+        // 3. Notifikasi Doffing — AlarmManager sudah menjadwalkan alarm begitu izin OS diberikan
+        // (lihat NotificationHelper); kartu ini cuma menambahkan lapisan on/off di level aplikasi
+        // (independen dari izin OS, bisa dibisukan tanpa mencabut izinnya) dan pilihan berapa
+        // menit sebelum waktu doff pengingat "bersiap" muncul.
+        SectionCard {
+            SectionHeader(
+                icon = Icons.Outlined.Notifications,
+                title = "Notifikasi Doffing",
+                trailing = {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(
+                                if (notifGranted && state.notifEnabled) {
+                                    Emerald500.copy(alpha = 0.18f)
+                                } else {
+                                    colors.bgElevated2
+                                },
+                            )
+                            .padding(horizontal = 6.dp, vertical = 2.dp),
+                    ) {
+                        Text(
+                            if (notifGranted && state.notifEnabled) "Aktif" else "Nonaktif",
+                            style = AppType.Caption.copy(
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (notifGranted && state.notifEnabled) Emerald500 else colors.textFaint,
+                            ),
+                        )
+                    }
+                },
+            )
+            Text(
+                "Kirim peringatan sistem otomatis saat mesin mendekati waktu doffing, walau layar terkunci atau aplikasi ditutup.",
+                style = AppType.Caption.copy(color = colors.textMuted),
+            )
+
+            if (!notifGranted) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(Dimens.RadiusControl))
+                        .background(colors.bannerWarnBg)
+                        .padding(horizontal = Dimens.Space12, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Dimens.Space8),
+                ) {
+                    Icon(Icons.Outlined.WarningAmber, contentDescription = null, tint = colors.bannerWarnFg, modifier = Modifier.size(16.dp))
+                    Text(
+                        "Izin notifikasi belum diberikan",
+                        style = AppType.Caption.copy(color = colors.bannerWarnFg, fontWeight = FontWeight.Bold),
+                        modifier = Modifier.weight(1f),
+                    )
+                    ChipBtn("Izinkan", selected = false, onClick = onRequestNotifPermission)
+                }
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        if (state.notifEnabled) {
+                            "Pengingat muncul ${state.notifLeadMinutes} menit sebelum & saat tepat doffing"
+                        } else {
+                            "Ketuk untuk mengaktifkan pengingat"
+                        },
+                        style = AppType.Caption.copy(color = colors.textSecondary),
+                        modifier = Modifier.weight(1f),
+                    )
+                    ChipBtn(
+                        label = if (state.notifEnabled) "Aktif" else "Aktifkan",
+                        selected = state.notifEnabled,
+                        icon = if (state.notifEnabled) Icons.Outlined.NotificationsActive else Icons.Outlined.NotificationsOff,
+                        onClick = { onSetNotifEnabled(!state.notifEnabled) },
+                    )
+                }
+
+                if (state.notifEnabled) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(Dimens.Space8)) {
+                        listOf(5, 10, 15, 20).forEach { min ->
+                            ChipBtn(
+                                label = "$min Mnt",
+                                selected = state.notifLeadMinutes == min,
+                                modifier = Modifier.weight(1f),
+                                onClick = { onSetNotifLeadMinutes(min) },
+                            )
+                        }
+                    }
+                    ChipBtn(
+                        label = "Kirim Uji Coba Notifikasi",
+                        selected = false,
+                        icon = Icons.Outlined.Notifications,
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = onTestNotification,
+                    )
+                }
+            }
+        }
+
+        // 4. Shortcut Keterangan
         SectionCard {
             SectionHeader(
                 icon = Icons.Outlined.Sell,
@@ -365,7 +473,7 @@ internal fun DataTab(
             }
         }
 
-        // 4. Shortcut Kode Corak
+        // 5. Shortcut Kode Corak
         SectionCard {
             SectionHeader(
                 icon = Icons.Outlined.Texture,
@@ -612,7 +720,7 @@ internal fun DataTab(
             }
         }
 
-        // 5. Cadangan & Pemulihan
+        // 6. Cadangan & Pemulihan
         SectionCard {
             SectionHeader(icon = Icons.Outlined.Storage, title = "Cadangan & Pemulihan")
             Text(
@@ -650,7 +758,7 @@ internal fun DataTab(
             }
         }
 
-        // 6. Reset Data
+        // 7. Reset Data
         SectionCard {
             SectionHeader(icon = Icons.Outlined.WarningAmber, title = "Reset Data", danger = true)
             Text(
@@ -675,7 +783,7 @@ internal fun DataTab(
             }
         }
 
-        // 7. Bantuan & Informasi
+        // 8. Bantuan & Informasi
         SectionCard {
             SectionHeader(icon = Icons.Outlined.Info, title = "Bantuan & Informasi")
             Row(horizontalArrangement = Arrangement.spacedBy(Dimens.Space8)) {

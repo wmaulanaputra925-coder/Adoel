@@ -51,6 +51,8 @@ private data class SerialState(
     val keteranganShortcuts: List<String>? = null,
     val corakShortcuts: List<String>? = null,
     val corakPotonganAwal: List<String>? = null,
+    val notifEnabled: Boolean? = null,
+    val notifLeadMinutes: Int? = null,
 )
 
 private data class SerialMesin(
@@ -207,6 +209,10 @@ class DoffRepository private constructor(private val context: Context) : DoffSta
                 keteranganShortcuts = serial.keteranganShortcuts,
                 corakShortcuts = serial.corakShortcuts,
                 corakPotonganAwal = serial.corakPotonganAwal,
+                // Absen di blob lama → true, sama seperti perilaku sebelum toggle ini ada
+                // (notifikasi lewat AlarmManager sudah aktif begitu izin OS diberikan).
+                notifEnabled = serial.notifEnabled ?: true,
+                notifLeadMinutes = serial.notifLeadMinutes ?: REMINDER_LEAD_MIN.toInt(),
             )
         } catch (e: Exception) {
             // Null is the correct contract for the caller (invalid backup / corrupt blob), but a
@@ -298,6 +304,8 @@ class DoffRepository private constructor(private val context: Context) : DoffSta
             keteranganShortcuts = state.keteranganShortcuts,
             corakShortcuts = state.corakShortcuts,
             corakPotonganAwal = state.corakPotonganAwal,
+            notifEnabled = state.notifEnabled,
+            notifLeadMinutes = state.notifLeadMinutes,
         )
         return gson.toJson(serial)
     }
@@ -488,7 +496,9 @@ class DoffRepository private constructor(private val context: Context) : DoffSta
                     else -> current
                 }
             }
-            NotificationHelper.rescheduleAll(context, nextState.estimasi.values)
+            if (nextState.notifEnabled) {
+                NotificationHelper.rescheduleAll(context, nextState.estimasi.values, leadMinutes = nextState.notifLeadMinutes.toLong())
+            }
             Pair(nextState, message)
         } catch (e: Exception) {
             Log.w("DoffRepository", "processScannedQr gagal — QR tidak valid", e)

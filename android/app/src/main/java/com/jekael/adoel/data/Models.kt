@@ -128,6 +128,13 @@ data class DoffState(
     val keteranganShortcuts: List<String>? = null,
     val corakShortcuts: List<String>? = null,
     val corakPotonganAwal: List<String>? = null,
+    // Notifikasi doff sudah aktif tanpa toggle sejak awal (lewat izin OS saja) — default true di
+    // sini menjaga perilaku itu untuk pemakai lama, bukan diam-diam mematikannya begitu field ini
+    // muncul di backup lama yang belum punya nilai ini. notifLeadMinutes independen dari
+    // REMINDER_LEAD_MIN (dipakai juga untuk ambang swipe RadarCard) — mengubahnya di Pengaturan
+    // tidak ikut menggeser kapan swipe kanan diperbolehkan.
+    val notifEnabled: Boolean = true,
+    val notifLeadMinutes: Int = REMINDER_LEAD_MIN.toInt(),
 )
 
 /** Cek apakah [corak] termasuk [corakPotonganAwal] (atau [DEFAULT_CORAK_POTONGAN_AWAL] kalau

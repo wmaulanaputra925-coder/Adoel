@@ -41,7 +41,10 @@ internal class MainScreenHandlers(
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 uiVm.showToast(result.msg)
                 onCleared()
-                result.estAbs?.let { NotificationHelper.scheduleNotif(context, result.mcNo, it) }
+                val prefs = doffVm.state.value
+                if (prefs.notifEnabled) {
+                    result.estAbs?.let { NotificationHelper.scheduleNotif(context, result.mcNo, it, prefs.notifLeadMinutes.toLong()) }
+                }
             }
             is ProsesResult.Err -> flashError(result.msg)
         }
@@ -257,8 +260,9 @@ internal class MainScreenHandlers(
 
     private fun rescheduleEstimasi(est: Estimasi?) {
         est?.let {
-            if (it.pausedAtAbsMin == null) {
-                NotificationHelper.scheduleNotif(context, it.mcNo, it.estAbsMin)
+            val prefs = doffVm.state.value
+            if (it.pausedAtAbsMin == null && prefs.notifEnabled) {
+                NotificationHelper.scheduleNotif(context, it.mcNo, it.estAbsMin, prefs.notifLeadMinutes.toLong())
             } else {
                 NotificationHelper.cancelNotif(context, it.mcNo)
             }

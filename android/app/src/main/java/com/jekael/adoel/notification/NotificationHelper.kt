@@ -91,29 +91,40 @@ object NotificationHelper {
         }
     }
 
-    fun scheduleNotif(context: Context, mcNo: String, estAbsMin: Long) {
+    // leadMinutes defaults to REMINDER_LEAD_MIN (the constant RadarCard's swipe-gating also uses)
+    // but is deliberately a separate, caller-supplied value — Pengaturan's notification lead-time
+    // picker changes this without touching REMINDER_LEAD_MIN itself, so adjusting how early a
+    // doff alert fires never shifts when swipe-right unlocks on the radar card.
+    fun scheduleNotif(context: Context, mcNo: String, estAbsMin: Long, leadMinutes: Long = REMINDER_LEAD_MIN) {
         // Replace any old reminder/ready alarms before applying the new future-time policy.
         // Otherwise editing an estimate into the past leaves the old PendingIntent armed.
         cancelNotif(context, mcNo)
         val now = System.currentTimeMillis() / 60000L
-        val reminderAt = estAbsMin - REMINDER_LEAD_MIN
+        val reminderAt = estAbsMin - leadMinutes
         if (reminderAt > now) {
-            scheduleAt(context, mcNo, reminderAt, isReminder = true)
+            scheduleAt(context, mcNo, reminderAt, isReminder = true, leadMinutes = leadMinutes)
         }
         // Only schedule the "siap doff" alarm if the estimate is still in the future.
         // For an already-past estimate, AlarmManager would fire it instantly — but the operator
         // is looking at the screen when they enter it and the RadarCard already shows it as
         // overdue, so an immediate notification would just be redundant noise.
         if (estAbsMin > now) {
-            scheduleAt(context, mcNo, estAbsMin, isReminder = false)
+            scheduleAt(context, mcNo, estAbsMin, isReminder = false, leadMinutes = leadMinutes)
         }
     }
 
-    private fun scheduleAt(context: Context, mcNo: String, atAbsMin: Long, isReminder: Boolean) {
+    private fun scheduleAt(context: Context, mcNo: String, atAbsMin: Long, isReminder: Boolean, leadMinutes: Long) {
         val alarmTime = atAbsMin * 60000L
         val intent = Intent(context, AlarmReceiver::class.java).apply {
             putExtra("mcNo", mcNo)
             putExtra("isReminder", isReminder)
+            // The reminder alarm's own notification text says "X menit lagi" — carried through
+            // the PendingIntent so AlarmReceiver can show the lead time this specific alarm was
+            // actually scheduled with, not whatever Pengaturan's picker happens to read at fire
+            // time (which may have changed since — rescheduleAll already re-arms every pending
+            // alarm whenever the setting changes, so this only matters for the brief window
+            // before that reschedule catches up).
+            putExtra("leadMinutes", leadMinutes)
         }
         val notifId = notifIdFor(mcNo, isReminder)
         val pi = PendingIntent.getBroadcast(
@@ -155,13 +166,18 @@ object NotificationHelper {
     /** Schedules a notif for every estimasi still in the future — shared by BootReceiver (after a
      * device reboot) and MainScreen's backup-import flow, which both need to reschedule a whole
      * batch of estimasi at once from a freshly-loaded/restored [DoffState]. */
-    fun rescheduleAll(context: Context, estimasi: Collection<Estimasi>, now: Long = nowAbsMin()) {
+    fun rescheduleAll(
+        context: Context,
+        estimasi: Collection<Estimasi>,
+        now: Long = nowAbsMin(),
+        leadMinutes: Long = REMINDER_LEAD_MIN,
+    ) {
         estimasi
             .filter { it.pausedAtAbsMin == null && it.estAbsMin > now }
-            .forEach { scheduleNotif(context, it.mcNo, it.estAbsMin) }
+            .forEach { scheduleNotif(context, it.mcNo, it.estAbsMin, leadMinutes) }
     }
 
-    fun showNotification(context: Context, mcNo: String, isReminder: Boolean) {
+    fun showNotification(context: Context, mcNo: String, isReminder: Boolean, leadMinutes: Long = REMINDER_LEAD_MIN) {
         val notifId = notifIdFor(mcNo, isReminder)
         // Corak/target yard used to be appended here, but on a real device that pushed the actual
         // "X menit lagi"/"siap doff" status past the title's truncation point (see the reported
@@ -189,7 +205,7 @@ object NotificationHelper {
             .setSmallIcon(R.drawable.ic_notification)
             .setColor(BRAND_COLOR)
             .setLargeIcon(contextIcon(isReminder))
-            .setContentTitle(if (isReminder) "$label — $REMINDER_LEAD_MIN menit lagi" else "$label — siap doff")
+            .setContentTitle(if (isReminder) "$label — $leadMinutes menit lagi" else "$label — siap doff")
             .setContentText(if (isReminder) "Bersiap, estimasi hampir tiba" else "Estimasi waktu telah tiba")
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
@@ -202,5 +218,21 @@ object NotificationHelper {
     private fun notifIdFor(mcNo: String, isReminder: Boolean = false): Int {
         val base = mcNo.toIntOrNull() ?: mcNo.hashCode()
         return if (isReminder) base + REMINDER_ID_OFFSET else base
+    }
+
+    /** Fires immediately, bypassing AlarmManager entirely — Pengaturan's "Kirim Uji Coba" button
+     * so an operator can confirm the channel/permission actually delivers a notification to this
+     * phone, without waiting for a real estimasi to reach its reminder window. */
+    fun sendTestNotification(context: Context) {
+        val notif = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setColor(BRAND_COLOR)
+            .setLargeIcon(contextIcon(isReminder = true))
+            .setContentTitle("🔔 Adoel Doffing · Uji Notifikasi")
+            .setContentText("Notifikasi aktif! Operator akan diberi tahu otomatis saat mesin mendekati waktu doffing.")
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .build()
+        context.getSystemService(NotificationManager::class.java).notify(notifIdFor("test"), notif)
     }
 }

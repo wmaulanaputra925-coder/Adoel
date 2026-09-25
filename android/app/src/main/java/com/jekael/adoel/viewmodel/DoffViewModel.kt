@@ -377,6 +377,12 @@ class DoffViewModel @JvmOverloads constructor(
      * bisa diisi kapan saja lewat Pengaturan. */
     fun markOperatorAsked() = updateState { s -> s.copy(operatorAsked = true) }
 
+    // Pure state setters — the mass reschedule/cancel side effect on AlarmManager lives at the
+    // UI layer (MainScreen.kt, alongside every other NotificationHelper call), not here; this
+    // ViewModel otherwise never touches Context/AlarmManager directly.
+    fun setNotifEnabled(enabled: Boolean) = updateState { s -> s.copy(notifEnabled = enabled) }
+    fun setNotifLeadMinutes(min: Int) = updateState { s -> s.copy(notifLeadMinutes = min) }
+
     fun addKeteranganShortcut(shortcut: String) = updateState { s ->
         val list = (s.keteranganShortcuts ?: DEFAULT_KETERANGAN_SHORTCUTS)
         if (shortcut in list) s else s.copy(keteranganShortcuts = list + shortcut)

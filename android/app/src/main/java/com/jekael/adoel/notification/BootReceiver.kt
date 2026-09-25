@@ -16,7 +16,9 @@ class BootReceiver : BroadcastReceiver() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val state = DoffRepository.getInstance(context).load()
-                NotificationHelper.rescheduleAll(context, state.estimasi.values)
+                if (state.notifEnabled) {
+                    NotificationHelper.rescheduleAll(context, state.estimasi.values, leadMinutes = state.notifLeadMinutes.toLong())
+                }
             } catch (e: Exception) {
                 // Gagal reschedule setelah reboot berarti SEMUA alarm doff hilang diam-diam
                 // sampai app dibuka lagi — kegagalan sepenting itu wajib meninggalkan jejak.
