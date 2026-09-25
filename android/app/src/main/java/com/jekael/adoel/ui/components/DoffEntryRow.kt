@@ -10,12 +10,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Straighten
 import androidx.compose.material.icons.outlined.Texture
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -55,6 +58,7 @@ fun DoffEntryRowContent(
     entry: AktualEntry,
     mesin: MesinData?,
     modifier: Modifier = Modifier,
+    onEdit: (() -> Unit)? = null,
 ) {
     val colors = LocalAppColors.current
     val corak = entry.corakOverride ?: mesin?.corak ?: "—"
@@ -75,7 +79,7 @@ fun DoffEntryRowContent(
     }
 
     Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-        DoffOrderBox(num = num)
+        GlossyBadgeBox(label = "NO", value = "$num", boxWidth = 42.dp, valueFontSize = 15.sp)
         McBadgeBox(mcNo = entry.mcNo)
 
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -114,28 +118,36 @@ fun DoffEntryRowContent(
                 }
             }
         }
+
+        if (onEdit != null) {
+            EditCircleButton(onClick = onEdit)
+        }
     }
 }
 
-/** The "NO" caption stacked over the row's sequence number — the neutral counterpart to
- * [McBadgeBox]'s cyan one, same gloss treatment minus the color tint since it carries no status. */
+/** Edit-pencil affordance at the row's trailing edge — visible alongside whatever the caller's
+ * own container already does for editing (a whole-row tap, or Riwayat's swipe-right), the same
+ * way web keeps its `action-circle-btn` next to an equally-clickable row. Sized 40dp so the touch
+ * target clears the ~44dp minimum this app uses elsewhere, even though the glossy circle itself
+ * reads smaller (web's own 32px circle is undersized against the 44px standard it promotes for
+ * every other tap target — not copied here). */
 @Composable
-private fun DoffOrderBox(num: Int) {
+private fun EditCircleButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
     val colors = LocalAppColors.current
-    val shape = RoundedCornerShape(10.dp)
-    Box(
-        modifier = Modifier
-            .size(width = 42.dp, height = 44.dp)
-            .clip(shape)
-            .background(Brush.verticalGradient(listOf(lerp(colors.bgElevated, Color.White, 0.12f), colors.bgElevated)))
-            .border(1.dp, colors.border, shape),
-        contentAlignment = Alignment.Center,
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("NO", style = TextStyle(fontSize = 8.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, color = colors.textFaint))
-            Text(
-                "$num",
-                style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Black, letterSpacing = (-0.3).sp, color = colors.textPrimary),
+    IconButton(onClick = onClick, modifier = modifier.size(40.dp)) {
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .clip(CircleShape)
+                .background(Brush.verticalGradient(listOf(lerp(colors.bgElevated, Color.White, 0.10f), colors.bgElevated)))
+                .border(1.dp, colors.border, CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Edit,
+                contentDescription = "Edit",
+                tint = colors.textSecondary,
+                modifier = Modifier.size(15.dp),
             )
         }
     }

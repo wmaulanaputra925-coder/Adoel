@@ -83,15 +83,18 @@ import com.jekael.adoel.ui.components.CloseIcon
 import com.jekael.adoel.ui.components.DoffEntryRowContent
 import com.jekael.adoel.ui.components.EditAktSheet
 import com.jekael.adoel.ui.components.EmptyState
+import com.jekael.adoel.ui.components.GlossyBadgeBox
 import com.jekael.adoel.ui.components.LinearProgressBar
 import com.jekael.adoel.ui.components.ShiftHourlyTrendChart
 import com.jekael.adoel.ui.components.SlidePanel
 import com.jekael.adoel.ui.components.swipeRightToClose
 import com.jekael.adoel.ui.components.TambahAktSheet
 import com.jekael.adoel.ui.components.mesinTipeColor
+import com.jekael.adoel.ui.theme.Amber400
 import com.jekael.adoel.ui.theme.AppType
 import com.jekael.adoel.ui.theme.Cyan400
 import com.jekael.adoel.ui.theme.Cyan500
+import com.jekael.adoel.ui.theme.Emerald400
 import com.jekael.adoel.ui.theme.Red500
 import com.jekael.adoel.ui.theme.Dimens
 import com.jekael.adoel.ui.theme.EdgeFadeScrim
@@ -632,12 +635,22 @@ private fun ShiftRow(
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column {
+            // Web's shift-badge-box: same neutral glossy box as DoffEntryRow's "No" badge, number
+            // colored per shift (1=cyan, 2=amber, 3=emerald) instead of tinting the whole box.
+            GlossyBadgeBox(
+                label = "SHIFT",
+                value = "$shiftNo",
+                valueColor = when (shiftNo) { 1 -> Cyan400; 2 -> Amber400; else -> Emerald400 },
+                boxWidth = 48.dp,
+                boxHeight = 48.dp,
+                valueFontSize = 19.sp,
+            )
+            Spacer(Modifier.width(10.dp))
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    "Shift $shiftNo · $dateStr",
+                    dateStr,
                     style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary),
                 )
                 Text(timeRange, style = AppType.Caption.copy(color = colors.textFaint))
@@ -740,6 +753,7 @@ private fun ShiftRow(
                         num = index + 1,
                         entry = entry,
                         mesin = db[entry.mcNo],
+                        onEdit = { onEditEntry(entry.id) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 2.dp)

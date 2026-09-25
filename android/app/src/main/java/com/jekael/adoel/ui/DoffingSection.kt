@@ -200,6 +200,7 @@ private fun DoffingRow(
             num = num,
             entry = entry,
             mesin = mesin,
+            onEdit = onEdit,
             modifier = Modifier
                 .fillMaxWidth()
                 .elevatedListCard(backgroundColor = colors.bgElevated)

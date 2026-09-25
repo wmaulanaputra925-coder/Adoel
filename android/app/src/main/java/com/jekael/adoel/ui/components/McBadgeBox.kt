@@ -97,3 +97,49 @@ fun McBadgeBox(
         }
     }
 }
+
+/**
+ * Neutral (no color tint) counterpart to [McBadgeBox] — same glossy top-lit gradient over a plain
+ * tonal box instead of a cyan wash, [value]'s color overridable per caller. Backs DoffEntryRow's
+ * "No" badge and Statistik's per-shift "SHIFT" badge (web: `.shift-badge-box`, which reuses the
+ * same box shape but drops the cyan tint and colors the number per shift instead).
+ */
+@Composable
+fun GlossyBadgeBox(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    valueColor: Color? = null,
+    boxWidth: Dp = 48.dp,
+    boxHeight: Dp = 44.dp,
+    valueFontSize: TextUnit = 16.5.sp,
+) {
+    val colors = LocalAppColors.current
+    val shape = RoundedCornerShape(10.dp)
+    Box(
+        modifier = modifier
+            .size(width = boxWidth, height = boxHeight)
+            .clip(shape)
+            .background(Brush.verticalGradient(listOf(lerp(colors.bgElevated, Color.White, 0.12f), colors.bgElevated)))
+            .border(1.dp, colors.border, shape),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                label,
+                style = TextStyle(fontSize = 8.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, color = colors.textFaint),
+            )
+            Text(
+                value,
+                style = TextStyle(
+                    fontSize = valueFontSize,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = (-0.3).sp,
+                    color = valueColor ?: colors.textPrimary,
+                ),
+                maxLines = 1,
+                softWrap = false,
+            )
+        }
+    }
+}
