@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -20,6 +21,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -32,7 +37,6 @@ import com.jekael.adoel.ui.theme.Amber400
 import com.jekael.adoel.ui.theme.Cyan400
 import com.jekael.adoel.ui.theme.Emerald400
 import com.jekael.adoel.ui.theme.LocalAppColors
-import com.jekael.adoel.ui.theme.Purple400
 
 /**
  * The one row layout for a recorded doff, shared by Riwayat and by Statistik's shift detail so the
@@ -40,10 +44,10 @@ import com.jekael.adoel.ui.theme.Purple400
  * different shapes. Each caller still supplies its own container: Riwayat wraps this in a
  * swipeable list card, Statistik in a flat tappable strip inside the shift card.
  *
- * Two lines: top is No, Mc (the prominent badge — the thing you're actually scanning the column
- * for), Corak; bottom is Panjang (yard), Jam, Keterangan. Corak and keterangan are the only
- * free-typed (variable-length) fields, so they're the only two that ever ellipsize; everything
- * else is short, fixed-format text that always fits.
+ * One row: No/Mc badges on the left (the thing you're actually scanning the column for), then a
+ * text column with Corak on top and Panjang/Jam/Keterangan as pills below. Corak and keterangan
+ * are the only free-typed (variable-length) fields, so they're the only two that ever ellipsize;
+ * everything else is short, fixed-format text that always fits.
  */
 @Composable
 fun DoffEntryRowContent(
@@ -59,132 +63,118 @@ fun DoffEntryRowContent(
     // didn't (see DoffViewModel.prosesBarisUmum). The time has its own chip below, so strip it
     // back off here and keep only the code — otherwise the row prints the clock twice.
     val ketCode = entry.ket.removePrefix(entry.jam).removeSurrounding("(", ")")
-    // MATCHING and HB are common/meaningful enough entries to pick out from ordinary free-typed
-    // keterangan (P.LP, GANTI BEAM, etc, which stay the default amber) at a glance while scanning
-    // Riwayat/Statistik — Emerald matches every other Matching indicator in the app (the corner
-    // ribbon, the doff celebration); Purple is otherwise unused by any status/urgency color here,
-    // so HB doesn't borrow meaning from something else (Teal/Violet/Indigo/Fuchsia are all already
-    // machine-type identity colors — see mesinTipeColor in Icons.kt).
-    val ketColor = when (ketCode) {
-        "MATCHING" -> Emerald400
-        "HB" -> Purple400
-        else -> Amber400
+    val ketUpper = ketCode.uppercase()
+    // Only MATCHING and HB get a tinted pill — Emerald matches every other Matching indicator in
+    // the app (the corner ribbon, the doff celebration), Amber flags HB. Ordinary free-typed
+    // keterangan (P.LP, GANTI BEAM, etc) stays an untinted pill like Jam/Panjang next to it,
+    // rather than borrowing a status color that isn't really a status.
+    val ketColor = when {
+        ketUpper.contains("MATCH") -> Emerald400
+        ketUpper.contains("HB") -> Amber400
+        else -> null
     }
 
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(18.dp)
-                    .clip(RoundedCornerShape(5.dp))
-                    .background(colors.bgElevated)
-                    .border(1.dp, colors.border, RoundedCornerShape(5.dp)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    "$num",
-                    style = TextStyle(fontSize = 9.sp, fontWeight = FontWeight.Black, color = colors.textFaint),
-                )
-            }
+    Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+        DoffOrderBox(num = num)
+        McBadgeBox(mcNo = entry.mcNo)
 
-            McBadgeBox(mcNo = entry.mcNo)
-
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(
-                modifier = Modifier.weight(1f, fill = false),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Icon(
                     imageVector = Icons.Outlined.Texture,
                     contentDescription = null,
                     tint = Cyan400,
-                    modifier = Modifier.size(12.dp),
+                    modifier = Modifier.size(14.dp),
                 )
                 Text(
                     corak,
-                    style = TextStyle(fontSize = 13.5.sp, fontWeight = FontWeight.Black, color = colors.textPrimary),
+                    style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.2).sp, color = colors.textPrimary),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-        }
 
-        Row(
-            modifier = Modifier.padding(start = 34.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            if (yard != null) {
-                Row(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(colors.bgElevated)
-                        .border(1.dp, colors.border, RoundedCornerShape(6.dp))
-                        .padding(horizontal = 7.dp, vertical = 3.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Straighten,
-                        contentDescription = null,
-                        tint = colors.textFaint,
-                        modifier = Modifier.size(11.dp),
-                    )
-                    Text(
-                        "${formatYard(yard)}y",
-                        style = TextStyle(fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = colors.textSecondary),
-                        maxLines = 1,
-                        softWrap = false,
-                    )
-                }
-            }
-
-            // No more edit-pencil here — the row itself is the tap target (Statistik even prints
-            // "Ketuk baris untuk edit" once above the list), so a second per-row hint was
-            // redundant, not the reason anyone found the affordance.
-            Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(colors.bgElevated)
-                    .border(1.dp, colors.border, RoundedCornerShape(6.dp))
-                    .padding(horizontal = 7.dp, vertical = 3.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Schedule,
-                    contentDescription = null,
-                    tint = colors.textFaint,
-                    modifier = Modifier.size(11.dp),
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                MetaTagPill(
+                    icon = Icons.Outlined.Straighten,
+                    text = if (yard != null) "${formatYard(yard)}y" else "—",
+                    tint = Cyan400,
                 )
-                Text(
-                    entry.jam,
-                    style = TextStyle(fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = colors.textSecondary),
-                    maxLines = 1,
-                    softWrap = false,
-                )
-            }
-
-            if (ketCode.isNotEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .weight(1f, fill = false)
-                        .widthIn(max = 110.dp)
-                        .clip(RoundedCornerShape(5.dp))
-                        .background(ketColor.copy(alpha = 0.15f))
-                        .padding(horizontal = 6.dp, vertical = 3.dp),
-                ) {
-                    Text(
-                        ketCode,
-                        style = TextStyle(fontSize = 10.sp, fontWeight = FontWeight.Black, color = ketColor),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+                MetaTagPill(icon = Icons.Outlined.Schedule, text = entry.jam, tint = null)
+                if (ketCode.isNotEmpty()) {
+                    MetaTagPill(
+                        icon = null,
+                        text = ketCode,
+                        tint = ketColor,
+                        modifier = Modifier.widthIn(max = 110.dp),
                     )
                 }
             }
         }
+    }
+}
+
+/** The "NO" caption stacked over the row's sequence number — the neutral counterpart to
+ * [McBadgeBox]'s cyan one, same gloss treatment minus the color tint since it carries no status. */
+@Composable
+private fun DoffOrderBox(num: Int) {
+    val colors = LocalAppColors.current
+    val shape = RoundedCornerShape(10.dp)
+    Box(
+        modifier = Modifier
+            .size(width = 42.dp, height = 44.dp)
+            .clip(shape)
+            .background(Brush.verticalGradient(listOf(lerp(colors.bgElevated, Color.White, 0.12f), colors.bgElevated)))
+            .border(1.dp, colors.border, shape),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text("NO", style = TextStyle(fontSize = 8.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, color = colors.textFaint))
+            Text(
+                "$num",
+                style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Black, letterSpacing = (-0.3).sp, color = colors.textPrimary),
+            )
+        }
+    }
+}
+
+/** One meta pill (Panjang/Jam/Keterangan) below the corak line — untinted (neutral) when [tint]
+ * is null, otherwise washed in [tint] for the yard chip and for a flagged (MATCHING/HB)
+ * keterangan. */
+@Composable
+private fun MetaTagPill(
+    icon: ImageVector?,
+    text: String,
+    tint: Color?,
+    modifier: Modifier = Modifier,
+) {
+    val colors = LocalAppColors.current
+    val shape = RoundedCornerShape(6.dp)
+    val fg = tint ?: colors.textSecondary
+    val bg = tint?.copy(alpha = 0.16f) ?: colors.bgElevated
+    val border = tint?.copy(alpha = 0.35f) ?: colors.border
+    Row(
+        modifier = modifier
+            .height(22.dp)
+            .clip(shape)
+            .background(bg)
+            .border(1.dp, border, shape)
+            .padding(horizontal = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        if (icon != null) {
+            Icon(imageVector = icon, contentDescription = null, tint = fg, modifier = Modifier.size(11.dp))
+        }
+        Text(
+            text,
+            style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold, color = fg),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            softWrap = false,
+        )
     }
 }

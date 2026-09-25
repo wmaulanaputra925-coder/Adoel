@@ -2,54 +2,98 @@ package com.jekael.adoel.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jekael.adoel.ui.theme.Cyan400
-import com.jekael.adoel.ui.theme.Cyan500
+import com.jekael.adoel.ui.theme.Cyan600
+import com.jekael.adoel.ui.theme.Cyan700
 import com.jekael.adoel.ui.theme.LocalAppColors
 
 /**
- * The "MC" caption stacked over a big bold machine number, boxed in a tinted cyan pill — the one
- * badge every screen that lists or refers to a specific machine (Baris Mesin, Riwayat, rincian
- * shift di Statistik, dialog edit mesin) shares, so a machine number always reads the same way
- * wherever it shows up instead of drifting into a plain-text number in some places and a boxed
- * one in others.
+ * The "MC" caption stacked over a big bold machine number, glossed with a top-lit cyan gradient —
+ * the one badge every screen that lists or refers to a specific machine (Baris Mesin, Riwayat,
+ * rincian shift di Statistik, dialog edit mesin) shares, so a machine number always reads the
+ * same way wherever it shows up instead of drifting into a plain-text number in some places and a
+ * boxed one in others.
  */
 @Composable
 fun McBadgeBox(
     mcNo: String,
     modifier: Modifier = Modifier,
-    numberFontSize: TextUnit = 18.sp,
+    boxWidth: Dp = 48.dp,
+    boxHeight: Dp = 44.dp,
+    numberFontSize: TextUnit = 16.5.sp,
 ) {
     val colors = LocalAppColors.current
-    Column(
+    val shape = RoundedCornerShape(10.dp)
+    // Dark: a navy-to-cyan gradient bright enough to carry a white, shadowed number. Light: too
+    // pale a card for white text, so it stays a faint cyan wash under Cyan700 (matches web's
+    // separate :root[data-theme="light"] .mc-badge-box/.mc-badge-num rules).
+    val gradient = if (colors.isDark) {
+        Brush.verticalGradient(listOf(lerp(colors.bgElevated, Cyan400, 0.20f), lerp(colors.bgElevated, Color(0xFF082F49), 0.30f)))
+    } else {
+        Brush.verticalGradient(listOf(Cyan400.copy(alpha = 0.15f), Cyan400.copy(alpha = 0.05f)))
+    }
+    val labelColor = if (colors.isDark) Cyan400 else Cyan600
+    val numberColor = if (colors.isDark) Color.White else Cyan700
+    Box(
         modifier = modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(Cyan500.copy(alpha = 0.14f))
-            .border(1.dp, Cyan500.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
-            .padding(horizontal = 8.dp, vertical = 2.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
+            .size(width = boxWidth, height = boxHeight)
+            .clip(shape)
+            .background(colors.bgElevated)
+            .background(gradient)
+            .border(1.dp, Cyan400.copy(alpha = if (colors.isDark) 0.45f else 0.4f), shape),
+        contentAlignment = Alignment.Center,
     ) {
-        Text(
-            "MC",
-            style = TextStyle(fontSize = 8.sp, fontWeight = FontWeight.Black, letterSpacing = 0.5.sp, color = Cyan400),
+        // Glossy top sheen — the inset highlight that reads as light falling on a raised surface.
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(Color.White.copy(alpha = if (colors.isDark) 0.16f else 0.7f)),
         )
-        Text(
-            mcNo,
-            style = TextStyle(fontSize = numberFontSize, fontWeight = FontWeight.Black, color = colors.textPrimary),
-            maxLines = 1,
-            softWrap = false,
-        )
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                "MC",
+                style = TextStyle(fontSize = 8.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, color = labelColor),
+            )
+            Text(
+                mcNo,
+                style = TextStyle(
+                    fontSize = numberFontSize,
+                    fontWeight = FontWeight.Black,
+                    color = numberColor,
+                    letterSpacing = (-0.3).sp,
+                    shadow = Shadow(
+                        color = if (colors.isDark) Color.Black.copy(alpha = 0.5f) else Color.Transparent,
+                        offset = Offset(0f, 1f),
+                        blurRadius = 2f,
+                    ),
+                ),
+                maxLines = 1,
+                softWrap = false,
+            )
+        }
     }
 }
