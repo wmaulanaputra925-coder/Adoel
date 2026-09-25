@@ -84,6 +84,7 @@ import com.jekael.adoel.ui.components.DoffEntryRowContent
 import com.jekael.adoel.ui.components.EditAktSheet
 import com.jekael.adoel.ui.components.EmptyState
 import com.jekael.adoel.ui.components.LinearProgressBar
+import com.jekael.adoel.ui.components.ShiftHourlyTrendChart
 import com.jekael.adoel.ui.components.SlidePanel
 import com.jekael.adoel.ui.components.swipeRightToClose
 import com.jekael.adoel.ui.components.TambahAktSheet
@@ -702,6 +703,8 @@ private fun ShiftRow(
             Column {
                 Spacer(Modifier.height(10.dp))
                 if (chronological.isNotEmpty()) {
+                    ShiftHourlyTrendChart(shift = shift, modifier = Modifier.fillMaxWidth())
+                    Spacer(Modifier.height(10.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 2.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
