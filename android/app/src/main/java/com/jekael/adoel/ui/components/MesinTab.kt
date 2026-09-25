@@ -1,7 +1,6 @@
 package com.jekael.adoel.ui.components
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -9,7 +8,6 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.stickyHeader
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -144,7 +142,6 @@ private fun MachineListItem(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun MesinTab(
     state: DoffState,
@@ -235,9 +232,15 @@ internal fun MesinTab(
         ) {
             item(key = "top_spacer") { Spacer(Modifier.height(10.dp + headerHeight + Dimens.Space16)) }
 
-            // 1. Filter Corak Horizontal Cepat — sticky supaya tetap terlihat saat daftar di-scroll
+            // 1. Filter Corak Horizontal Cepat.
+            // Was stickyHeader() (pins while scrolling), but androidx.compose.foundation.lazy
+            // .stickyHeader failed to resolve against this project's pinned Compose BOM
+            // (2024.12.01) — genuinely unresolved in CI, not a cascade from another error (see the
+            // isolated CI log once the two real import bugs elsewhere were fixed). Downgraded to a
+            // plain scrolling item rather than chase the experimental API further and risk another
+            // red build; revisit as its own follow-up if the sticky behavior is worth the API dance.
             if (corakSummary.isNotEmpty()) {
-                stickyHeader(key = "corak_filter_row") {
+                item(key = "corak_filter_row") {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
