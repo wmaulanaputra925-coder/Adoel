@@ -218,6 +218,7 @@ fun StatistikScreen(
                                 editingEntry = shift.id to entryId
                                 editingField = field
                             },
+                            onDeleteEntry = onDeleteEntry,
                             onAddEntry = { addingToShiftId = shift.id },
                             operatorNama = operatorNama,
                             operatorGrup = operatorGrup,
@@ -617,6 +618,7 @@ private fun ShiftRow(
     showConfirm: (String, () -> Unit) -> Unit,
     onEditTipe: (mcNo: String) -> Unit,
     onEditSpecific: (entryId: Int, field: EditAktField) -> Unit,
+    onDeleteEntry: (shiftId: Int, id: Int) -> Unit,
     onAddEntry: () -> Unit,
     operatorNama: String,
     operatorGrup: String,
@@ -786,23 +788,49 @@ private fun ShiftRow(
                     Spacer(Modifier.height(6.dp))
                 }
                 chronological.forEachIndexed { index, entry ->
-                    // Shared with the Riwayat list so both read identically — see DoffEntryRow.kt.
-                    DoffEntryRowContent(
-                        num = index + 1,
-                        entry = entry,
-                        mesin = db[entry.mcNo],
-                        onEditTipe = { onEditTipe(entry.mcNo) },
-                        onEditCorak = { onEditSpecific(entry.id, EditAktField.CORAK) },
-                        onEditYard = { onEditSpecific(entry.id, EditAktField.YARD) },
-                        onEditTime = { onEditSpecific(entry.id, EditAktField.JAM) },
-                        onEditKet = { onEditSpecific(entry.id, EditAktField.KET) },
+                    // A row here has no swipe gesture of its own (that drag closes the whole
+                    // page instead, see swipeRightToClose above) and every field-specific edit
+                    // dialog hides its header delete icon while scoped to one field (matching
+                    // web's EditAktualDialog) — so unlike Riwayat, which still has swipe-left to
+                    // fall back on, this row needs its own explicit delete affordance or deleting
+                    // a single archived doff would have no way in at all.
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 2.dp)
                             .clip(RoundedCornerShape(8.dp))
                             .background(colors.bgElevated2)
                             .padding(horizontal = 10.dp, vertical = 8.dp),
-                    )
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        // Shared with the Riwayat list so both read identically — see DoffEntryRow.kt.
+                        DoffEntryRowContent(
+                            num = index + 1,
+                            entry = entry,
+                            mesin = db[entry.mcNo],
+                            onEditTipe = { onEditTipe(entry.mcNo) },
+                            onEditCorak = { onEditSpecific(entry.id, EditAktField.CORAK) },
+                            onEditYard = { onEditSpecific(entry.id, EditAktField.YARD) },
+                            onEditTime = { onEditSpecific(entry.id, EditAktField.JAM) },
+                            onEditKet = { onEditSpecific(entry.id, EditAktField.KET) },
+                            modifier = Modifier.weight(1f),
+                        )
+                        IconButton(
+                            onClick = {
+                                showConfirm("Hapus riwayat Mc ${entry.mcNo}?") {
+                                    onDeleteEntry(shift.id, entry.id)
+                                }
+                            },
+                            modifier = Modifier.size(32.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Delete,
+                                contentDescription = "Hapus riwayat Mc ${entry.mcNo}",
+                                tint = Red500,
+                                modifier = Modifier.size(16.dp),
+                            )
+                        }
+                    }
                 }
                 Spacer(Modifier.height(6.dp))
                 TextButton(
