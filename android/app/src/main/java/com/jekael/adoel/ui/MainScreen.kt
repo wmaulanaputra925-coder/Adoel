@@ -629,6 +629,7 @@ fun MainScreen(
         GuidedEstimasiSheet(
             mcNo = guidedEstimasiMcNo,
             mesin = state.db[guidedEstimasiMcNo],
+            existing = state.estimasi[guidedEstimasiMcNo],
             onDismiss = { activeOverlay = ActiveOverlay.None },
             onSubmit = { value ->
                 handlers.handleCommand(Mode.ESTIMASI, value) {

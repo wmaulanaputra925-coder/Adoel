@@ -26,9 +26,11 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.jekael.adoel.data.Estimasi
 import com.jekael.adoel.data.MesinData
 import com.jekael.adoel.data.MesinTipe
 import com.jekael.adoel.data.absMinToTimeStr
+import com.jekael.adoel.data.effectiveRemaining
 import com.jekael.adoel.data.estAbsD408
 import com.jekael.adoel.data.estimasiFieldHint
 import com.jekael.adoel.data.formatYard
@@ -44,6 +46,7 @@ import com.jekael.adoel.ui.theme.Dimens
 import com.jekael.adoel.ui.theme.LocalAppColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 /** A shift is 8 jam — TAPPET/CAM's "sisa waktu" wheel is capped here so it can never dial in a
  * remaining time longer than a whole shift itself, which would fall well outside what an
@@ -73,6 +76,12 @@ fun GuidedEstimasiSheet(
     showToast: (String) -> Unit = {},
     corakShortcuts: List<String>? = null,
     onAddCorakShortcut: (String) -> Unit = {},
+    // The estimasi already running for this Mc, if any — e.g. tapping RadarCard's own waktu
+    // zone to correct a live countdown, as opposed to setting one up fresh from the console.
+    // When present, the wheel opens already at roughly that reading instead of 0:00, so nudging
+    // a countdown that's already close to right doesn't mean scrolling all the way up from zero
+    // every time.
+    existing: Estimasi? = null,
 ) {
     val colors = LocalAppColors.current
     var activeMesin by remember(mcNo) { mutableStateOf(mesin) }
@@ -85,13 +94,36 @@ fun GuidedEstimasiSheet(
     // TAPPET/CAM ("sisa waktu") and D408 ("bacaan jam counter") both key off a wheel picker
     // instead of the free-typed field D405 ("yard sudah berjalan") keeps — see
     // MAX_ESTIMASI_HOUR's own doc for why TAPPET/CAM's hour wheel is capped where D408's isn't.
+    //
+    // Initial position: TAPPET/CAM starts from the estimasi's own current countdown (the exact
+    // number already on the radar card), clamped into the wheel's own 0..MAX_ESTIMASI_HOUR jam
+    // range (a card can be OVERDUE — negative remaining — or the operator can open this from the
+    // console before any countdown exists at all, neither of which is a position on this wheel,
+    // so both fall back to 0:00). D408 reconstructs the counter reading its koreksi was computed
+    // against: estAbsD408 is `jamKeShiftAbs(counter, now) + koreksi`, and jamKeShiftAbs's own job
+    // is just "snap a bare time-of-day reading onto the calendar day nearest now" — so inverting
+    // it is exactly the time-of-day component of (estAbsMin − koreksi), no day-snapping needed
+    // since that's already baked into estAbsMin. D405 has no wheel at all.
+    val initialWheelTotalMin = remember(mcNo, tipe, existing) {
+        when {
+            existing == null -> 0
+            tipe == MesinTipe.TAPPET || tipe == MesinTipe.CAM ->
+                existing.effectiveRemaining(nowAbsMin()).toInt().coerceIn(0, MAX_ESTIMASI_HOUR * 60)
+            tipe == MesinTipe.D408 -> {
+                val koreksi = activeMesin?.koreksi ?: 0.0
+                (existing.estAbsMin - koreksi.roundToInt()).mod(1440L).toInt()
+            }
+            else -> 0
+        }
+    }
     // wheelTouched guards Simpan the same way `valueInput.isNotBlank()` did for the old text
-    // field: a wheel always *has* a value (0:00), so without this an operator who opens the
-    // sheet and taps Simpan without touching anything would silently submit "0 menit lagi"
-    // instead of the field reading as untouched.
-    var wheelHour by remember(mcNo, tipe) { mutableStateOf(0) }
-    var wheelMinute by remember(mcNo, tipe) { mutableStateOf(0) }
-    var wheelTouched by remember(mcNo, tipe) { mutableStateOf(false) }
+    // field: a wheel always *has* a value, so without this an operator who opens the sheet and
+    // taps Simpan without touching anything would silently submit whatever that starting value
+    // means — fine when it's the estimasi's own current reading (that's the whole point of
+    // pre-filling it), not fine when it's just 0:00 because nothing existed yet to pre-fill from.
+    var wheelHour by remember(mcNo, tipe) { mutableStateOf(initialWheelTotalMin / 60) }
+    var wheelMinute by remember(mcNo, tipe) { mutableStateOf(initialWheelTotalMin % 60) }
+    var wheelTouched by remember(mcNo, tipe) { mutableStateOf(existing != null) }
     val usesWheel = tipe != MesinTipe.D405
     LaunchedEffect(wheelHour, wheelMinute, tipe) {
         if (usesWheel) valueInput = "$wheelHour.${wheelMinute.toString().padStart(2, '0')}"
