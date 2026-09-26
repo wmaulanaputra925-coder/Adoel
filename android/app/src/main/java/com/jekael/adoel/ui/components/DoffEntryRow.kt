@@ -5,6 +5,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -52,6 +54,7 @@ import com.jekael.adoel.ui.theme.LocalAppColors
  * are the only free-typed (variable-length) fields, so they're the only two that ever ellipsize;
  * everything else is short, fixed-format text that always fits.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun DoffEntryRowContent(
     num: Int,
@@ -101,7 +104,15 @@ fun DoffEntryRowContent(
                 )
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+            // FlowRow, not Row — matches web's `.meta-tags { flex-wrap: wrap }` exactly. A plain
+            // Row let Keterangan get pushed past the card's clipped right edge on narrower rows
+            // (corak+yard+jam alone can already fill the width), rendering as an invisible sliver:
+            // background visible, but its text positioned off-card. Wrapping to a second line
+            // keeps every pill fully on-screen instead.
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
                 MetaTagPill(
                     icon = Icons.Outlined.Straighten,
                     text = if (yard != null) "${formatYard(yard)}y" else "—",
