@@ -179,11 +179,34 @@ fun WheelColumn(
                 .clip(RoundedCornerShape(8.dp))
                 .background(colors.bgElevated2),
         )
+        val halfWindowPx = itemHeightPx * (visibleCount / 2f)
         Column(modifier = Modifier.graphicsLayer { translationY = fractionalOffsetPx }) {
             for (i in -(visibleCount / 2)..(visibleCount / 2)) {
                 val idx = liveIndex + i
+                // Continuous distance of *this row* from dead-center, accounting for the live
+                // drag/fling offset — not just its fixed slot index — so the tilt reads as one
+                // smoothly turning cylinder while dragging, not five rows that suddenly reflow
+                // once a row-crossing snaps. t is -1 at the top edge row, 0 dead-center, +1 at
+                // the bottom edge row.
+                val continuousDistancePx = i * itemHeightPx + fractionalOffsetPx
+                val t = (continuousDistancePx / halfWindowPx).coerceIn(-1f, 1f)
                 Box(
-                    modifier = Modifier.height(itemHeight).fillMaxWidth(),
+                    modifier = Modifier
+                        .height(itemHeight)
+                        .fillMaxWidth()
+                        .graphicsLayer {
+                            // Wraps each row's flat text plane onto the surface of an implied
+                            // drum: rotationX tilts it away from the viewer the further it sits
+                            // from center, cameraDistance keeps that tilt reading as perspective
+                            // instead of a squash (see RadarCard's own graphicsLayer for why it's
+                            // `this.density`, GraphicsLayerScope's own property, and not the
+                            // outer LocalDensity-derived `density` val — that one silently
+                            // resolves to the wrong receiver and fails to typecheck).
+                            rotationX = t * WHEEL_MAX_TILT_DEG
+                            cameraDistance = 12 * this.density
+                            alpha = 1f - abs(t) * 0.65f
+                            scaleX = 1f - abs(t) * 0.12f
+                        },
                     contentAlignment = Alignment.Center,
                 ) {
                     if (idx in range) {
@@ -203,6 +226,11 @@ fun WheelColumn(
         }
     }
 }
+
+/** How far a row at the very top/bottom edge of the visible window tilts away from the viewer —
+ * an iOS clock/timer wheel's own drum-like curvature, not the flat stacked-list look a plain
+ * translated Column reads as on its own. */
+private const val WHEEL_MAX_TILT_DEG = 55f
 
 /**
  * Hour:Minute wheel pair for Terpandu ESTIMASI's TAPPET/CAM ("sisa waktu", capped at [maxHour])
