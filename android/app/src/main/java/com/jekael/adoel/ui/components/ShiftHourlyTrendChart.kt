@@ -1,5 +1,8 @@
 package com.jekael.adoel.ui.components
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -20,6 +23,7 @@ import androidx.compose.material.icons.outlined.TrendingUp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -33,6 +37,8 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -53,6 +59,8 @@ import com.jekael.adoel.ui.theme.Emerald400
 import com.jekael.adoel.ui.theme.LocalAppColors
 import java.util.Calendar
 import kotlin.math.max
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 private data class HourlyPoint(
     val hourIndex: Int,
@@ -127,9 +135,23 @@ fun ShiftHourlyTrendChart(shift: ShiftRecord, modifier: Modifier = Modifier) {
         shift.aktual.size.toFloat() / max(1, hourlyData.size)
     }
 
+    // Fades + rises in fresh every time this composes — which, since it only exists inside the
+    // shift row's AnimatedVisibility, is exactly every time that row is expanded (matches web's
+    // recharts, which auto-animates the Area/Line in on mount with no extra wiring needed there).
+    val entranceAlpha = remember { Animatable(0f) }
+    val entranceOffsetY = remember { Animatable(10f) }
+    LaunchedEffect(Unit) {
+        launch { entranceAlpha.animateTo(1f, tween(320)) }
+        entranceOffsetY.animateTo(0f, tween(320, easing = FastOutSlowInEasing))
+    }
+
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .graphicsLayer {
+                alpha = entranceAlpha.value
+                translationY = entranceOffsetY.value
+            }
             .clip(RoundedCornerShape(Dimens.RadiusCard))
             .background(colors.bgElevated2)
             .padding(Dimens.Space12),
@@ -286,6 +308,15 @@ private fun TrendChartCanvas(
         )
     }
 
+    // Progressive left-to-right reveal, matching recharts' default Area/Line mount animation on
+    // web — re-fires on every fresh composition of this Canvas (see the entrance animation above
+    // in the parent composable for why that lines up with "card just opened").
+    val revealProgress = remember { Animatable(0f) }
+    LaunchedEffect(Unit) {
+        delay(80)
+        revealProgress.animateTo(1f, tween(650, easing = FastOutSlowInEasing))
+    }
+
     Canvas(
         modifier = Modifier
             .fillMaxWidth()
@@ -315,47 +346,49 @@ private fun TrendChartCanvas(
             strokeWidth = 1.dp.toPx(),
         )
 
-        if (showHourly) {
-            val fillPath = Path().apply {
-                moveTo(xFor(0), size.height - bottomPad)
-                data.forEachIndexed { i, p -> lineTo(xFor(i), yFor(p.count)) }
-                lineTo(xFor(data.size - 1), size.height - bottomPad)
-                close()
-            }
-            drawPath(fillPath, color = Cyan500.copy(alpha = 0.18f))
+        clipRect(right = size.width * revealProgress.value) {
+            if (showHourly) {
+                val fillPath = Path().apply {
+                    moveTo(xFor(0), size.height - bottomPad)
+                    data.forEachIndexed { i, p -> lineTo(xFor(i), yFor(p.count)) }
+                    lineTo(xFor(data.size - 1), size.height - bottomPad)
+                    close()
+                }
+                drawPath(fillPath, color = Cyan500.copy(alpha = 0.18f))
 
-            val linePath = Path().apply {
+                val linePath = Path().apply {
+                    data.forEachIndexed { i, p ->
+                        val x = xFor(i)
+                        val y = yFor(p.count)
+                        if (i == 0) moveTo(x, y) else lineTo(x, y)
+                    }
+                }
+                drawPath(linePath, color = Cyan400, style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round))
                 data.forEachIndexed { i, p ->
-                    val x = xFor(i)
-                    val y = yFor(p.count)
-                    if (i == 0) moveTo(x, y) else lineTo(x, y)
+                    drawCircle(Cyan400, radius = if (i == selectedIndex) 5.dp.toPx() else 3.dp.toPx(), center = Offset(xFor(i), yFor(p.count)))
                 }
             }
-            drawPath(linePath, color = Cyan400, style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round))
-            data.forEachIndexed { i, p ->
-                drawCircle(Cyan400, radius = if (i == selectedIndex) 5.dp.toPx() else 3.dp.toPx(), center = Offset(xFor(i), yFor(p.count)))
-            }
-        }
 
-        if (showCumulative) {
-            val linePath = Path().apply {
-                data.forEachIndexed { i, p ->
-                    val x = xFor(i)
-                    val y = yFor(p.kumulatif)
-                    if (i == 0) moveTo(x, y) else lineTo(x, y)
+            if (showCumulative) {
+                val linePath = Path().apply {
+                    data.forEachIndexed { i, p ->
+                        val x = xFor(i)
+                        val y = yFor(p.kumulatif)
+                        if (i == 0) moveTo(x, y) else lineTo(x, y)
+                    }
                 }
-            }
-            drawPath(
-                linePath,
-                color = Emerald400,
-                style = Stroke(
-                    width = 2.dp.toPx(),
-                    cap = StrokeCap.Round,
-                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(8.dp.toPx(), 6.dp.toPx())),
-                ),
-            )
-            data.forEachIndexed { i, p ->
-                drawCircle(Emerald400, radius = if (i == selectedIndex) 4.5.dp.toPx() else 2.5.dp.toPx(), center = Offset(xFor(i), yFor(p.kumulatif)))
+                drawPath(
+                    linePath,
+                    color = Emerald400,
+                    style = Stroke(
+                        width = 2.dp.toPx(),
+                        cap = StrokeCap.Round,
+                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(8.dp.toPx(), 6.dp.toPx())),
+                    ),
+                )
+                data.forEachIndexed { i, p ->
+                    drawCircle(Emerald400, radius = if (i == selectedIndex) 4.5.dp.toPx() else 2.5.dp.toPx(), center = Offset(xFor(i), yFor(p.kumulatif)))
+                }
             }
         }
 
