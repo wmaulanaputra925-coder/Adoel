@@ -37,14 +37,21 @@ import kotlin.math.abs
  * max-distance/spring physics as RadarCard so every swipeable card in the app feels identical
  * even though the implementations are separate.
  *
+ * [onSwipeRight]/[rightIcon] are optional — Riwayat used to swipe-right into a whole-row edit
+ * dialog, but every field there now has its own tap target (DoffEntryRowContent's onEditTipe/
+ * onEditCorak/onEditYard/onEditTime/onEditKet), so that swipe direction is dead weight now, not
+ * a second way in. Leaving [onSwipeRight] null blocks rightward drag entirely (rubber-banding to
+ * 0 instead of revealing anything) rather than keeping a swipe that visually arms but does
+ * nothing on release.
+ *
  * Statistik's archived shift cards deliberately do *not* use this: they carry visible Bagikan/
  * Hapus buttons, and the horizontal drag over them closes the page instead (swipeRightToClose). */
 @Composable
 fun SwipeableCard(
     modifier: Modifier = Modifier,
-    onSwipeRight: () -> Unit,
+    onSwipeRight: (() -> Unit)? = null,
     onSwipeLeft: () -> Unit,
-    rightIcon: ImageVector,
+    rightIcon: ImageVector? = null,
     leftIcon: ImageVector = Icons.Outlined.Delete,
     rightColor: Color = Cyan600,
     leftColor: Color = Red500,
@@ -72,7 +79,10 @@ fun SwipeableCard(
         SwipeActionBackground(
             offsetX = offsetX.value,
             thresholdPx = thresholdPx,
-            rightIcon = rightIcon,
+            // Never actually drawn when onSwipeRight is null — rightward drag is clamped to 0
+            // below, so offsetX never goes positive and SwipeActionBackground's own isRight
+            // branch never fires. leftIcon is just a harmless placeholder to satisfy the type.
+            rightIcon = rightIcon ?: leftIcon,
             leftIcon = leftIcon,
             rightColor = rightColor,
             leftColor = leftColor,
@@ -81,12 +91,16 @@ fun SwipeableCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .graphicsLayer { translationX = offsetX.value }
-                .pointerInput(Unit) {
+                // Keyed on nullness, not the lambda itself — a fresh onSwipeRight lambda from a
+                // recomposing caller would otherwise restart this pointerInput (and drop any
+                // in-progress drag) every single recomposition, since lambda instances are never
+                // struct-equal across recompositions the way a Boolean is.
+                .pointerInput(onSwipeRight != null) {
                     detectHorizontalDragGestures(
                         onDragEnd = {
                             val value = offsetX.value
                             when {
-                                value >= thresholdPx -> { onSwipeRight(); settle() }
+                                onSwipeRight != null && value >= thresholdPx -> { onSwipeRight(); settle() }
                                 value <= -thresholdPx -> { onSwipeLeft(); settle() }
                                 else -> settle()
                             }
@@ -96,6 +110,7 @@ fun SwipeableCard(
                         onHorizontalDrag = { change, dragAmount ->
                             change.consume()
                             rawDragX += dragAmount
+                            if (onSwipeRight == null) rawDragX = rawDragX.coerceAtMost(0f)
                             scope.launch {
                                 offsetX.snapTo(rubberBandSwipe(rawDragX, thresholdPx, maxPx))
                             }

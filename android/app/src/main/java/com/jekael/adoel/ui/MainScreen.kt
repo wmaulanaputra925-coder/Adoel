@@ -366,7 +366,6 @@ fun MainScreen(
                                 aktualReversed = aktualReversed,
                                 doffFilter = doffFilter,
                                 onDoffFilterChange = { doffFilter = it },
-                                onEntryClick = { id -> activeOverlay = ActiveOverlay.EditAkt(id) },
                                 onEditTipe = { mcNo -> activeOverlay = ActiveOverlay.QuickEditMesin(mcNo, QuickEditField.TIPE) },
                                 onEditSpecific = { id, field -> activeOverlay = ActiveOverlay.EditAkt(id, field) },
                                 onHapusEntry = { id -> handlers.handleHapusAktual(id) { activeOverlay = ActiveOverlay.None } },

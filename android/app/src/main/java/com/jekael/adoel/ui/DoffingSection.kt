@@ -9,7 +9,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ContentCut
 import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Texture
@@ -42,7 +41,6 @@ fun LazyListScope.doffingSection(
     aktualReversed: List<AktualEntry>,
     doffFilter: String,
     onDoffFilterChange: (String) -> Unit,
-    onEntryClick: (Int) -> Unit,
     onEditTipe: (String) -> Unit,
     onEditSpecific: (Int, EditAktField) -> Unit,
     onHapusEntry: (Int) -> Unit,
@@ -170,7 +168,6 @@ fun LazyListScope.doffingSection(
             entry = entry,
             mesin = state.db[entry.mcNo],
             num = idx + 1,
-            onEdit = { onEntryClick(entry.id) },
             onEditTipe = { onEditTipe(entry.mcNo) },
             onEditSpecific = { field -> onEditSpecific(entry.id, field) },
             onHapus = { onHapusEntry(entry.id) },
@@ -185,25 +182,19 @@ private fun DoffingRow(
     entry: AktualEntry,
     mesin: MesinData?,
     num: Int,
-    // Swipe-right's own full-edit dialog (every field at once) — a gesture, not a tap or a
-    // pencil button, so it stays alongside the field-specific taps below rather than being
-    // removed by "hapus tombol pensil dan sentuh kartu untuk edit".
-    onEdit: () -> Unit,
     onEditTipe: () -> Unit,
     onEditSpecific: (EditAktField) -> Unit,
     onHapus: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalAppColors.current
-    // Swipe right = edit (all fields), swipe left = hapus — matches RadarCard's swipe model.
-    // The row itself no longer has a whole-card tap or a pencil button: each field in
-    // DoffEntryRowContent below carries its own specific tap target instead (mcNo→tipe,
-    // corak/panjang/jam/keterangan→that one field).
+    // Swipe left = hapus only now — swipe-right used to open a whole-row edit dialog, but every
+    // field below already has its own tap target (mcNo→tipe, corak/panjang/jam/keterangan→that
+    // one field), so a second, coarser way to edit the same fields was dead weight, not a
+    // shortcut. SwipeableCard blocks rightward drag entirely when onSwipeRight is omitted.
     SwipeableCard(
         modifier = modifier.fillMaxWidth(),
-        onSwipeRight = onEdit,
         onSwipeLeft = onHapus,
-        rightIcon = Icons.Outlined.Edit,
         leftIcon = Icons.Outlined.Delete,
     ) {
         // Shared with Statistik's shift detail so both read identically — see DoffEntryRow.kt.
@@ -221,7 +212,6 @@ private fun DoffingRow(
                 .glossyListCard(baseColor = colors.bgElevated)
                 .semantics(mergeDescendants = true) {
                     customActions = listOf(
-                        CustomAccessibilityAction("Edit riwayat Mc ${entry.mcNo}") { onEdit(); true },
                         CustomAccessibilityAction("Hapus riwayat Mc ${entry.mcNo}") { onHapus(); true },
                     )
                 }
