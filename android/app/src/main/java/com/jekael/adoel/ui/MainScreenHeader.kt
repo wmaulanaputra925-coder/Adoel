@@ -9,6 +9,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -26,7 +27,6 @@ import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -256,45 +256,47 @@ internal fun MainScreenHeader(
                         tint = colors.textMuted,
                     )
                 }
+                // Custom-shaped instead of stock DropdownMenuItem — Material's default menu reads
+                // stiff (4dp corners, its own min-width/padding rules) against every other surface
+                // in this app, which is all rounded-10/16dp cards with a border. Matches web's own
+                // .header-dropdown-menu/.dropdown-item (App.tsx/index.css) instead: a bordered
+                // rounded-16dp card sized to its content — not the near-full-width block the old
+                // default menu rendered as once "Hapus Semua (Tanpa Arsip)" set its min width.
                 DropdownMenu(
                     expanded = actionsExpanded,
                     onDismissRequest = { actionsExpanded = false },
+                    shape = RoundedCornerShape(16.dp),
+                    containerColor = colors.bgElevated,
+                    tonalElevation = 0.dp,
+                    shadowElevation = 12.dp,
+                    border = BorderStroke(1.dp, colors.border),
+                    modifier = Modifier.padding(4.dp),
                 ) {
-                    DropdownMenuItem(
-                        text = { Text("Daftar Mesin") },
-                        leadingIcon = { Icon(Icons.Outlined.Tune, contentDescription = null) },
-                        onClick = { actionsExpanded = false; onDaftarMesin() },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Statistik") },
-                        leadingIcon = { Icon(Icons.Outlined.BarChart, contentDescription = null) },
-                        onClick = { actionsExpanded = false; onStatistik() },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Pengaturan") },
-                        leadingIcon = { GearIcon() },
-                        onClick = { actionsExpanded = false; onGearClick() },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("QR Sync") },
-                        leadingIcon = { Icon(Icons.Outlined.QrCodeScanner, contentDescription = null) },
-                        onClick = { actionsExpanded = false; onSyncClick() },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Bagikan") },
-                        leadingIcon = { Icon(Icons.Outlined.Share, contentDescription = null) },
-                        onClick = { actionsExpanded = false; onShare() },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Selesai Shift") },
-                        leadingIcon = { Icon(Icons.Outlined.Flag, contentDescription = null) },
-                        onClick = { actionsExpanded = false; onFinishShift() },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Hapus Semua (Tanpa Arsip)") },
-                        leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = null) },
-                        onClick = { actionsExpanded = false; onClearShiftNoArchive() },
-                    )
+                    ActionMenuItem(icon = { Icon(Icons.Outlined.Tune, contentDescription = null, modifier = Modifier.size(16.dp)) }, label = "Daftar Mesin") {
+                        actionsExpanded = false; onDaftarMesin()
+                    }
+                    ActionMenuItem(icon = { Icon(Icons.Outlined.BarChart, contentDescription = null, modifier = Modifier.size(16.dp)) }, label = "Statistik") {
+                        actionsExpanded = false; onStatistik()
+                    }
+                    ActionMenuItem(icon = { GearIcon() }, label = "Pengaturan") {
+                        actionsExpanded = false; onGearClick()
+                    }
+                    ActionMenuItem(icon = { Icon(Icons.Outlined.QrCodeScanner, contentDescription = null, modifier = Modifier.size(16.dp)) }, label = "QR Sync") {
+                        actionsExpanded = false; onSyncClick()
+                    }
+                    ActionMenuItem(icon = { Icon(Icons.Outlined.Share, contentDescription = null, modifier = Modifier.size(16.dp)) }, label = "Bagikan") {
+                        actionsExpanded = false; onShare()
+                    }
+                    ActionMenuItem(
+                        icon = { Icon(Icons.Outlined.Flag, contentDescription = null, tint = Red400, modifier = Modifier.size(16.dp)) },
+                        label = "Selesai Shift",
+                        danger = true,
+                    ) { actionsExpanded = false; onFinishShift() }
+                    ActionMenuItem(
+                        icon = { Icon(Icons.Outlined.Delete, contentDescription = null, tint = Red400, modifier = Modifier.size(16.dp)) },
+                        label = "Hapus Semua (Tanpa Arsip)",
+                        danger = true,
+                    ) { actionsExpanded = false; onClearShiftNoArchive() }
                 }
             }
         }
@@ -321,5 +323,38 @@ internal fun MainScreenHeader(
             height = 38.dp,
         )
       }
+    }
+}
+
+/** One row in the "Aksi lainnya" dropdown — Android equivalent of web's `.dropdown-item`
+ * (App.tsx/index.css): icon + label, rounded-10dp hover/press tint instead of Material's default
+ * item chrome, sized to its own content rather than stretching to whatever the widest sibling
+ * item needs. [danger] reads the label/icon in [Red400] (Selesai Shift, Hapus Semua) — everything
+ * else stays neutral [LocalAppColors.textPrimary]. */
+@Composable
+private fun ActionMenuItem(
+    icon: @Composable () -> Unit,
+    label: String,
+    danger: Boolean = false,
+    onClick: () -> Unit,
+) {
+    val colors = LocalAppColors.current
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(10.dp))
+            .clickable(onClickLabel = label, onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        icon()
+        Text(
+            label,
+            style = TextStyle(
+                fontSize = 13.5.sp,
+                fontWeight = FontWeight.Bold,
+                color = if (danger) Red400 else colors.textPrimary,
+            ),
+        )
     }
 }
