@@ -101,13 +101,16 @@ fun selisihKoreksiD408(waktuAktualMin: Int, bacaanCounterMin: Int): Int {
 fun resolveYardToken(isDelta: Boolean, value: Double, standardYard: Double?): Double =
     if (isDelta && standardYard != null) standardYard + value else value
 
-/** What a mode-ESTIMASI command's single value field means for a given machine type — one source
- * for both the Teks console's inline hint (MainScreen's `inputHint`) and Terpandu's guided field
- * label, so the two input styles can never describe the command differently. */
+/** What a mode-ESTIMASI command's single value field means for a given machine type — the source
+ * for Terpandu's guided field label ([GuidedEstimasiSheet]'s `FieldLabel`). Only D405 still reads
+ * [example] (its own field is still free-typed); TAPPET/CAM and D408 pick their value off a
+ * jam:menit wheel now, not a typed number, so their [label]s must describe what the wheel shows —
+ * "(menit)" describing a bare number of minutes would be wrong once the field turned into a
+ * jam:menit wheel display. */
 data class EstimasiFieldHint(val label: String, val example: String)
 
 fun estimasiFieldHint(tipe: MesinTipe): EstimasiFieldHint = when (tipe) {
-    MesinTipe.TAPPET, MesinTipe.CAM -> EstimasiFieldHint("Sisa waktu (menit)", "45")
+    MesinTipe.TAPPET, MesinTipe.CAM -> EstimasiFieldHint("Sisa waktu", "45")
     MesinTipe.D405 -> EstimasiFieldHint("Yard sudah berjalan", "280")
     MesinTipe.D408 -> EstimasiFieldHint("Bacaan jam counter", "12.30")
 }
