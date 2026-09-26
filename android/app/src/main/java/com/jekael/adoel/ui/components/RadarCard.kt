@@ -504,14 +504,14 @@ fun RadarCard(
             )
 
             // Content — swipe right = doff, swipe left = doff+Matching, long-press = hapus.
-            // Top/bottom trimmed to Space12 (start/end stay at the wider Space16, still the
-            // horizontal tap-target margin) — with a whole radar list's worth of these cards on
-            // screen at once, this is pure whitespace being spent per card, not anything the two
-            // hero numbers below need to stay legible.
+            // Matches Riwayat's own card padding exactly (DoffingSection.kt's DoffingRow: 12dp
+            // horizontal, 10dp vertical) — the two lists sit one toggle apart on the same screen,
+            // and having Radar's own cards noticeably taller than Riwayat's read as an
+            // inconsistency between them rather than a deliberate difference.
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = Dimens.Space16, end = Dimens.Space16, top = Dimens.Space12, bottom = Dimens.Space12),
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
