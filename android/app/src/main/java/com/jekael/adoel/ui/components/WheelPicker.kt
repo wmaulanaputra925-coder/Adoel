@@ -75,8 +75,11 @@ import kotlin.math.roundToInt
  * fling decayed to a stop) — but [onValueChange] fires live as each row is crossed mid-gesture,
  * the same "selection follows the wheel as it turns" behavior a real picker has. Rendering
  * derives which rows are visible from the *raw, unbounded* live offset every frame (see
- * `liveIndexNow`), so a long drag or a fast flick keeps resolving to further rows for as long as
- * it's moving, instead of running out past a small fixed window around a stale center.
+ * `rawIndexNow`), so a long drag or a fast flick keeps resolving to further rows for as long as
+ * it's moving, instead of running out past a small fixed window around a stale center. [range]
+ * never puts a hard stop on that scrolling either — `wrap` cycles a raw index back into range
+ * (0..23's 24 becomes 0, -1 becomes 23) wherever one is actually shown or reported, so the wheel
+ * spins through the same values again rather than jamming at either end.
  */
 @Composable
 fun WheelColumn(
@@ -94,13 +97,24 @@ fun WheelColumn(
     val itemHeightPx = with(density) { itemHeight.toPx() }
     val scope = rememberCoroutineScope()
 
-    // The committed center when idle. `liveOffsetPx` is how far an active scroll/fling has moved
-    // away from it — deliberately unbounded (not clamped to one item's height), so a fast flick
-    // can keep resolving to further rows for as long as it's still decaying — and is updated
-    // synchronously from scrollable()'s own (non-suspend) consume callback below. `settleOffset`
-    // takes over, as an Animatable, only for the final spring onto the exact row once scrolling
-    // has fully stopped — the two are never both "live" at once (see `isSettling`).
-    var anchorIndex by remember(range) { mutableIntStateOf(value.coerceIn(range)) }
+    // Wraps into `range` (0..23 → 24 wraps to 0, -1 wraps to 23) instead of clamping — a scroll
+    // or fling never hits a hard stop at either end, it just keeps cycling through the same
+    // values again, the way a real clock/timer dial does. Applied only where a value crosses into
+    // "public" territory — reported through [onValueChange], or turned into row text/labels.
+    // [anchorIndex] and every offset below deliberately stay *raw* (unwrapped, can run well past
+    // `range` after a few spins) — see the note on `fractionalOffsetPx` for why wrapping those too
+    // would break the small-per-frame-offset assumption the settle animation depends on.
+    val span = range.last - range.first + 1
+    fun wrap(idx: Int): Int = range.first + (((idx - range.first) % span) + span) % span
+
+    // The committed center when idle, in raw (unwrapped) index space. `liveOffsetPx` is how far
+    // an active scroll/fling has moved away from it — deliberately unbounded (not clamped to one
+    // item's height), so a fast flick can keep resolving to further rows — possibly cycling
+    // through the whole range more than once — for as long as it's still decaying — and is
+    // updated synchronously from scrollable()'s own (non-suspend) consume callback below.
+    // `settleOffset` takes over, as an Animatable, only for the final spring onto the exact row
+    // once scrolling has fully stopped — the two are never both "live" at once (see `isSettling`).
+    var anchorIndex by remember(range) { mutableIntStateOf(value) }
     var liveOffsetPx by remember(range) { mutableFloatStateOf(0f) }
     val settleOffset = remember { Animatable(0f) }
     var isSettling by remember { mutableStateOf(false) }
@@ -110,9 +124,9 @@ fun WheelColumn(
     // Defined as a function, not a `val` — it needs to read *current* state at the moment it's
     // called, including from inside a coroutine that started earlier (e.g. the settle effect
     // below), which Compose only guarantees fresh for state reads (property access), not for a
-    // plain local captured by value when that coroutine started.
-    fun liveIndexNow(): Int =
-        (anchorIndex + (-currentOffsetPx() / itemHeightPx).roundToInt()).coerceIn(range)
+    // plain local captured by value when that coroutine started. Raw, like `anchorIndex` itself —
+    // callers wrap it themselves at the point they actually need a display-safe value.
+    fun rawIndexNow(): Int = anchorIndex + (-currentOffsetPx() / itemHeightPx).roundToInt()
 
     val scrollableState = rememberScrollableState { delta ->
         if (isSettling) return@rememberScrollableState 0f
@@ -123,18 +137,26 @@ fun WheelColumn(
     // The caller can move `value` out from under this wheel while it's idle — e.g. the paired
     // minute wheel getting pinned to :00 once the hour wheel hits its cap — so re-center to
     // match. Guarded so it never fights an active scroll/settle, which drives `value` itself via
-    // the live-update effect below (this wheel's own change echoing back in).
+    // the live-update effect below (this wheel's own change echoing back in). Compares against
+    // `wrap(anchorIndex)`, not `anchorIndex` directly — after a few real spins anchorIndex might
+    // sit at, say, 29 on a 0..23 range, which *is* the same value as the caller's own `5`, not a
+    // change to react to.
     LaunchedEffect(value, range) {
-        if (!scrollableState.isScrollInProgress && !isSettling && value.coerceIn(range) != anchorIndex) {
-            anchorIndex = value.coerceIn(range)
+        if (!scrollableState.isScrollInProgress && !isSettling && value != wrap(anchorIndex)) {
+            anchorIndex = value
             liveOffsetPx = 0f
         }
     }
 
-    val liveIndex = liveIndexNow()
-    // Bounded to roughly ±half an item's height by construction of the round() in liveIndexNow —
+    val rawIndex = rawIndexNow()
+    val liveIndex = wrap(rawIndex)
+    // Bounded to roughly ±half an item's height by construction of the round() in rawIndexNow —
     // the remainder after "how many whole rows has this offset moved past" is extracted out.
-    val fractionalOffsetPx = currentOffsetPx() + (liveIndex - anchorIndex) * itemHeightPx
+    // Uses the *raw* index here, not the wrapped `liveIndex` — right at a wrap boundary (rawIndex
+    // 24 wrapping to 0 on a 0..23 range) the wrapped value jumps by a whole `span` in one frame,
+    // which would blow this remainder up to a near-full-range offset instead of a fraction of a
+    // row, and the wheel would visibly jerk exactly at every wrap-around.
+    val fractionalOffsetPx = currentOffsetPx() + (rawIndex - anchorIndex) * itemHeightPx
 
     LaunchedEffect(liveIndex) {
         if (liveIndex != value) onValueChange(liveIndex)
@@ -149,7 +171,7 @@ fun WheelColumn(
     }
     // One light tick per row crossed while a scroll/fling is actually moving the wheel — the
     // same per-row feedback a real picker gives, not just a silent slide.
-    var lastTickedIndex by remember { mutableIntStateOf(anchorIndex) }
+    var lastTickedIndex by remember { mutableIntStateOf(liveIndex) }
     LaunchedEffect(liveIndex, scrollableState.isScrollInProgress) {
         if (scrollableState.isScrollInProgress && liveIndex != lastTickedIndex) {
             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
@@ -157,9 +179,10 @@ fun WheelColumn(
         lastTickedIndex = liveIndex
     }
 
-    // Re-anchors to `finalIndex` without a visual jump: the fractional remainder at the moment
-    // this is called becomes the new starting point for the settle spring, since that's exactly
-    // how far off-center the wheel currently sits *relative to the row it's about to commit to*.
+    // Re-anchors to `finalIndex` (raw, unwrapped — same space as `anchorIndex`, never
+    // `wrap(finalIndex)`) without a visual jump: the fractional remainder at the moment this is
+    // called becomes the new starting point for the settle spring, since that's exactly how far
+    // off-center the wheel currently sits *relative to the row it's about to commit to*.
     suspend fun settleTo(finalIndex: Int) {
         val settleFromPx = currentOffsetPx() + (finalIndex - anchorIndex) * itemHeightPx
         anchorIndex = finalIndex
@@ -175,7 +198,7 @@ fun WheelColumn(
     // fling happened to run out — the one piece scrollable() doesn't do for us on its own.
     LaunchedEffect(scrollableState.isScrollInProgress) {
         if (!scrollableState.isScrollInProgress) {
-            settleTo(liveIndexNow())
+            settleTo(rawIndexNow())
         }
     }
 
@@ -224,7 +247,10 @@ fun WheelColumn(
         val halfWindowPx = itemHeightPx * (visibleCount / 2f)
         Column(modifier = Modifier.graphicsLayer { translationY = fractionalOffsetPx }) {
             for (i in -(visibleCount / 2)..(visibleCount / 2)) {
-                val idx = liveIndex + i
+                // rawIdx feeds settleTo (must stay in the same unwrapped space as anchorIndex);
+                // idx is the display-safe, wrapped value actually shown/tapped-as-a-label.
+                val rawIdx = rawIndex + i
+                val idx = wrap(rawIdx)
                 // Continuous distance of *this row* from dead-center, accounting for the live
                 // scroll/fling offset — not just its fixed slot index — so the tilt reads as one
                 // smoothly turning cylinder while dragging, not five rows that suddenly reflow
@@ -256,12 +282,12 @@ fun WheelColumn(
                         // are mutually exclusive within a single gesture, the same as any
                         // clickable row inside a scrollable list.
                         .then(
-                            if (!centered && idx in range) {
+                            if (!centered) {
                                 Modifier.clickable(
                                     interactionSource = remember { MutableInteractionSource() },
                                     indication = null,
                                     onClickLabel = format(idx),
-                                    onClick = { scope.launch { settleTo(idx) } },
+                                    onClick = { scope.launch { settleTo(rawIdx) } },
                                 )
                             } else {
                                 Modifier
@@ -269,17 +295,15 @@ fun WheelColumn(
                         ),
                     contentAlignment = Alignment.Center,
                 ) {
-                    if (idx in range) {
-                        Text(
-                            text = format(idx),
-                            style = TextStyle(
-                                fontSize = if (centered) 20.sp else 15.sp,
-                                fontWeight = if (centered) FontWeight.Bold else FontWeight.Medium,
-                                fontFamily = FontFamily.Monospace,
-                                color = if (centered) colors.textPrimary else colors.textFaint,
-                            ),
-                        )
-                    }
+                    Text(
+                        text = format(idx),
+                        style = TextStyle(
+                            fontSize = if (centered) 20.sp else 15.sp,
+                            fontWeight = if (centered) FontWeight.Bold else FontWeight.Medium,
+                            fontFamily = FontFamily.Monospace,
+                            color = if (centered) colors.textPrimary else colors.textFaint,
+                        ),
+                    )
                 }
             }
         }
