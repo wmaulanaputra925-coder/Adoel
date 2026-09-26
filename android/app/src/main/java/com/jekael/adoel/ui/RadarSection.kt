@@ -16,7 +16,6 @@ import androidx.compose.material.icons.outlined.Pause
 import androidx.compose.material.icons.outlined.Radar
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -129,7 +128,6 @@ internal fun LazyListScope.estimasiSection(
                 mesin = db[est.mcNo],
                 nowAbs = nowAbs,
                 clashingMcNos = emptyList(),
-                shiftHandover = est.estAbsMin > shiftBoundary,
                 onDoff = { onDoff(est.mcNo) },
                 onDoffMatching = { onDoffMatching(est.mcNo) },
                 onHapus = { onHapus(est.mcNo) },
@@ -154,7 +152,6 @@ internal fun LazyListScope.estimasiSection(
                 mesin = db[est.mcNo],
                 nowAbs = nowAbs,
                 clashingMcNos = findClashingMachines(est.mcNo, radarList),
-                shiftHandover = est.estAbsMin > shiftBoundary,
                 onDoff = { onDoff(est.mcNo) },
                 onDoffMatching = { onDoffMatching(est.mcNo) },
                 onHapus = { onHapus(est.mcNo) },
@@ -176,32 +173,33 @@ internal fun LazyListScope.estimasiSection(
         // Every row full-width, in order — the 2-column grid pairing this band used to do for
         // calm/distant cards was an experiment; real floor use showed operators prefer scanning
         // one wide column over parsing a denser 2-up grid (Master Blueprint v9.2 §6).
+        //
+        // A BreakGapCard (MenungguRow.GapRow) between two shift-handover cards used to reset the
+        // "is this the first one" check back to "yes" (it only ever looked at the immediately
+        // preceding row), so the divider redrew itself before every handover card instead of just
+        // the first one. Precomputing the one true first-crossing index up front, over the whole
+        // list rather than one neighbor at a time, fixes that for good.
+        val firstHandoverIdx = menungguRows.indexOfFirst { it is MenungguRow.CardRow && it.est.estAbsMin > shiftBoundary }
         itemsIndexed(menungguRows, key = { _, row -> rowKey(row) }) { index, row ->
             val entranceDelayMs = (index * Motion.LIST_STAGGER_STEP_MS).coerceAtMost(Motion.LIST_STAGGER_MAX_MS)
             when (row) {
                 is MenungguRow.CardRow -> {
-                    val previousCard = menungguRows.getOrNull(index - 1) as? MenungguRow.CardRow
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    if (row.est.estAbsMin > shiftBoundary && (previousCard == null || previousCard.est.estAbsMin <= shiftBoundary)) {
-                        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            HorizontalDivider(modifier = Modifier.weight(1f), color = Amber400.copy(alpha = 0.45f))
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(5.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(horizontal = 8.dp),
-                            ) {
-                                Icon(imageVector = Icons.Outlined.SwapHoriz, contentDescription = null, tint = Amber400, modifier = Modifier.size(14.dp))
-                                Text("OPERAN SHIFT", style = AppType.Caption.copy(color = Amber400, fontWeight = FontWeight.Bold))
-                            }
-                            HorizontalDivider(modifier = Modifier.weight(1f), color = Amber400.copy(alpha = 0.45f))
-                        }
+                    if (index == firstHandoverIdx) {
+                        // Just the line — its position in the list already says "everything below
+                        // this point carries into the next shift"; a label repeated the same thing
+                        // in words and crowded the card underneath it into wrapping.
+                        HorizontalDivider(
+                            modifier = Modifier.fillMaxWidth(),
+                            thickness = 2.dp,
+                            color = Amber400.copy(alpha = 0.5f),
+                        )
                     }
                     RadarCard(
                         est = row.est,
                         mesin = db[row.est.mcNo],
                         nowAbs = nowAbs,
                         clashingMcNos = findClashingMachines(row.est.mcNo, radarList),
-                        shiftHandover = row.est.estAbsMin > shiftBoundary,
                         onDoff = { onDoff(row.est.mcNo) },
                         onDoffMatching = { onDoffMatching(row.est.mcNo) },
                         onHapus = { onHapus(row.est.mcNo) },

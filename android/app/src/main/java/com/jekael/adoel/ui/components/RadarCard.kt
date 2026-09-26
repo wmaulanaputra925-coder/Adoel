@@ -25,7 +25,6 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Pause
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Schedule
-import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material.icons.outlined.Texture
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.*
@@ -120,7 +119,6 @@ fun RadarCard(
     modifier: Modifier = Modifier,
     entranceDelayMs: Long = 0L,
     clashingMcNos: List<String> = emptyList(),
-    shiftHandover: Boolean = false,
 ) {
     // Frozen while paused (see Estimasi.pausedAtAbsMin/effectiveRemaining) so a long Jeda doesn't
     // quietly count itself into OVERDUE against wall-clock time.
@@ -561,11 +559,15 @@ fun RadarCard(
                                 RadarTipeBadge(tipe = tipe)
                             }
                         }
-                        // Urgency icon, Bentrok and OPERAN SHIFT badges stay outside the mcNo/tipe
-                        // pill above (mirroring web's single .radar-card-title-row for placement)
-                        // — nesting their own already-bordered badges inside another persistent
-                        // box would read as boxes-within-a-box, and they're rare/conditional,
-                        // not part of the field the pill itself represents.
+                        // Urgency icon and Bentrok badge stay outside the mcNo/tipe pill above
+                        // (mirroring web's single .radar-card-title-row for placement) — nesting
+                        // their own already-bordered badges inside another persistent box would
+                        // read as boxes-within-a-box, and they're rare/conditional, not part of
+                        // the field the pill itself represents. Shift-handover used to get its own
+                        // badge here too, but it crowded this row into wrapping/truncating on
+                        // narrower cards — the single divider line RadarSection now draws above
+                        // the first handed-over card already says the same thing, once, for the
+                        // whole group.
                         if (clr.icon != null) {
                             // 15dp, not the 12dp everything else in this row uses — Material's
                             // Schedule/Warning outlines carry more internal linework than web's
@@ -586,15 +588,8 @@ fun RadarCard(
                                 text = "Bentrok Mc ${clashingMcNos.joinToString(", ")}",
                                 accent = Amber400,
                                 // Shrink-only: takes the room it needs, ellipsizing only when a
-                                // long clash list genuinely won't fit alongside mcNo/icon/shift.
+                                // long clash list genuinely won't fit alongside mcNo/icon.
                                 modifier = Modifier.weight(1f, fill = false),
-                            )
-                        }
-                        if (shiftHandover) {
-                            RadarCardBadge(
-                                icon = Icons.Outlined.SwapHoriz,
-                                text = "OPERAN SHIFT",
-                                accent = Orange400,
                             )
                         }
                     }
@@ -959,9 +954,9 @@ private fun PausedRadarCardFront(
     }
 }
 
-/** Small icon+label chip for a title-row badge (Bentrok/OPERAN SHIFT) — Android equivalent of
- * web's .radar-clash-badge/.shift-badge (RadarCard.tsx), a real vector icon instead of a raw
- * emoji glyph so it tints with [accent] and matches the rest of the icon system. */
+/** Small icon+label chip for a title-row badge (Bentrok) — Android equivalent of web's
+ * .radar-clash-badge (RadarCard.tsx), a real vector icon instead of a raw emoji glyph so it
+ * tints with [accent] and matches the rest of the icon system. */
 @Composable
 private fun RadarCardBadge(icon: ImageVector, text: String, accent: Color, modifier: Modifier = Modifier) {
     Row(
