@@ -2,7 +2,6 @@ package com.jekael.adoel.ui
 
 import android.content.Context
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
@@ -29,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jekael.adoel.data.*
 import com.jekael.adoel.ui.components.DoffEntryRowContent
+import com.jekael.adoel.ui.components.EditAktField
 import com.jekael.adoel.ui.components.EmptyState
 import com.jekael.adoel.ui.components.EmptyStateArt
 import com.jekael.adoel.ui.components.InlineActionPillSubtitle
@@ -43,6 +43,8 @@ fun LazyListScope.doffingSection(
     doffFilter: String,
     onDoffFilterChange: (String) -> Unit,
     onEntryClick: (Int) -> Unit,
+    onEditTipe: (String) -> Unit,
+    onEditSpecific: (Int, EditAktField) -> Unit,
     onHapusEntry: (Int) -> Unit,
 ) {
     if (state.aktual.isEmpty()) {
@@ -169,6 +171,8 @@ fun LazyListScope.doffingSection(
             mesin = state.db[entry.mcNo],
             num = idx + 1,
             onEdit = { onEntryClick(entry.id) },
+            onEditTipe = { onEditTipe(entry.mcNo) },
+            onEditSpecific = { field -> onEditSpecific(entry.id, field) },
             onHapus = { onHapusEntry(entry.id) },
             modifier = Modifier.animateItem(),
         )
@@ -181,13 +185,20 @@ private fun DoffingRow(
     entry: AktualEntry,
     mesin: MesinData?,
     num: Int,
+    // Swipe-right's own full-edit dialog (every field at once) — a gesture, not a tap or a
+    // pencil button, so it stays alongside the field-specific taps below rather than being
+    // removed by "hapus tombol pensil dan sentuh kartu untuk edit".
     onEdit: () -> Unit,
+    onEditTipe: () -> Unit,
+    onEditSpecific: (EditAktField) -> Unit,
     onHapus: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalAppColors.current
-    // Swipe right = edit, swipe left = hapus — matches RadarCard's swipe model.
-    // Also tap directly opens edit.
+    // Swipe right = edit (all fields), swipe left = hapus — matches RadarCard's swipe model.
+    // The row itself no longer has a whole-card tap or a pencil button: each field in
+    // DoffEntryRowContent below carries its own specific tap target instead (mcNo→tipe,
+    // corak/panjang/jam/keterangan→that one field).
     SwipeableCard(
         modifier = modifier.fillMaxWidth(),
         onSwipeRight = onEdit,
@@ -200,11 +211,14 @@ private fun DoffingRow(
             num = num,
             entry = entry,
             mesin = mesin,
-            onEdit = onEdit,
+            onEditTipe = onEditTipe,
+            onEditCorak = { onEditSpecific(EditAktField.CORAK) },
+            onEditYard = { onEditSpecific(EditAktField.YARD) },
+            onEditTime = { onEditSpecific(EditAktField.JAM) },
+            onEditKet = { onEditSpecific(EditAktField.KET) },
             modifier = Modifier
                 .fillMaxWidth()
                 .glossyListCard(baseColor = colors.bgElevated)
-                .clickable(onClick = onEdit)
                 .semantics(mergeDescendants = true) {
                     customActions = listOf(
                         CustomAccessibilityAction("Edit riwayat Mc ${entry.mcNo}") { onEdit(); true },

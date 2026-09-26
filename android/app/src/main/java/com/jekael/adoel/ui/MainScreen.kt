@@ -356,6 +356,8 @@ fun MainScreen(
                                 // column edits corak+target yard, the time column edits the
                                 // estimasi's own time — no more one tap target for two fields.
                                 onQuickEdit = { mcNo -> activeOverlay = ActiveOverlay.QuickEditMesin(mcNo) },
+                                onEditTipe = { mcNo -> activeOverlay = ActiveOverlay.QuickEditMesin(mcNo, QuickEditField.TIPE) },
+                                onEditCorak = { mcNo -> activeOverlay = ActiveOverlay.QuickEditMesin(mcNo, QuickEditField.CORAK) },
                                 onEditWaktu = { mcNo -> activeOverlay = ActiveOverlay.GuidedEstimasi(mcNo) },
                             )
                         }
@@ -366,6 +368,8 @@ fun MainScreen(
                                 doffFilter = doffFilter,
                                 onDoffFilterChange = { doffFilter = it },
                                 onEntryClick = { id -> activeOverlay = ActiveOverlay.EditAkt(id) },
+                                onEditTipe = { mcNo -> activeOverlay = ActiveOverlay.QuickEditMesin(mcNo, QuickEditField.TIPE) },
+                                onEditSpecific = { id, field -> activeOverlay = ActiveOverlay.EditAkt(id, field) },
                                 onHapusEntry = { id -> handlers.handleHapusAktual(id) { activeOverlay = ActiveOverlay.None } },
                             )
                         }
@@ -542,6 +546,7 @@ fun MainScreen(
                     doffVm.updateAktualInShift(shiftId, id, jam, ket, corakOverride, customYard)
                 },
                 onDeleteEntry = { shiftId, id -> doffVm.hapusAktualDariShift(shiftId, id) },
+                onSetMesin = { mcNo, data -> doffVm.setMesin(mcNo, data) },
                 onAddEntry = { shiftId, mcNo, jam, ket, corakOverride, customYard ->
                     doffVm.tambahAktualKeShift(shiftId, mcNo, jam, ket, corakOverride, customYard)
                 },
@@ -570,6 +575,7 @@ fun MainScreen(
             activeOverlay = ActiveOverlay.None
         }
     }
+    val editAktField = (activeOverlay as? ActiveOverlay.EditAkt)?.field ?: EditAktField.ALL
     val editAktEntry = editAktId?.let { id -> state.aktual.find { it.id == id } }
     if (editAktEntry != null) {
         EditAktSheet(
@@ -589,10 +595,12 @@ fun MainScreen(
             onAddCorakShortcut = { doffVm.addCorakShortcut(it) },
             onAddKeteranganShortcut = { doffVm.addKeteranganShortcut(it) },
             showToast = { uiVm.showToast(it) },
+            specificField = editAktField,
         )
     }
 
     val quickEditMcNo = (activeOverlay as? ActiveOverlay.QuickEditMesin)?.mcNo
+    val quickEditField = (activeOverlay as? ActiveOverlay.QuickEditMesin)?.field ?: QuickEditField.ALL
     if (quickEditMcNo != null) {
         val mesin = state.db[quickEditMcNo] ?: MesinData()
         QuickEditCorakDialog(
@@ -615,6 +623,7 @@ fun MainScreen(
             corakShortcuts = state.corakShortcuts,
             onAddCorakShortcut = { doffVm.addCorakShortcut(it) },
             showToast = { uiVm.showToast(it) },
+            specificField = quickEditField,
         )
     }
 

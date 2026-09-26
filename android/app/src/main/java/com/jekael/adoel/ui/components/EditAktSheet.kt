@@ -41,6 +41,12 @@ private fun extractExtraKeterangan(ket: String, jam: String): String {
     return m?.groupValues?.get(1) ?: ""
 }
 
+/** Which single field a tap on [com.jekael.adoel.ui.components.DoffEntryRowContent] asked to
+ * edit — [ALL] is the old whole-row/pencil behavior (every section shown), the other four each
+ * narrow the sheet to just that one field (Android equivalent of web's EditAktualDialog
+ * `specificField`, see DoffEntryRow.tsx/EditAktualDialog.tsx). */
+enum class EditAktField { ALL, JAM, KET, CORAK, YARD }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditAktSheet(
@@ -56,7 +62,9 @@ fun EditAktSheet(
     onAddCorakShortcut: (String) -> Unit = {},
     onAddKeteranganShortcut: (String) -> Unit = {},
     showToast: ((String) -> Unit)? = null,
+    specificField: EditAktField = EditAktField.ALL,
 ) {
+    val isSpecific = specificField != EditAktField.ALL
     val corakDefault = entry.corakOverride ?: mesin?.corak ?: ""
     val colors = LocalAppColors.current
 
@@ -100,6 +108,14 @@ fun EditAktSheet(
         focusRequester.requestFocus()
     }
 
+    val dialogTitle = when (specificField) {
+        EditAktField.JAM -> "Ubah Jam Potongan"
+        EditAktField.KET -> if (ketInput.trim().isNotEmpty()) "Ubah Keterangan" else "Tambah Keterangan"
+        EditAktField.CORAK -> "Ubah Corak Potongan"
+        EditAktField.YARD -> "Ubah Yard Potongan"
+        EditAktField.ALL -> "Edit Riwayat Potongan"
+    }
+
     FloatingEditDialog(onDismissRequest = onClose) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -109,7 +125,7 @@ fun EditAktSheet(
                 McBadgeBox(mcNo = entry.mcNo, boxWidth = 42.dp, boxHeight = 42.dp, numberFontSize = 16.sp)
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Edit Riwayat Potongan",
+                        text = dialogTitle,
                         style = TextStyle(fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = colors.textPrimary),
                     )
                     Text(
@@ -117,67 +133,74 @@ fun EditAktSheet(
                         style = TextStyle(fontSize = 11.sp, color = colors.textFaint),
                     )
                 }
-                IconButton(onClick = onDelete) { TrashIcon() }
+                if (!isSpecific) {
+                    IconButton(onClick = onDelete) { TrashIcon() }
+                }
             }
 
             Spacer(Modifier.height(Dimens.Space20))
 
-            FieldLabel("Jam")
-            ClearableOutlinedTextField(
-                value = jamInput,
-                onValueChange = { jamInput = it },
-                modifier = Modifier.focusRequester(focusRequester),
-                placeholder = "14.30",
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
-            )
+            if (!isSpecific || specificField == EditAktField.JAM) {
+                FieldLabel("Jam")
+                ClearableOutlinedTextField(
+                    value = jamInput,
+                    onValueChange = { jamInput = it },
+                    modifier = Modifier.focusRequester(focusRequester),
+                    placeholder = "14.30",
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
+                )
+                Spacer(Modifier.height(Dimens.Space16))
+            }
 
-            Spacer(Modifier.height(Dimens.Space16))
+            if (!isSpecific || specificField == EditAktField.CORAK) {
+                FieldLabel("Corak")
+                ClearableOutlinedTextField(
+                    value = corakInput,
+                    onValueChange = { corakInput = it },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
+                )
+                CorakShortcutPicker(
+                    value = corakInput,
+                    onSelect = { corakInput = it },
+                    shortcuts = corakShortcuts,
+                    onAddShortcut = onAddCorakShortcut,
+                    showToast = showToast,
+                )
+                Spacer(Modifier.height(Dimens.Space16))
+            }
 
-            FieldLabel("Corak")
-            ClearableOutlinedTextField(
-                value = corakInput,
-                onValueChange = { corakInput = it },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
-            )
-            CorakShortcutPicker(
-                value = corakInput,
-                onSelect = { corakInput = it },
-                shortcuts = corakShortcuts,
-                onAddShortcut = onAddCorakShortcut,
-                showToast = showToast,
-            )
+            if (!isSpecific || specificField == EditAktField.YARD) {
+                FieldLabel("Panjang / Batas Potong (yard)")
+                ClearableOutlinedTextField(
+                    value = yardInput,
+                    onValueChange = { yardInput = it },
+                    placeholder = mesin?.targetYard?.let { "Standar: ${formatYard(it)}y" },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
+                )
+                Spacer(Modifier.height(Dimens.Space16))
+            }
 
-            Spacer(Modifier.height(Dimens.Space16))
-
-            FieldLabel("Panjang / Batas Potong (yard)")
-            ClearableOutlinedTextField(
-                value = yardInput,
-                onValueChange = { yardInput = it },
-                placeholder = mesin?.targetYard?.let { "Standar: ${formatYard(it)}y" },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
-            )
-
-            Spacer(Modifier.height(Dimens.Space16))
-
-            FieldLabel("Keterangan (opsional)")
-            OutlinedTextField(
-                value = ketInput,
-                onValueChange = { ketInput = it },
-                modifier = Modifier.fillMaxWidth(),
-                colors = outlinedFieldColors(),
-                shape = RoundedCornerShape(Dimens.RadiusControl),
-                textStyle = AppType.FieldText.copy(color = colors.textPrimary),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = { doSave() }),
-                singleLine = true,
-            )
-            KeteranganShortcutPicker(
-                value = ketInput,
-                onSelect = { ketInput = it },
-                shortcuts = keteranganShortcuts,
-                onAddShortcut = onAddKeteranganShortcut,
-                showToast = showToast,
-            )
+            if (!isSpecific || specificField == EditAktField.KET) {
+                FieldLabel(if (isSpecific) "Keterangan" else "Keterangan (opsional)")
+                OutlinedTextField(
+                    value = ketInput,
+                    onValueChange = { ketInput = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = outlinedFieldColors(),
+                    shape = RoundedCornerShape(Dimens.RadiusControl),
+                    textStyle = AppType.FieldText.copy(color = colors.textPrimary),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = { doSave() }),
+                    singleLine = true,
+                )
+                KeteranganShortcutPicker(
+                    value = ketInput,
+                    onSelect = { ketInput = it },
+                    shortcuts = keteranganShortcuts,
+                    onAddShortcut = onAddKeteranganShortcut,
+                    showToast = showToast,
+                )
+            }
 
             Spacer(Modifier.height(Dimens.Space20))
 

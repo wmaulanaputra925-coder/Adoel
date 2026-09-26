@@ -81,10 +81,13 @@ import com.jekael.adoel.data.shiftNumberForEpochMin
 import com.jekael.adoel.data.sortAktualChronological
 import com.jekael.adoel.ui.components.CloseIcon
 import com.jekael.adoel.ui.components.DoffEntryRowContent
+import com.jekael.adoel.ui.components.EditAktField
 import com.jekael.adoel.ui.components.EditAktSheet
 import com.jekael.adoel.ui.components.EmptyState
 import com.jekael.adoel.ui.components.GlossyBadgeBox
 import com.jekael.adoel.ui.components.LinearProgressBar
+import com.jekael.adoel.ui.components.QuickEditCorakDialog
+import com.jekael.adoel.ui.components.QuickEditField
 import com.jekael.adoel.ui.components.ShiftHourlyTrendChart
 import com.jekael.adoel.ui.components.SlidePanel
 import com.jekael.adoel.ui.components.swipeRightToClose
@@ -125,6 +128,7 @@ fun StatistikScreen(
     onEditEntrySave: (shiftId: Int, id: Int, jam: String, ket: String, corakOverride: String?, customYard: Double?) -> Unit,
     onDeleteEntry: (shiftId: Int, id: Int) -> Unit,
     onAddEntry: (shiftId: Int, mcNo: String, jam: String, ket: String, corakOverride: String?, customYard: Double?) -> Unit,
+    onSetMesin: (mcNo: String, MesinData) -> Unit,
     corakShortcuts: List<String>? = null,
     keteranganShortcuts: List<String>? = null,
     onAddCorakShortcut: (String) -> Unit = {},
@@ -138,6 +142,11 @@ fun StatistikScreen(
     // entries aren't actually immutable, an operator can still spot a mistyped jam/corak/yard
     // after the fact, same as they could in Riwayat before "Selesai Shift" archived it here.
     var editingEntry by remember { mutableStateOf<Pair<Int, Int>?>(null) }
+    var editingField by remember { mutableStateOf(EditAktField.ALL) }
+    // Mc whose tipe mesin is being edited from a rincian row's mc-badge tap — a machine-wide
+    // setting (state.db), not part of the archived shift record itself, so it's tracked
+    // separately from [editingEntry]/[editingField].
+    var editTipeMcNo by remember { mutableStateOf<String?>(null) }
     // Shift a missed doff is being backfilled into, if any — see TambahAktSheet.
     var addingToShiftId by remember { mutableStateOf<Int?>(null) }
 
@@ -204,7 +213,11 @@ fun StatistikScreen(
                             onToggle = { expandedShiftId = if (expandedShiftId == shift.id) null else shift.id },
                             onDeleteShift = onDeleteShift,
                             showConfirm = showConfirm,
-                            onEditEntry = { entryId -> editingEntry = shift.id to entryId },
+                            onEditTipe = { mcNo -> editTipeMcNo = mcNo },
+                            onEditSpecific = { entryId, field ->
+                                editingEntry = shift.id to entryId
+                                editingField = field
+                            },
                             onAddEntry = { addingToShiftId = shift.id },
                             operatorNama = operatorNama,
                             operatorGrup = operatorGrup,
@@ -269,6 +282,30 @@ fun StatistikScreen(
                 onAddCorakShortcut = onAddCorakShortcut,
                 onAddKeteranganShortcut = onAddKeteranganShortcut,
                 showToast = showToast,
+                specificField = editingField,
+            )
+        }
+
+        val editTipeMc = editTipeMcNo
+        if (editTipeMc != null) {
+            val mesin = db[editTipeMc] ?: MesinData()
+            QuickEditCorakDialog(
+                mcNo = editTipeMc,
+                tipe = mesin.tipe,
+                corak = mesin.corak,
+                targetYard = mesin.targetYard,
+                speed = mesin.speed,
+                koreksi = mesin.koreksi,
+                onDismiss = { editTipeMcNo = null },
+                onSave = { tipe, corak, targetYard, speed, koreksi ->
+                    onSetMesin(editTipeMc, mesin.copy(tipe = tipe, corak = corak, targetYard = targetYard, speed = speed, koreksi = koreksi))
+                    showToast("Mc $editTipeMc disimpan ✓")
+                    editTipeMcNo = null
+                },
+                corakShortcuts = corakShortcuts,
+                onAddCorakShortcut = onAddCorakShortcut,
+                showToast = showToast,
+                specificField = QuickEditField.TIPE,
             )
         }
 
@@ -578,7 +615,8 @@ private fun ShiftRow(
     onToggle: () -> Unit,
     onDeleteShift: (Int) -> Unit,
     showConfirm: (String, () -> Unit) -> Unit,
-    onEditEntry: (entryId: Int) -> Unit,
+    onEditTipe: (mcNo: String) -> Unit,
+    onEditSpecific: (entryId: Int, field: EditAktField) -> Unit,
     onAddEntry: () -> Unit,
     operatorNama: String,
     operatorGrup: String,
@@ -741,7 +779,7 @@ private fun ShiftRow(
                             }
                         }
                         Text(
-                            "Ketuk baris untuk edit",
+                            "Ketuk mesin/corak/jam untuk edit",
                             style = TextStyle(fontSize = 10.5.sp, color = colors.textFaint, fontStyle = FontStyle.Italic),
                         )
                     }
@@ -753,16 +791,16 @@ private fun ShiftRow(
                         num = index + 1,
                         entry = entry,
                         mesin = db[entry.mcNo],
-                        onEdit = { onEditEntry(entry.id) },
+                        onEditTipe = { onEditTipe(entry.mcNo) },
+                        onEditCorak = { onEditSpecific(entry.id, EditAktField.CORAK) },
+                        onEditYard = { onEditSpecific(entry.id, EditAktField.YARD) },
+                        onEditTime = { onEditSpecific(entry.id, EditAktField.JAM) },
+                        onEditKet = { onEditSpecific(entry.id, EditAktField.KET) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 2.dp)
                             .clip(RoundedCornerShape(8.dp))
                             .background(colors.bgElevated2)
-                            // Wins over the shift card's own onToggle clickable above it (innermost
-                            // clickable consumes the tap) — tapping a single archived entry opens
-                            // edit for just that record instead of collapsing the whole shift.
-                            .clickable(onClickLabel = "Edit riwayat Mc ${entry.mcNo}") { onEditEntry(entry.id) }
                             .padding(horizontal = 10.dp, vertical = 8.dp),
                     )
                 }

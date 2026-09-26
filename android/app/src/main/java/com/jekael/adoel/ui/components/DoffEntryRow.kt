@@ -2,8 +2,8 @@ package com.jekael.adoel.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -12,24 +12,20 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Straighten
 import androidx.compose.material.icons.outlined.Texture
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -61,7 +57,11 @@ fun DoffEntryRowContent(
     entry: AktualEntry,
     mesin: MesinData?,
     modifier: Modifier = Modifier,
-    onEdit: (() -> Unit)? = null,
+    onEditTipe: (() -> Unit)? = null,
+    onEditCorak: (() -> Unit)? = null,
+    onEditYard: (() -> Unit)? = null,
+    onEditTime: (() -> Unit)? = null,
+    onEditKet: (() -> Unit)? = null,
 ) {
     val colors = LocalAppColors.current
     val corak = entry.corakOverride ?: mesin?.corak ?: "—"
@@ -83,10 +83,21 @@ fun DoffEntryRowContent(
 
     Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
         GlossyBadgeBox(label = "NO", value = "$num", boxWidth = 42.dp, valueFontSize = 15.sp)
-        McBadgeBox(mcNo = entry.mcNo)
+        McBadgeBox(
+            mcNo = entry.mcNo,
+            modifier = onEditTipe?.let {
+                Modifier.clickable(onClickLabel = "Ubah tipe mesin Mc ${entry.mcNo}", onClick = it)
+            } ?: Modifier,
+        )
 
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(
+                modifier = onEditCorak?.let {
+                    Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .clickable(onClickLabel = "Ubah corak Mc ${entry.mcNo}", onClick = it)
+                        .padding(horizontal = 4.dp, vertical = 2.dp)
+                } ?: Modifier,
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
@@ -117,62 +128,46 @@ fun DoffEntryRowContent(
                     icon = Icons.Outlined.Straighten,
                     text = if (yard != null) "${formatYard(yard)}y" else "—",
                     tint = Cyan400,
+                    onClick = onEditYard,
+                    onClickLabel = "Ubah panjang Mc ${entry.mcNo}",
                 )
-                MetaTagPill(icon = Icons.Outlined.Schedule, text = entry.jam, tint = null)
+                MetaTagPill(
+                    icon = Icons.Outlined.Schedule,
+                    text = entry.jam,
+                    tint = null,
+                    onClick = onEditTime,
+                    onClickLabel = "Ubah jam Mc ${entry.mcNo}",
+                )
                 if (ketCode.isNotEmpty()) {
                     MetaTagPill(
                         icon = null,
                         text = ketCode,
                         tint = ketColor,
+                        onClick = onEditKet,
+                        onClickLabel = "Ubah keterangan Mc ${entry.mcNo}",
                         modifier = Modifier.widthIn(max = 110.dp),
                     )
+                } else if (onEditKet != null) {
+                    AddKeteranganPill(onClick = onEditKet, mcNo = entry.mcNo)
                 }
             }
-        }
-
-        if (onEdit != null) {
-            EditCircleButton(onClick = onEdit)
-        }
-    }
-}
-
-/** Edit-pencil affordance at the row's trailing edge — visible alongside whatever the caller's
- * own container already does for editing (a whole-row tap, or Riwayat's swipe-right), the same
- * way web keeps its `action-circle-btn` next to an equally-clickable row. Sized 40dp so the touch
- * target clears the ~44dp minimum this app uses elsewhere, even though the glossy circle itself
- * reads smaller (web's own 32px circle is undersized against the 44px standard it promotes for
- * every other tap target — not copied here). */
-@Composable
-private fun EditCircleButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
-    val colors = LocalAppColors.current
-    IconButton(onClick = onClick, modifier = modifier.size(40.dp)) {
-        Box(
-            modifier = Modifier
-                .size(32.dp)
-                .clip(CircleShape)
-                .background(Brush.verticalGradient(listOf(lerp(colors.bgElevated, Color.White, 0.10f), colors.bgElevated)))
-                .border(1.dp, colors.border, CircleShape),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.Edit,
-                contentDescription = "Edit",
-                tint = colors.textSecondary,
-                modifier = Modifier.size(15.dp),
-            )
         }
     }
 }
 
 /** One meta pill (Panjang/Jam/Keterangan) below the corak line — untinted (neutral) when [tint]
  * is null, otherwise washed in [tint] for the yard chip and for a flagged (MATCHING/HB)
- * keterangan. */
+ * keterangan. Tappable (with the same border, just no fill-in feedback beyond the ripple) when
+ * [onClick] is supplied — Riwayat/Statistik wire one per field, RadarCard's own pills stay
+ * display-only. */
 @Composable
 private fun MetaTagPill(
     icon: ImageVector?,
     text: String,
     tint: Color?,
     modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
+    onClickLabel: String? = null,
 ) {
     val colors = LocalAppColors.current
     val shape = RoundedCornerShape(6.dp)
@@ -185,6 +180,7 @@ private fun MetaTagPill(
             .clip(shape)
             .background(bg)
             .border(1.dp, border, shape)
+            .then(if (onClick != null) Modifier.clickable(onClickLabel = onClickLabel, onClick = onClick) else Modifier)
             .padding(horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -197,6 +193,33 @@ private fun MetaTagPill(
             style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold, color = fg),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
+            softWrap = false,
+        )
+    }
+}
+
+/** "+ Keterangan" pill shown in the keterangan slot in place of [MetaTagPill] when the entry
+ * carries none yet — a dashed cyan-tinted invitation to add one, Android equivalent of web's
+ * `.meta-tag.ket.add-ket-btn` (DoffEntryRow.tsx/index.css). */
+@Composable
+private fun AddKeteranganPill(onClick: () -> Unit, mcNo: String) {
+    val shape = RoundedCornerShape(6.dp)
+    Row(
+        modifier = Modifier
+            .height(22.dp)
+            .clip(shape)
+            .background(Cyan400.copy(alpha = 0.08f))
+            .border(1.dp, Cyan400.copy(alpha = 0.45f), shape)
+            .clickable(onClickLabel = "Tambah keterangan Mc $mcNo", onClick = onClick)
+            .padding(horizontal = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Icon(imageVector = Icons.Outlined.Add, contentDescription = null, tint = Cyan400, modifier = Modifier.size(11.dp))
+        Text(
+            "+ Keterangan",
+            style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Cyan400),
+            maxLines = 1,
             softWrap = false,
         )
     }

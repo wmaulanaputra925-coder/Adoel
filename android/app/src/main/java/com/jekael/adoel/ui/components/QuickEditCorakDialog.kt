@@ -40,6 +40,12 @@ import com.jekael.adoel.ui.theme.LocalAppColors
  * calibration. The fuller helpers (koreksi +/- stepper, "hitung dari jam") stay behind the full
  * Settings editor (MesinEditPanel) — this dialog is deliberately just the plain fields.
  */
+/** Which field a tap on RadarCard's own title-row zones asked to edit — [ALL] is the old
+ * combined dialog (every section shown), [TIPE]/[CORAK] each narrow it to just that zone's field,
+ * Android equivalent of web's split into EditTipeDialog vs the corak section of
+ * EditAktualDialog/RadarCard's corak-zone (see RadarCard.tsx/EditTipeDialog.tsx). */
+enum class QuickEditField { ALL, TIPE, CORAK }
+
 @Composable
 fun QuickEditCorakDialog(
     mcNo: String,
@@ -53,6 +59,7 @@ fun QuickEditCorakDialog(
     corakShortcuts: List<String>? = null,
     onAddCorakShortcut: (String) -> Unit = {},
     showToast: ((String) -> Unit)? = null,
+    specificField: QuickEditField = QuickEditField.ALL,
 ) {
     val colors = LocalAppColors.current
     var tipeInput by remember(mcNo) { mutableStateOf(tipe) }
@@ -60,6 +67,12 @@ fun QuickEditCorakDialog(
     var targetYardInput by remember(mcNo) { mutableStateOf(targetYard?.let { formatYard(it) } ?: "") }
     var speedInput by remember(mcNo) { mutableStateOf(speed?.let { formatYard(it) } ?: "") }
     var koreksiInput by remember(mcNo) { mutableStateOf(koreksi?.let { formatYard(it) } ?: "") }
+    val isSpecific = specificField != QuickEditField.ALL
+    val dialogTitle = when (specificField) {
+        QuickEditField.TIPE -> "Ubah Tipe Mesin"
+        QuickEditField.CORAK -> "Ubah Corak & Yard"
+        QuickEditField.ALL -> "Ganti Cepat"
+    }
 
     FloatingEditDialog(onDismissRequest = onDismiss) {
         Row(
@@ -70,7 +83,7 @@ fun QuickEditCorakDialog(
             McBadgeBox(mcNo = mcNo, boxWidth = 42.dp, boxHeight = 42.dp, numberFontSize = 16.sp)
             Column {
                 Text(
-                    text = "Ganti Cepat",
+                    text = dialogTitle,
                     style = TextStyle(fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = colors.textPrimary),
                 )
                 Text(
@@ -82,59 +95,65 @@ fun QuickEditCorakDialog(
 
         Spacer(Modifier.height(Dimens.Space16))
 
-        FieldLabel("Tipe Mesin")
-        Row(horizontalArrangement = Arrangement.spacedBy(Dimens.Space8)) {
-            MesinTipe.entries.forEach { t ->
-                ChipBtn(t.name, tipeInput == t) { tipeInput = t }
+        if (!isSpecific || specificField == QuickEditField.TIPE) {
+            FieldLabel("Tipe Mesin")
+            Row(horizontalArrangement = Arrangement.spacedBy(Dimens.Space8)) {
+                MesinTipe.entries.forEach { t ->
+                    ChipBtn(t.name, tipeInput == t) { tipeInput = t }
+                }
             }
+            Spacer(Modifier.height(Dimens.Space16))
         }
 
-        Spacer(Modifier.height(Dimens.Space16))
-
-        FieldLabel("Corak")
-        ClearableOutlinedTextField(
-            value = corakInput,
-            onValueChange = { corakInput = it },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-        )
-        CorakShortcutPicker(
-            value = corakInput,
-            onSelect = { corakInput = it },
-            shortcuts = corakShortcuts,
-            onAddShortcut = onAddCorakShortcut,
-            showToast = showToast,
-        )
-
-        Spacer(Modifier.height(Dimens.Space16))
-
-        FieldLabel("Target Yard")
-        ClearableOutlinedTextField(
-            value = targetYardInput,
-            onValueChange = { targetYardInput = it },
-            placeholder = "opsional",
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-        )
-
-        if (tipeInput == MesinTipe.D405) {
-            Spacer(Modifier.height(Dimens.Space16))
-            FieldLabel("Speed (yard/menit)")
+        if (!isSpecific || specificField == QuickEditField.CORAK) {
+            FieldLabel("Corak")
             ClearableOutlinedTextField(
-                value = speedInput,
-                onValueChange = { speedInput = it },
-                placeholder = "contoh: 0.158",
+                value = corakInput,
+                onValueChange = { corakInput = it },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            )
+            CorakShortcutPicker(
+                value = corakInput,
+                onSelect = { corakInput = it },
+                shortcuts = corakShortcuts,
+                onAddShortcut = onAddCorakShortcut,
+                showToast = showToast,
+            )
+
+            Spacer(Modifier.height(Dimens.Space16))
+
+            FieldLabel("Target Yard")
+            ClearableOutlinedTextField(
+                value = targetYardInput,
+                onValueChange = { targetYardInput = it },
+                placeholder = "opsional",
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             )
+            Spacer(Modifier.height(Dimens.Space16))
         }
 
-        if (tipeInput == MesinTipe.D408) {
-            Spacer(Modifier.height(Dimens.Space16))
-            FieldLabel("Koreksi Counter (menit)")
-            ClearableOutlinedTextField(
-                value = koreksiInput,
-                onValueChange = { koreksiInput = it },
-                placeholder = "contoh: 0 atau -15",
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            )
+        if (!isSpecific || specificField == QuickEditField.TIPE) {
+            if (tipeInput == MesinTipe.D405) {
+                FieldLabel("Speed (yard/menit)")
+                ClearableOutlinedTextField(
+                    value = speedInput,
+                    onValueChange = { speedInput = it },
+                    placeholder = "contoh: 0.158",
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                )
+                Spacer(Modifier.height(Dimens.Space16))
+            }
+
+            if (tipeInput == MesinTipe.D408) {
+                FieldLabel("Koreksi Counter (menit)")
+                ClearableOutlinedTextField(
+                    value = koreksiInput,
+                    onValueChange = { koreksiInput = it },
+                    placeholder = "contoh: 0 atau -15",
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                )
+                Spacer(Modifier.height(Dimens.Space16))
+            }
         }
 
         Spacer(Modifier.height(Dimens.Space20))

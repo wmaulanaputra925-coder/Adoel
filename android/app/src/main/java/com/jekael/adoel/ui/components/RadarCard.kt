@@ -111,6 +111,11 @@ fun RadarCard(
     // edit the estimasi's own time instead — two different fields, two different tap zones,
     // rather than one tap target guessing which the operator meant (Master Blueprint v9.2 §2).
     onQuickEdit: () -> Unit,
+    // Tap the mcNo/tipe badge specifically: edit tipe mesin. Tap corak specifically: edit corak +
+    // target yard. Both fall back to [onQuickEdit] (the old combined dialog) when the caller
+    // doesn't wire a specific one, same as web's handleEditTipe/handleEditCorak (RadarCard.tsx).
+    onEditTipe: (() -> Unit)? = null,
+    onEditCorak: (() -> Unit)? = null,
     onEditWaktu: () -> Unit,
     modifier: Modifier = Modifier,
     entranceDelayMs: Long = 0L,
@@ -277,8 +282,10 @@ fun RadarCard(
     }
 
     val mcNoZoneInteraction = remember(est.mcNo) { MutableInteractionSource() }
+    val corakZoneInteraction = remember(est.mcNo) { MutableInteractionSource() }
     val waktuZoneInteraction = remember(est.mcNo) { MutableInteractionSource() }
     ChargeWhilePressed(mcNoZoneInteraction, pressCharge, clr.pulse, haptic)
+    ChargeWhilePressed(corakZoneInteraction, pressCharge, clr.pulse, haptic)
     ChargeWhilePressed(waktuZoneInteraction, pressCharge, clr.pulse, haptic)
 
     // Staggered fade+rise entrance when a batch of cards first appears (e.g. switching into
@@ -357,9 +364,12 @@ fun RadarCard(
     if (isPaused) {
         PausedRadarCardFront(
             est = est,
+            mesin = mesin,
             remaining = remaining,
             corakLine = corakLine,
             onQuickEdit = onQuickEdit,
+            onEditTipe = onEditTipe,
+            onEditCorak = onEditCorak,
             onLanjutkan = onLanjutkan,
             onHapus = onHapus,
             entranceAlpha = entranceAlpha.value,
@@ -514,43 +524,48 @@ fun RadarCard(
                 // shrinking the effective press-and-hold area down to a thin strip around the
                 // split zones instead of covering the whole card. Its own interactionSource feeds
                 // [ChargeWhilePressed] above so holding here charges the same as the edge does.
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .combinedClickable(
-                            interactionSource = mcNoZoneInteraction,
-                            indication = LocalIndication.current,
-                            enabled = frontVisible,
-                            onClickLabel = "Ubah corak dan target yard Mc ${est.mcNo}",
-                            onClick = onQuickEdit,
-                            onLongClickLabel = "Jeda atau hapus Mc ${est.mcNo}",
-                            onLongClick = { handleLongPressFlip(Offset.Zero) },
-                        ),
-                ) {
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(Dimens.Space8),
                     ) {
-                        Text(
-                            text = est.mcNo,
-                            // A 3-digit mcNo at the 2-digit size wraps mid-number in a half-width
-                            // grid card (e.g. "104" breaking into "10"/"4") — shrink it instead of
-                            // letting it wrap, since maxLines=1 alone would just clip a digit.
-                            style = TextStyle(
-                                fontSize = if (est.mcNo.length >= 3) 30.sp else 40.sp,
-                                fontWeight = FontWeight.Black,
-                                letterSpacing = (-2).sp,
-                                color = colors.textPrimary,
-                            ),
-                            maxLines = 1,
-                            softWrap = false,
-                        )
-                        // Urgency icon, Bentrok and OPERAN SHIFT badges all run inline next to mcNo
-                        // now, center-aligned — mirroring web's single .radar-card-title-row —
-                        // instead of the dedicated weighted type-line column this used to anchor
-                        // around: with the machine-type icon/label gone, that column would else be
-                        // left rendering as dead blank space whenever none of these three are shown.
+                        // Persistent bordered pill, not just a hover-tint — the box itself is the
+                        // tap target's visible boundary (Master Blueprint v9.2 §2's field split,
+                        // taken further than AI Studio's own web version currently does: its
+                        // `.radar-card-mc-zone` only tints on hover, see index.css).
+                        RadarZoneBox(
+                            onClickLabel = "Ubah tipe mesin Mc ${est.mcNo}",
+                            onClick = { onEditTipe?.invoke() ?: onQuickEdit() },
+                            onLongClickLabel = "Jeda atau hapus Mc ${est.mcNo}",
+                            onLongClick = { handleLongPressFlip(Offset.Zero) },
+                            interactionSource = mcNoZoneInteraction,
+                            enabled = frontVisible,
+                        ) {
+                            Text(
+                                text = est.mcNo,
+                                // A 3-digit mcNo at the 2-digit size wraps mid-number in a half-width
+                                // grid card (e.g. "104" breaking into "10"/"4") — shrink it instead of
+                                // letting it wrap, since maxLines=1 alone would just clip a digit.
+                                style = TextStyle(
+                                    fontSize = if (est.mcNo.length >= 3) 30.sp else 40.sp,
+                                    fontWeight = FontWeight.Black,
+                                    letterSpacing = (-2).sp,
+                                    color = colors.textPrimary,
+                                ),
+                                maxLines = 1,
+                                softWrap = false,
+                            )
+                            val tipe = mesin?.tipe
+                            if (tipe != null) {
+                                RadarTipeBadge(tipe = tipe)
+                            }
+                        }
+                        // Urgency icon, Bentrok and OPERAN SHIFT badges stay outside the mcNo/tipe
+                        // pill above (mirroring web's single .radar-card-title-row for placement)
+                        // — nesting their own already-bordered badges inside another persistent
+                        // box would read as boxes-within-a-box, and they're rare/conditional,
+                        // not part of the field the pill itself represents.
                         if (clr.icon != null) {
                             // 15dp, not the 12dp everything else in this row uses — Material's
                             // Schedule/Warning outlines carry more internal linework than web's
@@ -583,7 +598,14 @@ fun RadarCard(
                             )
                         }
                     }
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Dimens.Space4)) {
+                    RadarZoneBox(
+                        onClickLabel = "Ubah corak Mc ${est.mcNo}",
+                        onClick = { onEditCorak?.invoke() ?: onQuickEdit() },
+                        onLongClickLabel = "Jeda atau hapus Mc ${est.mcNo}",
+                        onLongClick = { handleLongPressFlip(Offset.Zero) },
+                        interactionSource = corakZoneInteraction,
+                        enabled = frontVisible,
+                    ) {
                         // Small standard Material icon marking "this line is about the fabric
                         // itself" (corak/yard) — not a fabric illustration, just a modest visual
                         // anchor next to the one line of text that's actually about the kain,
@@ -601,7 +623,6 @@ fun RadarCard(
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
-                    Spacer(Modifier.height(6.dp))
                     LinearProgressBar(
                         fraction = progress,
                         trackColor = colors.bgElevated2,
@@ -612,30 +633,21 @@ fun RadarCard(
                     )
                 }
 
-                // Right: ping dot + estimated time + remaining
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                // Right: ping dot + estimated time + remaining — same persistent boxed-pill
+                // treatment as the mcNo/corak zones above, its own copy of the long-press-flip
+                // (see those zones' comment for why) via [waktuZoneInteraction].
+                RadarZoneBox(
+                    onClickLabel = "Ubah waktu estimasi Mc ${est.mcNo}",
+                    onClick = onEditWaktu,
+                    onLongClickLabel = "Jeda atau hapus Mc ${est.mcNo}",
+                    onLongClick = { handleLongPressFlip(Offset.Zero) },
+                    interactionSource = waktuZoneInteraction,
+                    enabled = frontVisible,
                 ) {
                     if (showDot) {
                         PingDot(color = if (remaining < 0) Red500 else Emerald500)
                     }
-                    Column(
-                        horizontalAlignment = Alignment.End,
-                        // Same long-press-to-flip as the mcNo/corak zone above — see that
-                        // comment for why this zone needs its own copy instead of relying on the
-                        // outer Box's detector, and its own interactionSource for the same
-                        // press-charge reason too.
-                        modifier = Modifier.combinedClickable(
-                            interactionSource = waktuZoneInteraction,
-                            indication = LocalIndication.current,
-                            enabled = frontVisible,
-                            onClickLabel = "Ubah waktu estimasi Mc ${est.mcNo}",
-                            onClick = onEditWaktu,
-                            onLongClickLabel = "Jeda atau hapus Mc ${est.mcNo}",
-                            onLongClick = { handleLongPressFlip(Offset.Zero) },
-                        ),
-                    ) {
+                    Column(horizontalAlignment = Alignment.End) {
                         Text(
                             text = absMinToTimeStr(est.estAbsMin),
                             style = TextStyle(
@@ -828,9 +840,12 @@ private fun CardActionsFace(
 @Composable
 private fun PausedRadarCardFront(
     est: Estimasi,
+    mesin: MesinData?,
     remaining: Long,
     corakLine: String,
     onQuickEdit: () -> Unit,
+    onEditTipe: (() -> Unit)?,
+    onEditCorak: (() -> Unit)?,
     onLanjutkan: () -> Unit,
     onHapus: () -> Unit,
     entranceAlpha: Float,
@@ -838,6 +853,8 @@ private fun PausedRadarCardFront(
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalAppColors.current
+    val mcNoZoneInteraction = remember(est.mcNo) { MutableInteractionSource() }
+    val corakZoneInteraction = remember(est.mcNo) { MutableInteractionSource() }
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -878,25 +895,46 @@ private fun PausedRadarCardFront(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(
-                modifier = Modifier
-                    .weight(1f, fill = false)
-                    .clickable(onClickLabel = "Ubah corak dan target yard Mc ${est.mcNo}", onClick = onQuickEdit),
+                modifier = Modifier.weight(1f, fill = false),
                 verticalArrangement = Arrangement.spacedBy(3.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Dimens.Space6)) {
-                    Text(
-                        text = est.mcNo,
-                        style = TextStyle(
-                            fontSize = if (est.mcNo.length >= 3) 23.sp else 27.sp,
-                            fontWeight = FontWeight.Black,
-                            color = colors.textPrimary,
-                        ),
-                        maxLines = 1,
-                        softWrap = false,
-                    )
+                    // Same persistent boxed pill as the active card's mcNo/tipe zone — no
+                    // long-press here (paused cards don't flip, see this composable's own doc
+                    // comment), so onLongClick is a no-op.
+                    RadarZoneBox(
+                        onClickLabel = "Ubah tipe mesin Mc ${est.mcNo}",
+                        onClick = { onEditTipe?.invoke() ?: onQuickEdit() },
+                        onLongClickLabel = "",
+                        onLongClick = {},
+                        interactionSource = mcNoZoneInteraction,
+                        enabled = true,
+                    ) {
+                        Text(
+                            text = est.mcNo,
+                            style = TextStyle(
+                                fontSize = if (est.mcNo.length >= 3) 23.sp else 27.sp,
+                                fontWeight = FontWeight.Black,
+                                color = colors.textPrimary,
+                            ),
+                            maxLines = 1,
+                            softWrap = false,
+                        )
+                        val tipe = mesin?.tipe
+                        if (tipe != null) {
+                            RadarTipeBadge(tipe = tipe)
+                        }
+                    }
                     RadarCardBadge(icon = Icons.Outlined.Pause, text = "DIJEDA", accent = Amber400)
                 }
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Dimens.Space4)) {
+                RadarZoneBox(
+                    onClickLabel = "Ubah corak Mc ${est.mcNo}",
+                    onClick = { onEditCorak?.invoke() ?: onQuickEdit() },
+                    onLongClickLabel = "",
+                    onLongClick = {},
+                    interactionSource = corakZoneInteraction,
+                    enabled = true,
+                ) {
                     Icon(imageVector = Icons.Outlined.Texture, contentDescription = null, tint = colors.textFaint, modifier = Modifier.size(11.dp))
                     Text(
                         text = corakLine,
@@ -942,6 +980,69 @@ private fun RadarCardBadge(icon: ImageVector, text: String, accent: Color, modif
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
+    }
+}
+
+/** Persistent bordered pill wrapping one of RadarCard's own field zones (mcNo/tipe, corak,
+ * waktu) — the box itself is also the tap target's visible boundary, the same boxed-pill
+ * language [MetaTagPill]/[McBadgeBox] already use elsewhere in the app. AI Studio's own web
+ * version still only tints these zones on `:hover` with no border at rest
+ * (`.radar-card-mc-zone`/`-corak-zone`/`-time` in index.css) — this goes further on purpose, per
+ * the redesign request to bring RadarCard's zones in line with every other card's pill treatment.
+ * Each zone keeps its own copy of long-press-to-flip (see the mcNo/corak zone's own comment at
+ * the call site) since combinedClickable here would otherwise swallow the outer Box's long-press
+ * detector before it ever sees the gesture. */
+@Composable
+private fun RadarZoneBox(
+    onClickLabel: String,
+    onClick: () -> Unit,
+    onLongClickLabel: String,
+    onLongClick: () -> Unit,
+    interactionSource: MutableInteractionSource,
+    enabled: Boolean,
+    modifier: Modifier = Modifier,
+    content: @Composable RowScope.() -> Unit,
+) {
+    val colors = LocalAppColors.current
+    val shape = RoundedCornerShape(10.dp)
+    Row(
+        modifier = modifier
+            .clip(shape)
+            .background(Brush.verticalGradient(listOf(lerp(colors.bgElevated2, Color.White, 0.05f), colors.bgElevated2)))
+            .border(1.dp, colors.border, shape)
+            .combinedClickable(
+                interactionSource = interactionSource,
+                indication = LocalIndication.current,
+                enabled = enabled,
+                onClickLabel = onClickLabel,
+                onClick = onClick,
+                onLongClickLabel = onLongClickLabel,
+                onLongClick = onLongClick,
+            )
+            .padding(horizontal = 9.dp, vertical = 5.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        content = content,
+    )
+}
+
+/** Small tipe-mesin badge sitting inline next to mcNo inside its [RadarZoneBox] — Android
+ * equivalent of web's `.radar-card-tipe-pill` (RadarCard.tsx/index.css), reusing the same
+ * icon/color-per-tipe language as [MesinTipeIcon]/[mesinTipeColor] instead of a plain text chip. */
+@Composable
+private fun RadarTipeBadge(tipe: MesinTipe, modifier: Modifier = Modifier) {
+    val accent = mesinTipeColor(tipe)
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(6.dp))
+            .background(accent.copy(alpha = 0.16f))
+            .border(1.dp, accent.copy(alpha = 0.35f), RoundedCornerShape(6.dp))
+            .padding(horizontal = 6.dp, vertical = 2.dp),
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        MesinTipeIcon(tipe = tipe, tint = accent, modifier = Modifier.size(9.dp))
+        Text(tipe.name, style = TextStyle(fontSize = 9.sp, fontWeight = FontWeight.Black, color = accent))
     }
 }
 
