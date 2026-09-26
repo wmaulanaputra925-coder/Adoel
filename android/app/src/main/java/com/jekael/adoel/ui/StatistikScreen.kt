@@ -64,6 +64,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jekael.adoel.data.MesinData
@@ -592,18 +593,31 @@ private fun DoffCountChart(history: List<ShiftRecord>, selectedShiftId: Int?, on
         }
         HorizontalDivider(color = colors.border)
         Spacer(Modifier.height(Dimens.Space4))
+        // A "DD/MM" label under every one of up to 10 bars sharing one row had no room to
+        // breathe — each got clipped down to 4 of its 5 characters ("31/0" instead of "31/08"),
+        // impossible to read confidently. Thinning to roughly one label per every few bars
+        // (always keeping the first and the most recent) gives the ones that remain real room:
+        // TextOverflow.Visible lets a shown label paint past its own narrow column into the
+        // now-empty ones beside it — never a real neighbor, since those are unlabeled — instead
+        // of clipping its last character away.
+        val labelStride = ((recent.size + 4) / 5).coerceAtLeast(1)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            recent.forEach { shift ->
-                Text(
-                    text = formatShiftShortDate(shift.startedAtEpochMin),
-                    modifier = Modifier.weight(1f),
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                    style = TextStyle(fontSize = 12.sp, color = colors.textFaint),
-                )
+            recent.forEachIndexed { index, shift ->
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                    if (index % labelStride == 0 || index == recent.lastIndex) {
+                        Text(
+                            text = formatShiftShortDate(shift.startedAtEpochMin),
+                            textAlign = TextAlign.Center,
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = TextOverflow.Visible,
+                            style = TextStyle(fontSize = 11.sp, color = colors.textFaint),
+                        )
+                    }
+                }
             }
         }
     }
