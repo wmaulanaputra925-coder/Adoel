@@ -504,12 +504,14 @@ fun RadarCard(
             )
 
             // Content — swipe right = doff, swipe left = doff+Matching, long-press = hapus.
-            // Symmetric padding now that the accent is back to a flush 4dp strip (no more wide
-            // pill inset to clear on the start side).
+            // Top/bottom trimmed to Space12 (start/end stay at the wider Space16, still the
+            // horizontal tap-target margin) — with a whole radar list's worth of these cards on
+            // screen at once, this is pure whitespace being spent per card, not anything the two
+            // hero numbers below need to stay legible.
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = Dimens.Space16, end = Dimens.Space16, top = Dimens.Space16, bottom = Dimens.Space16),
+                    .padding(start = Dimens.Space16, end = Dimens.Space16, top = Dimens.Space12, bottom = Dimens.Space12),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -522,7 +524,7 @@ fun RadarCard(
                 // shrinking the effective press-and-hold area down to a thin strip around the
                 // split zones instead of covering the whole card. Its own interactionSource feeds
                 // [ChargeWhilePressed] above so holding here charges the same as the edge does.
-                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
@@ -1014,7 +1016,7 @@ private fun RadarZoneBox(
                 onLongClickLabel = onLongClickLabel,
                 onLongClick = onLongClick,
             )
-            .padding(horizontal = 9.dp, vertical = 5.dp),
+            .padding(horizontal = 9.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         content = content,
