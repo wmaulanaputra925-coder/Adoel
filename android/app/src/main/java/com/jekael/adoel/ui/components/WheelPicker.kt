@@ -185,10 +185,13 @@ fun WheelColumn(
             .scrollable(
                 state = scrollableState,
                 orientation = Orientation.Vertical,
-                // Dragging down should bring the *previous* (smaller) value to the center — the
-                // same physical-dial feel every other swipe in this app uses — which is the
-                // opposite of scrollable()'s own default sense for a downward drag.
-                reverseDirection = true,
+                // Dragging down should bring the *previous* (smaller) value to the center, same
+                // as every other physical-dial/list feel in this app (drag down = go back to
+                // earlier/smaller values, drag up = advance to later/larger ones). The previous
+                // `true` here had that backwards on a real device — reported as the wheel feeling
+                // "terbalik" (inverted) once actually tested — so this is now `false`, matching
+                // scrollable()'s own default sense for a downward drag rather than fighting it.
+                reverseDirection = false,
                 flingBehavior = ScrollableDefaults.flingBehavior(),
             ),
         contentAlignment = Alignment.Center,
