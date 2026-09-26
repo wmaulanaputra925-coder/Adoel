@@ -228,6 +228,7 @@ internal fun MesinTab(
 
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = Dimens.Space12),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             item(key = "top_spacer") { Spacer(Modifier.height(10.dp + headerHeight + Dimens.Space16)) }

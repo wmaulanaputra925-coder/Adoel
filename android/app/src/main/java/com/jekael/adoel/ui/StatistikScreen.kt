@@ -187,10 +187,10 @@ fun StatistikScreen(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(
-                        start = 20.dp,
-                        end = 20.dp,
+                        start = Dimens.Space12,
+                        end = Dimens.Space12,
                         top = 10.dp + headerHeight + 16.dp,
-                        bottom = 20.dp,
+                        bottom = Dimens.Space20,
                     ),
                     verticalArrangement = Arrangement.spacedBy(Dimens.Space12),
                 ) {

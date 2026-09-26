@@ -201,7 +201,8 @@ internal fun DataTab(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(scrollState),
+            .verticalScroll(scrollState)
+            .padding(horizontal = Dimens.Space12),
         verticalArrangement = Arrangement.spacedBy(Dimens.Space12),
     ) {
         Spacer(Modifier.height(10.dp + headerHeight + Dimens.Space16))
