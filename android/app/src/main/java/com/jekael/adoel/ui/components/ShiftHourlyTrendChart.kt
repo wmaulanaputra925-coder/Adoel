@@ -41,7 +41,9 @@ import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jekael.adoel.data.AktualEntry
@@ -76,8 +78,10 @@ private enum class TrendViewMode { BOTH, HOURLY, CUMULATIVE }
 
 /** Per-jam produksi dalam satu shift — area cyan untuk output jam-per-jam, garis putus-putus
  * emerald untuk akumulasi total. Digambar manual lewat [Canvas] (bukan library chart) supaya
- * konsisten dengan grafik lain di aplikasi ini yang semuanya hand-rolled; port dari
- * ShiftHourlyTrendChart.tsx (web), yang di sana memakai recharts. */
+ * konsisten dengan grafik lain di aplikasi ini yang semuanya hand-rolled — Android-only, tidak
+ * ada padanan di web. Kurva dan sumbunya sengaja dibuat semirip mungkin dengan chart library
+ * seperti recharts (garis melengkung, bukan lurus antar titik, plus label sumbu X/Y) meski
+ * di-tangan sendiri. */
 @Composable
 fun ShiftHourlyTrendChart(shift: ShiftRecord, modifier: Modifier = Modifier) {
     if (shift.aktual.isEmpty()) return
@@ -301,6 +305,35 @@ private fun TrendTooltipCard(point: HourlyPoint) {
     }
 }
 
+// Reserved margins for the Y-axis value labels (left) and X-axis hour labels (bottom) — shared
+// between the draw scope and the tap-detection scope below, which can't share a local val since
+// they're two separate lambdas (DrawScope vs PointerInputScope).
+private const val CHART_LEFT_PAD_DP = 26f
+private const val CHART_BOTTOM_PAD_DP = 22f
+private const val CHART_TOP_PAD_DP = 12f
+
+/** Appends a smooth curve through [points] onto [path], which must already be positioned at
+ * `points.first()` (via a preceding moveTo/lineTo) — a quadratic Bézier through each consecutive
+ * pair's midpoint. Simple and impossible to overshoot, unlike a full Catmull-Rom spline, and
+ * reaches the same "no sharp corners between points" look recharts' `type="monotone"` was the
+ * reference for, the cheap way. */
+private fun appendSmoothCurve(path: Path, points: List<Offset>) {
+    when {
+        points.size < 2 -> return
+        points.size == 2 -> path.lineTo(points[1].x, points[1].y)
+        else -> {
+            for (i in 1 until points.size - 1) {
+                val curr = points[i]
+                val next = points[i + 1]
+                path.quadraticBezierTo(curr.x, curr.y, (curr.x + next.x) / 2f, (curr.y + next.y) / 2f)
+            }
+            val secondLast = points[points.size - 2]
+            val last = points.last()
+            path.quadraticBezierTo(secondLast.x, secondLast.y, last.x, last.y)
+        }
+    }
+}
+
 @Composable
 private fun TrendChartCanvas(
     data: List<HourlyPoint>,
@@ -320,6 +353,8 @@ private fun TrendChartCanvas(
             ),
         )
     }
+    val textMeasurer = rememberTextMeasurer()
+    val axisLabelStyle = TextStyle(fontSize = 9.sp, color = colors.textFaint)
 
     // Progressive left-to-right reveal, matching recharts' default Area/Line mount animation on
     // web — re-fires on every fresh composition of this Canvas (see the entrance animation above
@@ -337,58 +372,75 @@ private fun TrendChartCanvas(
             .pointerInput(data) {
                 detectTapGestures { offset ->
                     if (data.isEmpty()) return@detectTapGestures
-                    val step = size.width.toFloat() / data.size
-                    val idx = (offset.x / step).toInt().coerceIn(0, data.size - 1)
+                    val leftPad = CHART_LEFT_PAD_DP.dp.toPx()
+                    val step = (size.width - leftPad) / data.size
+                    val idx = ((offset.x - leftPad) / step).toInt().coerceIn(0, data.size - 1)
                     onSelect(if (selectedIndex == idx) null else idx)
                 }
             },
     ) {
         if (data.isEmpty()) return@Canvas
-        val topPad = 8.dp.toPx()
-        val bottomPad = 18.dp.toPx()
+        val topPad = CHART_TOP_PAD_DP.dp.toPx()
+        val bottomPad = CHART_BOTTOM_PAD_DP.dp.toPx()
+        val leftPad = CHART_LEFT_PAD_DP.dp.toPx()
         val chartHeight = size.height - topPad - bottomPad
-        val step = size.width / data.size
-        fun xFor(i: Int) = step * i + step / 2f
+        val step = (size.width - leftPad) / data.size
+        fun xFor(i: Int) = leftPad + step * i + step / 2f
         fun yFor(v: Int) = topPad + chartHeight * (1f - v.toFloat() / maxVal)
+        val baselineY = size.height - bottomPad
 
-        // Garis dasar
-        drawLine(
-            color = colors.border,
-            start = Offset(0f, size.height - bottomPad),
-            end = Offset(size.width, size.height - bottomPad),
-            strokeWidth = 1.dp.toPx(),
-        )
+        // Y-axis: a faint gridline + value at 0, half, and max — drawn before the reveal clip so
+        // the chart's chrome reads immediately instead of wiping in with the data.
+        listOf(0, maxVal / 2, maxVal).distinct().forEach { tickVal ->
+            val y = yFor(tickVal)
+            drawLine(
+                color = colors.border.copy(alpha = 0.35f),
+                start = Offset(leftPad, y),
+                end = Offset(size.width, y),
+                strokeWidth = 1.dp.toPx(),
+            )
+            val measured = textMeasurer.measure(tickVal.toString(), axisLabelStyle)
+            drawText(textLayoutResult = measured, topLeft = Offset(leftPad - 6.dp.toPx() - measured.size.width, y - measured.size.height / 2f))
+        }
+
+        // X-axis: the hour label under every point would crowd 8 columns into illegible overlap
+        // (the same clipping problem the Statistik shift-history chart had), so only roughly one
+        // in every few gets a label — always keeping the first and the last.
+        val xLabelStride = ((data.size + 4) / 5).coerceAtLeast(1)
+        data.forEachIndexed { i, p ->
+            if (i % xLabelStride == 0 || i == data.lastIndex) {
+                val measured = textMeasurer.measure(p.label, axisLabelStyle)
+                drawText(textLayoutResult = measured, topLeft = Offset(xFor(i) - measured.size.width / 2f, baselineY + 6.dp.toPx()))
+            }
+        }
 
         clipRect(right = size.width * revealProgress.value) {
             if (showHourly) {
+                val points = data.mapIndexed { i, p -> Offset(xFor(i), yFor(p.count)) }
                 val fillPath = Path().apply {
-                    moveTo(xFor(0), size.height - bottomPad)
-                    data.forEachIndexed { i, p -> lineTo(xFor(i), yFor(p.count)) }
-                    lineTo(xFor(data.size - 1), size.height - bottomPad)
+                    moveTo(points[0].x, baselineY)
+                    lineTo(points[0].x, points[0].y)
+                    appendSmoothCurve(this, points)
+                    lineTo(points.last().x, baselineY)
                     close()
                 }
                 drawPath(fillPath, color = Cyan500.copy(alpha = 0.18f))
 
                 val linePath = Path().apply {
-                    data.forEachIndexed { i, p ->
-                        val x = xFor(i)
-                        val y = yFor(p.count)
-                        if (i == 0) moveTo(x, y) else lineTo(x, y)
-                    }
+                    moveTo(points[0].x, points[0].y)
+                    appendSmoothCurve(this, points)
                 }
                 drawPath(linePath, color = Cyan400, style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round))
-                data.forEachIndexed { i, p ->
-                    drawCircle(Cyan400, radius = if (i == selectedIndex) 5.dp.toPx() else 3.dp.toPx(), center = Offset(xFor(i), yFor(p.count)))
+                points.forEachIndexed { i, pt ->
+                    drawCircle(Cyan400, radius = if (i == selectedIndex) 5.dp.toPx() else 3.dp.toPx(), center = pt)
                 }
             }
 
             if (showCumulative) {
+                val points = data.mapIndexed { i, p -> Offset(xFor(i), yFor(p.kumulatif)) }
                 val linePath = Path().apply {
-                    data.forEachIndexed { i, p ->
-                        val x = xFor(i)
-                        val y = yFor(p.kumulatif)
-                        if (i == 0) moveTo(x, y) else lineTo(x, y)
-                    }
+                    moveTo(points[0].x, points[0].y)
+                    appendSmoothCurve(this, points)
                 }
                 drawPath(
                     linePath,
@@ -399,8 +451,8 @@ private fun TrendChartCanvas(
                         pathEffect = PathEffect.dashPathEffect(floatArrayOf(8.dp.toPx(), 6.dp.toPx())),
                     ),
                 )
-                data.forEachIndexed { i, p ->
-                    drawCircle(Emerald400, radius = if (i == selectedIndex) 4.5.dp.toPx() else 2.5.dp.toPx(), center = Offset(xFor(i), yFor(p.kumulatif)))
+                points.forEachIndexed { i, pt ->
+                    drawCircle(Emerald400, radius = if (i == selectedIndex) 4.5.dp.toPx() else 2.5.dp.toPx(), center = pt)
                 }
             }
         }
@@ -411,7 +463,7 @@ private fun TrendChartCanvas(
             drawLine(
                 color = colors.textFaint.copy(alpha = 0.4f),
                 start = Offset(x, topPad),
-                end = Offset(x, size.height - bottomPad),
+                end = Offset(x, baselineY),
                 strokeWidth = 1.dp.toPx(),
                 pathEffect = PathEffect.dashPathEffect(floatArrayOf(3.dp.toPx(), 3.dp.toPx())),
             )
