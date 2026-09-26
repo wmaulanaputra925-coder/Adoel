@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -298,11 +299,15 @@ private fun BreakGapCard(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .elevatedListCard(backgroundColor = lerp(colors.bgElevated, Emerald500, 0.08f))
+            // Glossy, not flat — this card sits directly between RadarCard fronts in the same
+            // list (they're the only other place this treatment is used), and the flat tone it
+            // had before read as a visibly different, less-finished card material next to them.
+            .glossyListCard(baseColor = lerp(colors.bgElevated, Emerald500, 0.08f))
             .padding(horizontal = Dimens.Space16, vertical = 14.dp),
         // Centers this card's content when stretched taller than it needs to match a grid-paired
         // RadarCard sibling (see MenungguGridSlot) — a no-op when its own height already fits.
         verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Icon(
@@ -314,16 +319,19 @@ private fun BreakGapCard(
             Text(
                 text = "Selang Waktu ${if (isActive) remainingMin else gapMin} Menit",
                 style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp, color = Emerald500),
+                textAlign = TextAlign.Center,
             )
         }
         Spacer(Modifier.height(Dimens.Space4))
         Text(
             text = formatDeltaMin(if (isActive) remainingMin else gapMin),
             style = TextStyle(fontSize = 28.sp, fontWeight = FontWeight.Black, letterSpacing = (-1).sp, color = colors.textPrimary),
+            textAlign = TextAlign.Center,
         )
         Text(
             text = "Sampai ${absMinToTimeStr(nextAbsMin)} — sebelum Mc $nextMcNo",
             style = AppType.Caption.copy(color = colors.textFaint),
+            textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(Dimens.Space8))
         Box(
