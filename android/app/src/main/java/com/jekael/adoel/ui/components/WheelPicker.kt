@@ -2,10 +2,14 @@ package com.jekael.adoel.ui.components
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.exponentialDecay
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.ScrollableDefaults
+import androidx.compose.foundation.gestures.rememberScrollableState
+import androidx.compose.foundation.gestures.scrollable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 // Wildcard, not individually-named imports — a single-name `import
 // androidx.compose.foundation.layout.weight` resolves to the wrong symbol (an internal
 // `RowColumnParentData.weight` property that happens to share the name) instead of the actual
@@ -17,6 +21,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -27,8 +32,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.TextStyle
@@ -43,24 +46,32 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 
 /**
- * One vertical scroll wheel over [range] — drag up/down to cycle values, with real momentum: a
- * quick flick keeps spinning past the finger's last position and decelerates into place, the
- * same feel as iOS's clock/timer wheel, rather than only moving exactly as far as the finger
- * dragged. Built on plain drag-detection + [androidx.compose.animation.core.exponentialDecay] +
- * a spring settle — not Compose's snap-fling *list* APIs (`rememberSnapFlingBehavior` and
- * friends) — since a different, less-common Foundation API (`stickyHeader`) already failed to
- * resolve against this project's exact Compose BOM once this session and cost two CI cycles
- * chasing it; `animateDecay`/`exponentialDecay` are much longer-established animation-core
- * primitives, not list-snapping ones, so they don't carry that same risk.
+ * One vertical scroll wheel over [range] — drag up/down to cycle values (with real momentum: a
+ * quick flick keeps spinning and decelerates into place, the iOS clock/timer feel), or tap any
+ * visible row to jump straight to it.
  *
- * The wheel's own [anchorIndex] only ever changes value once a gesture (drag, then its fling, if
- * any) has fully settled — but [onValueChange] fires live as each row is crossed mid-gesture, the
- * same "selection follows the wheel as it turns" behavior a real picker has, rather than only
- * reporting a value once the finger lifts. Rendering derives which rows are visible from the
- * *raw, unbounded* drag/fling offset every frame (see `liveIndexNow`) instead of a small fixed
- * window of items around a value that only updates on release — the earlier version rendered
- * exactly 5 fixed rows around a stale center and ran out of rows (showing blank space) past two
- * rows of drag, which is what actually made it feel stiff, not the lack of momentum alone.
+ * Built on [androidx.compose.foundation.gestures.scrollable] rather than a hand-rolled
+ * `pointerInput`+`detectVerticalDragGestures` (an earlier version of this file did exactly that,
+ * and it's why it doesn't compile that way anymore) — every field-edit sheet's content
+ * ([FloatingEditDialog]) sits inside its own `Modifier.verticalScroll`, a safety net for content
+ * taller than the screen. A raw `pointerInput` child doesn't participate in Compose's nested
+ * scroll negotiation at all, so that ancestor scroll intermittently stole this wheel's drags out
+ * from under it (reported: scrolling down didn't register at all, scrolling up barely did).
+ * `scrollable()` is the sanctioned building block for exactly this "custom scrollable that must
+ * coexist with an ancestor scrollable" situation, and its own [ScrollableDefaults.flingBehavior]
+ * gives real platform-matching momentum for free — no manual `VelocityTracker`/`animateDecay`
+ * needed. (This still deliberately avoids the separate *list-snapping* APIs,
+ * `rememberSnapFlingBehavior` and friends — a different, less-common Foundation API,
+ * `stickyHeader`, already failed to resolve against this project's exact Compose BOM once this
+ * session and cost two CI cycles chasing it; `scrollable()` itself is a much longer-established,
+ * non-list-specific primitive, so it doesn't carry that same risk.)
+ *
+ * The wheel's own [anchorIndex] only changes once scrolling has fully settled (drag released,
+ * fling decayed to a stop) — but [onValueChange] fires live as each row is crossed mid-gesture,
+ * the same "selection follows the wheel as it turns" behavior a real picker has. Rendering
+ * derives which rows are visible from the *raw, unbounded* live offset every frame (see
+ * `liveIndexNow`), so a long drag or a fast flick keeps resolving to further rows for as long as
+ * it's moving, instead of running out past a small fixed window around a stale center.
  */
 @Composable
 fun WheelColumn(
@@ -78,45 +89,56 @@ fun WheelColumn(
     val itemHeightPx = with(density) { itemHeight.toPx() }
     val scope = rememberCoroutineScope()
 
-    // The committed center when idle; `offset` is how far a live drag/fling has moved away from
-    // it, in raw px — deliberately unbounded (not clamped to one item's height) so a fast flick
-    // can keep resolving to further rows for as long as it's still decaying.
+    // The committed center when idle. `liveOffsetPx` is how far an active scroll/fling has moved
+    // away from it — deliberately unbounded (not clamped to one item's height), so a fast flick
+    // can keep resolving to further rows for as long as it's still decaying — and is updated
+    // synchronously from scrollable()'s own (non-suspend) consume callback below. `settleOffset`
+    // takes over, as an Animatable, only for the final spring onto the exact row once scrolling
+    // has fully stopped — the two are never both "live" at once (see `isSettling`).
     var anchorIndex by remember(range) { mutableIntStateOf(value.coerceIn(range)) }
-    val offset = remember(range) { Animatable(0f) }
-    var isGestureActive by remember { mutableStateOf(false) }
-    val velocityTracker = remember { VelocityTracker() }
+    var liveOffsetPx by remember(range) { mutableFloatStateOf(0f) }
+    val settleOffset = remember { Animatable(0f) }
+    var isSettling by remember { mutableStateOf(false) }
 
-    // Defined as a function, not a `val` — it needs to read the *current* anchorIndex/offset at
-    // the moment it's called, including from inside onDragEnd's closure, which Compose can
-    // otherwise only guarantee for state reads (property access), not for a plain local captured
-    // by value when the gesture's coroutine started.
+    fun currentOffsetPx(): Float = if (isSettling) settleOffset.value else liveOffsetPx
+
+    // Defined as a function, not a `val` — it needs to read *current* state at the moment it's
+    // called, including from inside a coroutine that started earlier (e.g. the settle effect
+    // below), which Compose only guarantees fresh for state reads (property access), not for a
+    // plain local captured by value when that coroutine started.
     fun liveIndexNow(): Int =
-        (anchorIndex + (-offset.value / itemHeightPx).roundToInt()).coerceIn(range)
+        (anchorIndex + (-currentOffsetPx() / itemHeightPx).roundToInt()).coerceIn(range)
+
+    val scrollableState = rememberScrollableState { delta ->
+        if (isSettling) return@rememberScrollableState 0f
+        liveOffsetPx += delta
+        delta
+    }
 
     // The caller can move `value` out from under this wheel while it's idle — e.g. the paired
     // minute wheel getting pinned to :00 once the hour wheel hits its cap — so re-center to
-    // match. Guarded by isGestureActive so it never fights an active drag/fling, which drives
-    // `value` itself via the live-update effect below (this wheel's own change echoing back in).
+    // match. Guarded so it never fights an active scroll/settle, which drives `value` itself via
+    // the live-update effect below (this wheel's own change echoing back in).
     LaunchedEffect(value, range) {
-        if (!isGestureActive && value.coerceIn(range) != anchorIndex) {
+        if (!scrollableState.isScrollInProgress && !isSettling && value.coerceIn(range) != anchorIndex) {
             anchorIndex = value.coerceIn(range)
-            offset.snapTo(0f)
+            liveOffsetPx = 0f
         }
     }
 
     val liveIndex = liveIndexNow()
     // Bounded to roughly ±half an item's height by construction of the round() in liveIndexNow —
     // the remainder after "how many whole rows has this offset moved past" is extracted out.
-    val fractionalOffsetPx = offset.value + (liveIndex - anchorIndex) * itemHeightPx
+    val fractionalOffsetPx = currentOffsetPx() + (liveIndex - anchorIndex) * itemHeightPx
 
     LaunchedEffect(liveIndex) {
         if (liveIndex != value) onValueChange(liveIndex)
     }
-    // One light tick per row crossed while a gesture is actually moving the wheel — the same
-    // per-row feedback a real picker gives, not just a silent slide.
+    // One light tick per row crossed while a scroll/fling is actually moving the wheel — the
+    // same per-row feedback a real picker gives, not just a silent slide.
     var lastTickedIndex by remember { mutableIntStateOf(anchorIndex) }
-    LaunchedEffect(liveIndex, isGestureActive) {
-        if (isGestureActive && liveIndex != lastTickedIndex) {
+    LaunchedEffect(liveIndex, scrollableState.isScrollInProgress) {
+        if (scrollableState.isScrollInProgress && liveIndex != lastTickedIndex) {
             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
         }
         lastTickedIndex = liveIndex
@@ -126,52 +148,39 @@ fun WheelColumn(
     // this is called becomes the new starting point for the settle spring, since that's exactly
     // how far off-center the wheel currently sits *relative to the row it's about to commit to*.
     suspend fun settleTo(finalIndex: Int) {
-        val settleFromPx = offset.value + (finalIndex - anchorIndex) * itemHeightPx
+        val settleFromPx = currentOffsetPx() + (finalIndex - anchorIndex) * itemHeightPx
         anchorIndex = finalIndex
-        offset.snapTo(settleFromPx)
-        offset.animateTo(0f, spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium))
+        liveOffsetPx = 0f
+        isSettling = true
+        settleOffset.snapTo(settleFromPx)
+        settleOffset.animateTo(0f, spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium))
+        isSettling = false
+    }
+
+    // Once scrollable()'s own drag+fling has fully settled (finger lifted and any momentum has
+    // decayed to a stop), snap the resting position onto the exact row instead of wherever the
+    // fling happened to run out — the one piece scrollable() doesn't do for us on its own.
+    LaunchedEffect(scrollableState.isScrollInProgress) {
+        if (!scrollableState.isScrollInProgress) {
+            settleTo(liveIndexNow())
+        }
     }
 
     Box(
         modifier = modifier
             .height(itemHeight * visibleCount)
-            .pointerInput(range) {
-                detectVerticalDragGestures(
-                    onDragStart = {
-                        isGestureActive = true
-                        scope.launch { offset.stop() }
-                        velocityTracker.resetTracking()
-                    },
-                    onVerticalDrag = { change, dragAmount ->
-                        change.consume()
-                        velocityTracker.addPosition(change.uptimeMillis, change.position)
-                        // Dragging down brings the *previous* (smaller) value to the center — the
-                        // index moves opposite the drag direction, same as a real dial.
-                        scope.launch { offset.snapTo(offset.value - dragAmount) }
-                    },
-                    onDragEnd = {
-                        val flingVelocity = -velocityTracker.calculateVelocity().y
-                        scope.launch {
-                            val atLowEdge = liveIndexNow() == range.first && flingVelocity < 0
-                            val atHighEdge = liveIndexNow() == range.last && flingVelocity > 0
-                            if (abs(flingVelocity) > 60f && !atLowEdge && !atHighEdge) {
-                                offset.animateDecay(flingVelocity, exponentialDecay(frictionMultiplier = 3.5f))
-                            }
-                            settleTo(liveIndexNow())
-                            isGestureActive = false
-                        }
-                    },
-                    onDragCancel = {
-                        scope.launch {
-                            settleTo(liveIndexNow())
-                            isGestureActive = false
-                        }
-                    },
-                )
-            },
+            .scrollable(
+                state = scrollableState,
+                orientation = Orientation.Vertical,
+                // Dragging down should bring the *previous* (smaller) value to the center — the
+                // same physical-dial feel every other swipe in this app uses — which is the
+                // opposite of scrollable()'s own default sense for a downward drag.
+                reverseDirection = true,
+                flingBehavior = ScrollableDefaults.flingBehavior(),
+            ),
         contentAlignment = Alignment.Center,
     ) {
-        // Center highlight — the row the drag/fling settles onto.
+        // Center highlight — the row the scroll/fling settles onto.
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -184,12 +193,13 @@ fun WheelColumn(
             for (i in -(visibleCount / 2)..(visibleCount / 2)) {
                 val idx = liveIndex + i
                 // Continuous distance of *this row* from dead-center, accounting for the live
-                // drag/fling offset — not just its fixed slot index — so the tilt reads as one
+                // scroll/fling offset — not just its fixed slot index — so the tilt reads as one
                 // smoothly turning cylinder while dragging, not five rows that suddenly reflow
                 // once a row-crossing snaps. t is -1 at the top edge row, 0 dead-center, +1 at
                 // the bottom edge row.
                 val continuousDistancePx = i * itemHeightPx + fractionalOffsetPx
                 val t = (continuousDistancePx / halfWindowPx).coerceIn(-1f, 1f)
+                val centered = i == 0
                 Box(
                     modifier = Modifier
                         .height(itemHeight)
@@ -206,11 +216,27 @@ fun WheelColumn(
                             cameraDistance = 12 * this.density
                             alpha = 1f - abs(t) * 0.65f
                             scaleX = 1f - abs(t) * 0.12f
-                        },
+                        }
+                        // Tap any visible row (besides the one already centered) to jump straight
+                        // to it — the same shortcut a real picker offers alongside dragging.
+                        // Coexists fine with the container's own scrollable(): a tap and a drag
+                        // are mutually exclusive within a single gesture, the same as any
+                        // clickable row inside a scrollable list.
+                        .then(
+                            if (!centered && idx in range) {
+                                Modifier.clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null,
+                                    onClickLabel = format(idx),
+                                    onClick = { scope.launch { settleTo(idx) } },
+                                )
+                            } else {
+                                Modifier
+                            },
+                        ),
                     contentAlignment = Alignment.Center,
                 ) {
                     if (idx in range) {
-                        val centered = i == 0
                         Text(
                             text = format(idx),
                             style = TextStyle(
