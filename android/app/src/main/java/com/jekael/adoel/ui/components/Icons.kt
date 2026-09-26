@@ -24,6 +24,7 @@ import com.jekael.adoel.data.MesinTipe
 import com.jekael.adoel.ui.theme.Fuchsia500
 import com.jekael.adoel.ui.theme.Indigo500
 import com.jekael.adoel.ui.theme.LocalAppColors
+import com.jekael.adoel.ui.theme.Red400
 import com.jekael.adoel.ui.theme.Teal500
 import com.jekael.adoel.ui.theme.Violet500
 import com.jekael.adoel.ui.theme.Zinc500
@@ -107,11 +108,16 @@ fun CheckIcon() {
     )
 }
 
+/** Explicit [Red400] tint, not the ambient [LocalContentColor][androidx.compose.material3.LocalContentColor]
+ * default — an untinted Icon here rendered as a faint near-black smudge in dark mode (nothing
+ * about a delete action should ever be hard to see), the same red every other destructive
+ * action in the app already uses (the dropdown's "Hapus Semua", Statistik's per-row delete). */
 @Composable
-fun TrashIcon(size: Dp = 18.dp) {
+fun TrashIcon(size: Dp = 18.dp, tint: Color = Red400) {
     Icon(
         imageVector = Icons.Outlined.Delete,
         contentDescription = "Hapus",
+        tint = tint,
         modifier = Modifier.size(size),
     )
 }

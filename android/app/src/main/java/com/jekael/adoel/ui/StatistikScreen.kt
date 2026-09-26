@@ -275,8 +275,10 @@ fun StatistikScreen(
                 onInvalidYard = { showToast("Yard tidak valid") },
                 onInvalidJam = { showToast("Jam tidak valid — format 14.30") },
                 onDelete = {
-                    onDeleteEntry(editingRecord.id, editingAktual.id)
-                    editingEntry = null
+                    showConfirm("Hapus riwayat Mc ${editingAktual.mcNo}?") {
+                        onDeleteEntry(editingRecord.id, editingAktual.id)
+                        editingEntry = null
+                    }
                 },
                 corakShortcuts = corakShortcuts,
                 keteranganShortcuts = keteranganShortcuts,
