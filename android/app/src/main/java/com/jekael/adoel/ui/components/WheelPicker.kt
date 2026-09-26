@@ -5,14 +5,12 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.weight
-import androidx.compose.foundation.layout.width
+// Wildcard, not individually-named imports — a single-name `import
+// androidx.compose.foundation.layout.weight` resolves to the wrong symbol (an internal
+// `RowColumnParentData.weight` property that happens to share the name) instead of the actual
+// public `RowScope.weight` modifier, and fails to compile with "it is internal in file". Every
+// other file in this codebase already imports this package as a wildcard for the same reason.
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
