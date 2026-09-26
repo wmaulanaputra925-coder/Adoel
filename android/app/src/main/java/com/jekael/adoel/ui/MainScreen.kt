@@ -99,7 +99,6 @@ fun MainScreen(
     var activeOverlay by rememberSaveable(stateSaver = ActiveOverlaySaver) { mutableStateOf<ActiveOverlay>(ActiveOverlay.None) }
     var syncOpen by rememberSaveable { mutableStateOf(false) }
     var autoQrDismissed by rememberSaveable { mutableStateOf(false) }
-    var operatorDialogOpen by rememberSaveable { mutableStateOf(false) }
     var showRemaining by rememberSaveable { mutableStateOf(false) }
 
     var consoleBarHeight by remember { mutableStateOf(0.dp) }
@@ -404,7 +403,6 @@ fun MainScreen(
             onHeightMeasured = { headerHeight = it },
             operatorNama = state.operatorNama,
             operatorGrup = state.operatorGrup,
-            onOperatorClick = { operatorDialogOpen = true },
             haptic = haptic,
             modifier = Modifier.align(Alignment.TopCenter).fillMaxWidth(),
         )
@@ -710,22 +708,8 @@ fun MainScreen(
         SyncDialog(onClose = { syncOpen = false })
     }
 
-    // Identitas operator bisa diubah kapan saja lewat header/menu, bukan cuma sekali di awal —
-    // dipisah dari alur pertanyaan pertama-kali di atas karena operatorAsked sudah true saat ini
-    // dibuka, jadi gatenya sendiri.
-    if (operatorDialogOpen) {
-        OperatorDialog(
-            nama = state.operatorNama,
-            grup = state.operatorGrup,
-            isFirstLaunch = false,
-            onDismiss = { operatorDialogOpen = false },
-            onSave = { nama, grup ->
-                doffVm.setOperator(nama, grup)
-                uiVm.showToast("Identitas operator disimpan ✓")
-                operatorDialogOpen = false
-            },
-        )
-    }
+    // Identitas operator bisa diubah kapan saja lewat Pengaturan (DataTab's own operatorEditing
+    // state + OperatorDialog) — satu-satunya tempat sekarang, bukan lagi juga lewat header/menu.
 
     ConfirmDialog(
         confirm = confirm,

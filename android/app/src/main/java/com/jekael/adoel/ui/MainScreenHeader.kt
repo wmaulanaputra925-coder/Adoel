@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.BarChart
-import androidx.compose.material.icons.outlined.Badge
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.History
@@ -81,7 +80,6 @@ internal fun MainScreenHeader(
     haptic: HapticFeedback,
     operatorNama: String?,
     operatorGrup: String?,
-    onOperatorClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalAppColors.current
@@ -133,8 +131,9 @@ internal fun MainScreenHeader(
                 val cal = Calendar.getInstance().apply { timeInMillis = nowAbs * 60000L }
                 "Shift ${shiftNumberForEpochMin(nowAbs)} · %02d/%02d".format(cal.get(Calendar.DAY_OF_MONTH), cal.get(Calendar.MONTH) + 1)
             }
-            // Operator identitas ditambahkan ke label yang sama, dan seluruh caption jadi tombol
-            // untuk mengedit identitas itu kapan saja — bukan cuma sekali saat pertama pasang.
+            // Operator identitas ditambahkan ke label yang sama, sebagai info saja — mengedit
+            // identitas sekarang cuma lewat Pengaturan (satu tempat, bukan tiga: dulu caption ini,
+            // menu dropdown, dan Pengaturan semuanya membuka OperatorDialog yang sama).
             val operatorSuffix = remember(operatorNama, operatorGrup) {
                 if (!operatorNama.isNullOrBlank() || !operatorGrup.isNullOrBlank()) {
                     val nama = operatorNama?.takeIf { it.isNotBlank() } ?: "Grup $operatorGrup"
@@ -145,10 +144,7 @@ internal fun MainScreenHeader(
                 }
             }
             Column(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(6.dp))
-                    .clickable(onClickLabel = "Atur identitas operator", onClick = onOperatorClick)
-                    .padding(vertical = 2.dp),
+                modifier = Modifier.padding(vertical = 2.dp),
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -264,11 +260,6 @@ internal fun MainScreenHeader(
                     expanded = actionsExpanded,
                     onDismissRequest = { actionsExpanded = false },
                 ) {
-                    DropdownMenuItem(
-                        text = { Text("Identitas Operator") },
-                        leadingIcon = { Icon(Icons.Outlined.Badge, contentDescription = null) },
-                        onClick = { actionsExpanded = false; onOperatorClick() },
-                    )
                     DropdownMenuItem(
                         text = { Text("Daftar Mesin") },
                         leadingIcon = { Icon(Icons.Outlined.Tune, contentDescription = null) },
