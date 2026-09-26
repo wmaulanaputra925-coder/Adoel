@@ -262,6 +262,11 @@ internal fun MainScreenHeader(
                 // .header-dropdown-menu/.dropdown-item (App.tsx/index.css) instead: a bordered
                 // rounded-16dp card sized to its content — not the near-full-width block the old
                 // default menu rendered as once "Hapus Semua (Tanpa Arsip)" set its min width.
+                //
+                // widthIn(max=) caps how wide that one long label can stretch the whole menu:
+                // without it, sizing "to its content" means sizing to its *widest* item, and
+                // every short item's row (Statistik, QR Sync, …) stretches out to match — capped,
+                // only that one label itself wraps onto a second line, the rest stay compact.
                 DropdownMenu(
                     expanded = actionsExpanded,
                     onDismissRequest = { actionsExpanded = false },
@@ -270,7 +275,7 @@ internal fun MainScreenHeader(
                     tonalElevation = 0.dp,
                     shadowElevation = 12.dp,
                     border = BorderStroke(1.dp, colors.border),
-                    modifier = Modifier.padding(4.dp),
+                    modifier = Modifier.padding(4.dp).widthIn(max = 220.dp),
                 ) {
                     ActionMenuItem(icon = { Icon(Icons.Outlined.Tune, contentDescription = null, modifier = Modifier.size(16.dp)) }, label = "Daftar Mesin") {
                         actionsExpanded = false; onDaftarMesin()
