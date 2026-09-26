@@ -217,7 +217,7 @@ private fun AddKeteranganPill(onClick: () -> Unit, mcNo: String) {
     ) {
         Icon(imageVector = Icons.Outlined.Add, contentDescription = null, tint = Cyan400, modifier = Modifier.size(11.dp))
         Text(
-            "+ Keterangan",
+            "Keterangan",
             style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Cyan400),
             maxLines = 1,
             softWrap = false,

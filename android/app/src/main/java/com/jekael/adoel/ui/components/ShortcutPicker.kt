@@ -135,7 +135,7 @@ fun BaseShortcutPicker(
                         modifier = Modifier.size(13.dp),
                     )
                     Text(
-                        text = "+ Simpan \"$currentTrimmed\" ke Shortcut",
+                        text = "Simpan \"$currentTrimmed\" ke Shortcut",
                         style = AppType.Caption.copy(
                             color = Cyan400,
                             fontWeight = FontWeight.SemiBold,
@@ -224,7 +224,7 @@ fun BaseShortcutPicker(
                         modifier = Modifier.size(13.dp),
                     )
                     Text(
-                        text = "+ Tambah $itemTypeLabel",
+                        text = "Tambah $itemTypeLabel",
                         style = AppType.Caption.copy(
                             color = colors.textMuted,
                             fontWeight = FontWeight.Medium,

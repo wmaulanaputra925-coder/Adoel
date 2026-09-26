@@ -160,7 +160,7 @@ export function BarisMesinScreen({ onClose }: { onClose: () => void }) {
             <AddIcon size={16} />
             <span>
               {searchedTarget.isNew
-                ? `+ Tambah Mesin Baru Mc ${searchedTarget.mcNo}`
+                ? `Tambah Mesin Baru Mc ${searchedTarget.mcNo}`
                 : `Konfigurasi Mc ${searchedTarget.mcNo} (belum diatur)`}
             </span>
           </button>

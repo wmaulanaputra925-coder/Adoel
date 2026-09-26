@@ -81,7 +81,7 @@ function BaseShortcutPicker({
           title={`Simpan ${currentTrimmed} ke shortcut ${itemTypeLabel.toLowerCase()}`}
         >
           <AddIcon size={12} />
-          <span>+ Simpan "{currentTrimmed}" ke Shortcut</span>
+          <span>Simpan "{currentTrimmed}" ke Shortcut</span>
         </button>
       )}
 
@@ -104,7 +104,7 @@ function BaseShortcutPicker({
           title={`Tambah ${itemTypeLabel.toLowerCase()} baru ke shortcut`}
         >
           <AddIcon size={12} />
-          <span>+ Tambah {itemTypeLabel}</span>
+          <span>Tambah {itemTypeLabel}</span>
         </button>
       ) : (
         <div
