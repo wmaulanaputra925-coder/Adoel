@@ -16,6 +16,7 @@ import androidx.compose.material.icons.outlined.Pause
 import androidx.compose.material.icons.outlined.Radar
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -187,14 +188,18 @@ internal fun LazyListScope.estimasiSection(
                 is MenungguRow.CardRow -> {
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     if (index == firstHandoverIdx) {
-                        // Just the line — its position in the list already says "everything below
-                        // this point carries into the next shift"; a label repeated the same thing
-                        // in words and crowded the card underneath it into wrapping.
-                        HorizontalDivider(
-                            modifier = Modifier.fillMaxWidth(),
-                            thickness = 2.dp,
-                            color = Amber400.copy(alpha = 0.5f),
-                        )
+                        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            HorizontalDivider(modifier = Modifier.weight(1f), color = Amber400.copy(alpha = 0.45f))
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = 8.dp),
+                            ) {
+                                Icon(imageVector = Icons.Outlined.SwapHoriz, contentDescription = null, tint = Amber400, modifier = Modifier.size(14.dp))
+                                Text("OPERAN SHIFT", style = AppType.Caption.copy(color = Amber400, fontWeight = FontWeight.Bold))
+                            }
+                            HorizontalDivider(modifier = Modifier.weight(1f), color = Amber400.copy(alpha = 0.45f))
+                        }
                     }
                     RadarCard(
                         est = row.est,
