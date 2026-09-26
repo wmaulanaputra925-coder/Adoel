@@ -1,9 +1,13 @@
 package com.jekael.adoel.ui.components
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.ScrollableDefaults
@@ -40,6 +44,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.jekael.adoel.ui.theme.Cyan400
 import com.jekael.adoel.ui.theme.LocalAppColors
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -134,6 +139,14 @@ fun WheelColumn(
     LaunchedEffect(liveIndex) {
         if (liveIndex != value) onValueChange(liveIndex)
     }
+    // One firmer tick right as a touch starts moving the wheel — feedback from the very first
+    // pixel, not only once a row has actually been crossed (which, for a slow drag, could be a
+    // beat later).
+    LaunchedEffect(scrollableState.isScrollInProgress) {
+        if (scrollableState.isScrollInProgress) {
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        }
+    }
     // One light tick per row crossed while a scroll/fling is actually moving the wheel — the
     // same per-row feedback a real picker gives, not just a silent slide.
     var lastTickedIndex by remember { mutableIntStateOf(anchorIndex) }
@@ -180,13 +193,30 @@ fun WheelColumn(
             ),
         contentAlignment = Alignment.Center,
     ) {
-        // Center highlight — the row the scroll/fling settles onto.
+        // Center highlight — the row the scroll/fling settles onto. Glows cyan (and lifts
+        // slightly) for as long as this wheel is actually responding to a touch — through the
+        // drag, its fling, and the final settle snap — the on-screen answer to "is my scroll
+        // actually being picked up right now" that the per-row haptic tick alone doesn't cover
+        // for anyone who can't feel it (silent mode, a case dulling vibration, etc).
+        val isActive = scrollableState.isScrollInProgress || isSettling
+        val highlightColor by animateColorAsState(
+            targetValue = if (isActive) Cyan400 else colors.border,
+            animationSpec = tween(150),
+            label = "wheelHighlightColor",
+        )
+        val highlightScale by animateFloatAsState(
+            targetValue = if (isActive) 1.04f else 1f,
+            animationSpec = tween(150),
+            label = "wheelHighlightScale",
+        )
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(itemHeight)
+                .graphicsLayer { scaleX = highlightScale; scaleY = highlightScale }
                 .clip(RoundedCornerShape(8.dp))
-                .background(colors.bgElevated2),
+                .background(if (isActive) Cyan400.copy(alpha = 0.14f) else colors.bgElevated2)
+                .border(1.dp, highlightColor.copy(alpha = if (isActive) 0.6f else 0f), RoundedCornerShape(8.dp)),
         )
         val halfWindowPx = itemHeightPx * (visibleCount / 2f)
         Column(modifier = Modifier.graphicsLayer { translationY = fractionalOffsetPx }) {
