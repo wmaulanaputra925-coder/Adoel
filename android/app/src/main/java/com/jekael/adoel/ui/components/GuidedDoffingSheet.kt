@@ -319,10 +319,16 @@ private fun KeteranganStep(
 ) {
     val colors = LocalAppColors.current
     var ket by remember { mutableStateOf("") }
+    // isDelta lives apart from the digits themselves — toggling it used to splice a "+" straight
+    // into yardInput's string value, which only came out right if the operator typed the number
+    // AFTER tapping "+": tapping "+" first (so the field already reads "+") and then typing put
+    // the cursor at the start for some and the end for others depending on tap order, landing the
+    // digits before the "+" ("5+") as often as after it ("+5") — "5+" isn't a delta the parser
+    // recognizes, so the yard silently fell back to standard instead of being added. Keeping the
+    // field itself pure digits and only prefixing "+" once, at submit, makes the result the same
+    // no matter which the operator taps first.
+    var isDelta by remember { mutableStateOf(false) }
     var yardInput by remember { mutableStateOf("") }
-    fun toggleDelta() {
-        yardInput = if (yardInput.startsWith("+")) yardInput.removePrefix("+") else "+" + yardInput.removePrefix("-")
-    }
 
     FieldLabelWithIcon(icon = Icons.Outlined.Sell, text = "Keterangan Doffing")
     ClearableOutlinedTextField(
@@ -342,24 +348,30 @@ private fun KeteranganStep(
     FieldLabelWithIcon(icon = Icons.Outlined.Straighten, text = "Yard aktual (opsional)")
     Row(horizontalArrangement = Arrangement.spacedBy(Dimens.Space8), verticalAlignment = Alignment.CenterVertically) {
         ClearableOutlinedTextField(
+            // Digits only — never carries the "+" itself, so it reads the same regardless of
+            // whether "+" was tapped before or after typing.
             value = yardInput,
-            onValueChange = { yardInput = it },
+            onValueChange = { yardInput = it.removePrefix("+").removePrefix("-") },
             modifier = Modifier.weight(1f),
-            placeholder = if (standardYard != null) "Standar: ${formatYard(standardYard)}y" else "cth: 70",
+            placeholder = if (standardYard != null) {
+                if (isDelta) "cth: 5" else "Standar: ${formatYard(standardYard)}y"
+            } else {
+                "cth: 70"
+            },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
         )
         // Numeric keyboard has no "+" key — only HB in practice ever needs the cut read as a delta
         // off standard, so one toggle covers that instead of a whole row of +/-N buttons most
         // keterangan never use.
         OutlinedButton(
-            onClick = ::toggleDelta,
+            onClick = { isDelta = !isDelta },
             modifier = Modifier.height(56.dp),
             contentPadding = PaddingValues(horizontal = Dimens.Space16),
             shape = RoundedCornerShape(Dimens.RadiusControl),
             colors = ButtonDefaults.outlinedButtonColors(
-                contentColor = if (yardInput.startsWith("+")) Cyan600 else colors.textSecondary,
+                contentColor = if (isDelta) Cyan600 else colors.textSecondary,
             ),
-            border = BorderStroke(1.dp, if (yardInput.startsWith("+")) Cyan600 else colors.border),
+            border = BorderStroke(1.dp, if (isDelta) Cyan600 else colors.border),
         ) { Text("+", style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold)) }
     }
 
@@ -379,7 +391,9 @@ private fun KeteranganStep(
         }
         Button(
             onClick = {
-                val cmd = listOf(ket.trim(), yardInput.trim()).filter { it.isNotEmpty() }.joinToString(" ")
+                val yardTrim = yardInput.trim()
+                val yardCmd = if (yardTrim.isNotEmpty() && isDelta) "+$yardTrim" else yardTrim
+                val cmd = listOf(ket.trim(), yardCmd).filter { it.isNotEmpty() }.joinToString(" ")
                 if (cmd.isNotBlank()) onConfirm(cmd)
             },
             enabled = ket.isNotBlank(),

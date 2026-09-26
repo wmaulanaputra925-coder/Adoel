@@ -251,11 +251,15 @@ function KeteranganStep({
   onConfirm: (cmd: string) => void;
 }) {
   const [ket, setKet] = useState("");
+  // isDelta lives apart from the digits themselves — splicing "+" straight into yardInput's own
+  // value only came out right if the operator typed the number AFTER tapping "+": tapping "+"
+  // first (so the field already reads "+") then typing put the cursor before or after the "+"
+  // depending on the browser/keyboard, landing the digits before it ("5+") as often as after
+  // ("+5") — "5+" isn't a delta the parser recognizes, so the yard silently fell back to standard
+  // instead of being added. Keeping the field itself pure digits and only prefixing "+" once, at
+  // submit, makes the result the same no matter which the operator taps first.
+  const [isDelta, setIsDelta] = useState(false);
   const [yardInput, setYardInput] = useState("");
-
-  function toggleDelta() {
-    setYardInput((y) => (y.startsWith("+") ? y.slice(1) : "+" + y.replace(/^-/, "")));
-  }
 
   return (
     <>
@@ -280,12 +284,16 @@ function KeteranganStep({
         <input
           className="field-input"
           style={{ flex: 1 }}
-          placeholder={standardYard != null ? `Standar: ${formatYard(standardYard)}y` : "cth: 70"}
+          placeholder={
+            standardYard != null ? (isDelta ? "cth: 5" : `Standar: ${formatYard(standardYard)}y`) : "cth: 70"
+          }
           inputMode="decimal"
           value={yardInput}
-          onChange={(e) => setYardInput(e.target.value)}
+          // Digits only — never carries the "+" itself, so it reads the same regardless of
+          // whether "+" was tapped before or after typing.
+          onChange={(e) => setYardInput(e.target.value.replace(/^[+-]/, ""))}
         />
-        <button className={`delta-toggle-btn${yardInput.startsWith("+") ? " active" : ""}`} onClick={toggleDelta}>
+        <button className={`delta-toggle-btn${isDelta ? " active" : ""}`} onClick={() => setIsDelta((d) => !d)}>
           +
         </button>
       </div>
@@ -300,7 +308,9 @@ function KeteranganStep({
           style={{ background: "var(--cyan-600)", display: "inline-flex", alignItems: "center", gap: 5 }}
           disabled={ket.trim() === ""}
           onClick={() => {
-            const cmd = [ket.trim(), yardInput.trim()].filter((s) => s.length > 0).join(" ");
+            const yardTrim = yardInput.trim();
+            const yardCmd = yardTrim !== "" && isDelta ? `+${yardTrim}` : yardTrim;
+            const cmd = [ket.trim(), yardCmd].filter((s) => s.length > 0).join(" ");
             if (cmd.trim() !== "") onConfirm(cmd);
           }}
         >
