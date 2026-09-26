@@ -45,6 +45,12 @@ import com.jekael.adoel.ui.theme.LocalAppColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+/** A shift is 8 jam — TAPPET/CAM's "sisa waktu" wheel is capped here so it can never dial in a
+ * remaining time longer than a whole shift itself, which would fall well outside what an
+ * estimasi is actually for. D408's clock-reading wheel doesn't use this (it passes 23, the
+ * normal 0-23 clock range) since it isn't a duration at all. */
+private const val MAX_ESTIMASI_HOUR = 8
+
 /** Terpandu (guided) ESTIMASI entry — one field whose label/keyboard adapt to the tapped
  * machine's [MesinTipe], with a live "≈ jam" preview computed from the exact same pure formulas
  * DoffViewModel uses, so what's previewed here is guaranteed to match what actually gets saved.
@@ -76,10 +82,27 @@ fun GuidedEstimasiSheet(
     var corakInput by remember(mcNo) { mutableStateOf("") }
     var targetYardInput by remember(mcNo) { mutableStateOf("") }
     var valueInput by remember(mcNo) { mutableStateOf("") }
+    // TAPPET/CAM ("sisa waktu") and D408 ("bacaan jam counter") both key off a wheel picker
+    // instead of the free-typed field D405 ("yard sudah berjalan") keeps — see
+    // MAX_ESTIMASI_HOUR's own doc for why TAPPET/CAM's hour wheel is capped where D408's isn't.
+    // wheelTouched guards Simpan the same way `valueInput.isNotBlank()` did for the old text
+    // field: a wheel always *has* a value (0:00), so without this an operator who opens the
+    // sheet and taps Simpan without touching anything would silently submit "0 menit lagi"
+    // instead of the field reading as untouched.
+    var wheelHour by remember(mcNo, tipe) { mutableStateOf(0) }
+    var wheelMinute by remember(mcNo, tipe) { mutableStateOf(0) }
+    var wheelTouched by remember(mcNo, tipe) { mutableStateOf(false) }
+    val usesWheel = tipe != MesinTipe.D405
+    LaunchedEffect(wheelHour, wheelMinute, tipe) {
+        if (usesWheel) valueInput = "$wheelHour.${wheelMinute.toString().padStart(2, '0')}"
+    }
     val focusRequester = remember { FocusRequester() }
 
-    LaunchedEffect(mcNo, needQuickCorakSetup) {
-        if (!needQuickCorakSetup) {
+    LaunchedEffect(mcNo, needQuickCorakSetup, usesWheel) {
+        // Only D405's plain text field ever attaches this focusRequester (see below) — a wheel
+        // picker has nothing to focus, and requesting focus on an unattached FocusRequester
+        // throws, not just no-ops.
+        if (!needQuickCorakSetup && !usesWheel) {
             delay(100)
             focusRequester.requestFocus()
         }
@@ -159,18 +182,29 @@ fun GuidedEstimasiSheet(
 
             FieldLabel(hint.label)
             Box(modifier = Modifier.fillMaxWidth()) {
-                OutlinedTextField(
-                    value = valueInput,
-                    onValueChange = { valueInput = it },
-                    modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
-                    placeholder = { Text("cth: ${hint.example}", color = colors.textFaint) },
-                    colors = outlinedFieldColors(),
-                    shape = RoundedCornerShape(Dimens.RadiusControl),
-                    textStyle = AppType.FieldText.copy(color = colors.textPrimary),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
-                    keyboardActions = KeyboardActions(onDone = { submit() }),
-                    singleLine = true,
-                )
+                if (usesWheel) {
+                    HourMinuteWheelPicker(
+                        hour = wheelHour,
+                        minute = wheelMinute,
+                        onHourChange = { wheelHour = it; wheelTouched = true },
+                        onMinuteChange = { wheelMinute = it; wheelTouched = true },
+                        maxHour = if (tipe == MesinTipe.D408) 23 else MAX_ESTIMASI_HOUR,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                } else {
+                    OutlinedTextField(
+                        value = valueInput,
+                        onValueChange = { valueInput = it },
+                        modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
+                        placeholder = { Text("cth: ${hint.example}", color = colors.textFaint) },
+                        colors = outlinedFieldColors(),
+                        shape = RoundedCornerShape(Dimens.RadiusControl),
+                        textStyle = AppType.FieldText.copy(color = colors.textPrimary),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(onDone = { submit() }),
+                        singleLine = true,
+                    )
+                }
                 if (nozzleProgress.value > 0f && nozzleProgress.value < 1f) {
                     Canvas(modifier = Modifier.matchParentSize()) {
                         val progress = nozzleProgress.value
@@ -208,7 +242,7 @@ fun GuidedEstimasiSheet(
                 ) { Text("Batal") }
                 Button(
                     onClick = ::submit,
-                    enabled = valueInput.isNotBlank(),
+                    enabled = if (usesWheel) wheelTouched else valueInput.isNotBlank(),
                     modifier = Modifier.weight(1f).height(48.dp),
                     shape = RoundedCornerShape(Dimens.RadiusControl),
                     colors = ButtonDefaults.buttonColors(containerColor = Cyan600),
