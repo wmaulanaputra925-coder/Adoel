@@ -157,19 +157,30 @@ fun ShiftHourlyTrendChart(shift: ShiftRecord, modifier: Modifier = Modifier) {
             .padding(Dimens.Space12),
         verticalArrangement = Arrangement.spacedBy(Dimens.Space10),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+        Column(verticalArrangement = Arrangement.spacedBy(Dimens.Space8)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Icon(Icons.Outlined.TrendingUp, contentDescription = null, tint = Cyan400, modifier = Modifier.size(15.dp))
                 Text("Tren Doffing Per Jam", style = AppType.CaptionBold.copy(color = colors.textPrimary))
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                TrendModeChip("Semua", viewMode == TrendViewMode.BOTH) { viewMode = TrendViewMode.BOTH }
-                TrendModeChip("Per Jam", viewMode == TrendViewMode.HOURLY) { viewMode = TrendViewMode.HOURLY }
-                TrendModeChip("Kumulatif", viewMode == TrendViewMode.CUMULATIVE) { viewMode = TrendViewMode.CUMULATIVE }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                TrendModeChip(
+                    label = "Semua",
+                    selected = viewMode == TrendViewMode.BOTH,
+                    modifier = Modifier.weight(1f),
+                ) { viewMode = TrendViewMode.BOTH }
+                TrendModeChip(
+                    label = "Per Jam",
+                    selected = viewMode == TrendViewMode.HOURLY,
+                    modifier = Modifier.weight(1f),
+                ) { viewMode = TrendViewMode.HOURLY }
+                TrendModeChip(
+                    label = "Kumulatif",
+                    selected = viewMode == TrendViewMode.CUMULATIVE,
+                    modifier = Modifier.weight(1f),
+                ) { viewMode = TrendViewMode.CUMULATIVE }
             }
         }
 
@@ -215,17 +226,19 @@ fun ShiftHourlyTrendChart(shift: ShiftRecord, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun TrendModeChip(label: String, selected: Boolean, onClick: () -> Unit) {
+private fun TrendModeChip(label: String, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
     val colors = LocalAppColors.current
     Box(
-        modifier = Modifier
+        modifier = modifier
             .clip(RoundedCornerShape(6.dp))
             .background(if (selected) Cyan600.copy(alpha = 0.18f) else colors.bgElevated)
             .clickable(onClick = onClick)
-            .padding(horizontal = 8.dp, vertical = 4.dp),
+            .padding(horizontal = 8.dp, vertical = 5.dp),
+        contentAlignment = Alignment.Center,
     ) {
         Text(
             label,
+            maxLines = 1,
             style = TextStyle(
                 fontSize = 10.5.sp,
                 fontWeight = FontWeight.Bold,
