@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -108,7 +109,6 @@ import com.jekael.adoel.ui.theme.elevatedListCard
 import com.jekael.adoel.ui.theme.floatingHeaderCard
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlin.math.roundToInt
 
 /**
  * Full-screen panel listing archived shifts (see DoffViewModel.finishShift) with simple
@@ -498,18 +498,6 @@ private fun StatFigure(label: String, value: String) {
     }
 }
 
-/** Picks up to [targetCount] indices out of `0 until total`, spread as evenly as possible and
- * always including both 0 and `total - 1` — used to thin a row of labels too narrow to all show
- * at once. Spacing by *position* (not a fixed "every Nth" stride) matters here: a stride leaves an
- * uneven, oddly-bunched gap right at the end whenever `total - 1` isn't a clean multiple of it —
- * this instead lands each pick as close to its ideal evenly-spaced slot as rounding allows. */
-private fun evenlySpacedIndices(total: Int, targetCount: Int): Set<Int> {
-    if (total <= targetCount) return (0 until total).toSet()
-    return (0 until targetCount)
-        .map { i -> (i * (total - 1).toFloat() / (targetCount - 1)).roundToInt() }
-        .toSet()
-}
-
 /** Bar chart of doff count for the most recent shifts, oldest on the left — each bar carries its
  * own count label and a short date underneath, with a baseline so heights read unambiguously.
  * Tapping a bar jumps the list below to that shift's row and expands it, bridging chart and detail. */
@@ -606,23 +594,19 @@ private fun DoffCountChart(history: List<ShiftRecord>, selectedShiftId: Int?, on
         }
         HorizontalDivider(color = colors.border)
         Spacer(Modifier.height(Dimens.Space4))
-        // A "DD/MM" label under every one of up to 10 bars sharing one row had no room to
-        // breathe — each got clipped down to 4 of its 5 characters ("31/0" instead of "31/08"),
-        // impossible to read confidently. Thinning to roughly 5 labels spread evenly across the
-        // row (always keeping the first and the most recent) gives the ones that remain real
-        // room: TextOverflow.Visible lets a shown label paint past its own narrow column into the
-        // now-empty ones beside it — never a real neighbor, since those are unlabeled — instead
-        // of clipping its last character away. Evenly spaced by position, not a fixed "every Nth"
-        // stride — a stride leaves an uneven, oddly-bunched-looking gap right at the end whenever
-        // `recent.size - 1` isn't a clean multiple of it.
-        val shownDateIndices = evenlySpacedIndices(recent.size, targetCount = 5)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            recent.forEachIndexed { index, shift ->
-                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                    if (index in shownDateIndices) {
+        // A "DD/MM" label under every one of up to 10 bars sharing one row has no room to
+        // breathe on its own column width alone — hiding some to let the rest bleed sideways
+        // into an empty neighbor (the previous approach here) meant only ~5 of 10 dates were
+        // ever visible at once. Staggering every label across two alternating rows instead
+        // (even index on top, odd index one line below) keeps each one on its own line from
+        // its horizontal neighbors, so all 10 get a full, unclipped date with nothing hidden.
+        Box(modifier = Modifier.fillMaxWidth().height(32.dp)) {
+            Row(
+                modifier = Modifier.fillMaxSize(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                recent.forEachIndexed { index, shift ->
+                    Box(modifier = Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.TopCenter) {
                         Text(
                             text = formatShiftShortDate(shift.startedAtEpochMin),
                             textAlign = TextAlign.Center,
@@ -630,6 +614,7 @@ private fun DoffCountChart(history: List<ShiftRecord>, selectedShiftId: Int?, on
                             softWrap = false,
                             overflow = TextOverflow.Visible,
                             style = TextStyle(fontSize = 11.sp, color = colors.textFaint),
+                            modifier = Modifier.offset(y = if (index % 2 == 1) 16.dp else 0.dp),
                         )
                     }
                 }
