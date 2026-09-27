@@ -37,12 +37,13 @@ import kotlin.math.abs
  * max-distance/spring physics as RadarCard so every swipeable card in the app feels identical
  * even though the implementations are separate.
  *
- * [onSwipeRight]/[rightIcon] are optional — Riwayat used to swipe-right into a whole-row edit
- * dialog, but every field there now has its own tap target (DoffEntryRowContent's onEditTipe/
- * onEditCorak/onEditYard/onEditTime/onEditKet), so that swipe direction is dead weight now, not
- * a second way in. Leaving [onSwipeRight] null blocks rightward drag entirely (rubber-banding to
- * 0 instead of revealing anything) rather than keeping a swipe that visually arms but does
- * nothing on release.
+ * [onSwipeRight]/[rightIcon] are optional — leaving [onSwipeRight] null blocks rightward drag
+ * entirely (rubber-banding to 0 instead of revealing anything) rather than keeping a swipe that
+ * visually arms but does nothing on release. Riwayat used to swipe-right into a whole-row edit
+ * dialog; every field there now has its own tap target (DoffEntryRowContent's onEditTipe/
+ * onEditCorak/onEditYard/onEditTime/onEditKet) so that dialog is gone, but the freed-up direction
+ * is wired back to the same hapus as swipe-left rather than staying blocked, so either hand's
+ * natural swipe direction reaches it.
  *
  * Statistik's archived shift cards deliberately do *not* use this: they carry visible Bagikan/
  * Hapus buttons, and the horizontal drag over them closes the page instead (swipeRightToClose). */

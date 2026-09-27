@@ -188,14 +188,18 @@ private fun DoffingRow(
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalAppColors.current
-    // Swipe left = hapus only now — swipe-right used to open a whole-row edit dialog, but every
-    // field below already has its own tap target (mcNo→tipe, corak/panjang/jam/keterangan→that
-    // one field), so a second, coarser way to edit the same fields was dead weight, not a
-    // shortcut. SwipeableCard blocks rightward drag entirely when onSwipeRight is omitted.
+    // Hapus on either swipe direction — swipe-right used to open a whole-row edit dialog, but
+    // every field below already has its own tap target (mcNo→tipe, corak/panjang/jam/
+    // keterangan→that one field), so a second, coarser way to edit the same fields was dead
+    // weight, not a shortcut. Freed up, that direction now just mirrors swipe-left's delete
+    // instead of staying blocked, so either hand's natural swipe direction reaches it.
     SwipeableCard(
         modifier = modifier.fillMaxWidth(),
         onSwipeLeft = onHapus,
+        onSwipeRight = onHapus,
         leftIcon = Icons.Outlined.Delete,
+        rightIcon = Icons.Outlined.Delete,
+        rightColor = Red500,
     ) {
         // Shared with Statistik's shift detail so both read identically — see DoffEntryRow.kt.
         DoffEntryRowContent(
