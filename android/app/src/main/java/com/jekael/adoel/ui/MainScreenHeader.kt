@@ -266,7 +266,8 @@ internal fun MainScreenHeader(
                 // widthIn(max=) caps how wide that one long label can stretch the whole menu:
                 // without it, sizing "to its content" means sizing to its *widest* item, and
                 // every short item's row (Statistik, QR Sync, …) stretches out to match — capped,
-                // only that one label itself wraps onto a second line, the rest stay compact.
+                // only "Hapus Semua"'s own row grows a second line (its subtitle), the rest stay
+                // compact single-line rows.
                 DropdownMenu(
                     expanded = actionsExpanded,
                     onDismissRequest = { actionsExpanded = false },
@@ -299,7 +300,8 @@ internal fun MainScreenHeader(
                     ) { actionsExpanded = false; onFinishShift() }
                     ActionMenuItem(
                         icon = { Icon(Icons.Outlined.Delete, contentDescription = null, tint = Red400, modifier = Modifier.size(16.dp)) },
-                        label = "Hapus Semua (Tanpa Arsip)",
+                        label = "Hapus Semua",
+                        subtitle = "(Tanpa Arsip)",
                         danger = true,
                     ) { actionsExpanded = false; onClearShiftNoArchive() }
                 }
@@ -337,11 +339,15 @@ internal fun MainScreenHeader(
  * column, and its children stretch to fill it by default) rather than sized to just the icon+label
  * — leaving a row narrower than the menu meant whatever empty space sat to its right, inside the
  * same visible highlight-shaped row, wasn't actually tappable. [danger] reads the label/icon in
- * [Red400] (Selesai Shift, Hapus Semua) — everything else stays neutral [LocalAppColors.textPrimary]. */
+ * [Red400] (Selesai Shift, Hapus Semua) — everything else stays neutral [LocalAppColors.textPrimary].
+ * [subtitle] (only "Hapus Semua"'s own qualifier, "(Tanpa Arsip)") sits on its own smaller, muted
+ * line below [label] instead of trailing inline after it — a parenthetical qualifier read as part
+ * of the same sentence as the action's name, when it's really a separate, secondary detail. */
 @Composable
 private fun ActionMenuItem(
     icon: @Composable () -> Unit,
     label: String,
+    subtitle: String? = null,
     danger: Boolean = false,
     onClick: () -> Unit,
 ) {
@@ -350,19 +356,31 @@ private fun ActionMenuItem(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
-            .clickable(onClickLabel = label, onClick = onClick)
+            .clickable(onClickLabel = if (subtitle != null) "$label $subtitle" else label, onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         icon()
-        Text(
-            label,
-            style = TextStyle(
-                fontSize = 13.5.sp,
-                fontWeight = FontWeight.Bold,
-                color = if (danger) Red400 else colors.textPrimary,
-            ),
-        )
+        Column {
+            Text(
+                label,
+                style = TextStyle(
+                    fontSize = 13.5.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (danger) Red400 else colors.textPrimary,
+                ),
+            )
+            if (subtitle != null) {
+                Text(
+                    subtitle,
+                    style = TextStyle(
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = if (danger) Red400.copy(alpha = 0.75f) else colors.textMuted,
+                    ),
+                )
+            }
+        }
     }
 }
