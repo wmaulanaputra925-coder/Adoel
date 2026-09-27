@@ -66,6 +66,17 @@ class EstimasiUtilsTest {
     }
 
     @Test
+    fun upcomingClashMachineCountFindsSoonestRunWithinLeadTime() {
+        // Two clash-run candidates: a/b due soon (10/13 min away), c/d calm (100/103 min away).
+        val sorted = listOf(est("a", 110), est("b", 113), est("c", 200), est("d", 203))
+        assertEquals(2, upcomingClashMachineCount(sorted, nowAbs = 100, leadMin = 15))
+        // Neither run is within lead time yet.
+        assertNull(upcomingClashMachineCount(sorted, nowAbs = 50, leadMin = 15))
+        // Already-overdue machines don't count as "about to" clash anymore.
+        assertNull(upcomingClashMachineCount(listOf(est("x", 95), est("y", 98)), nowAbs = 100, leadMin = 15))
+    }
+
+    @Test
     fun nearestUpcomingPrefersEarliestOverdueThenSoonest() {
         val map = mapOf("late" to est("late", 90), "soon" to est("soon", 110))
         assertEquals("late", nearestUpcoming(map, nowAbs = 100)?.mcNo)

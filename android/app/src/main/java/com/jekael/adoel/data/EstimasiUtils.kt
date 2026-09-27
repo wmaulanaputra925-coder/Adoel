@@ -71,6 +71,33 @@ fun isClashRunStart(list: List<Estimasi>, index: Int, thresholdMin: Long = 5L): 
     return index + 1 < list.size && abs(list[index + 1].estAbsMin - list[index].estAbsMin) <= thresholdMin
 }
 
+/** How far ahead of an upcoming clash run's due time the header's "bersiap" warning fires —
+ * longer than [REMINDER_LEAD_MIN]'s single-machine reminder since juggling several machines at
+ * once actually takes a moment to get ready for. */
+const val GASPOL_PREPARE_LEAD_MIN = 15L
+
+/** Machine count of the nearest clash run about to come due within [leadMin] minutes (but not yet
+ * due), or null when no such run exists right now. [list] must already be sorted ascending by
+ * estAbsMin (see [sortedByNearest]) — since it's sorted, the first qualifying run found scanning
+ * forward is already the soonest one. Used to warn the operator a beat before a pile-up of
+ * machines actually needs juggling, not only once it's already underway. */
+fun upcomingClashMachineCount(
+    list: List<Estimasi>,
+    nowAbs: Long,
+    leadMin: Long = GASPOL_PREPARE_LEAD_MIN,
+    thresholdMin: Long = 5L,
+): Int? {
+    for (i in list.indices) {
+        if (!isClashRunStart(list, i, thresholdMin)) continue
+        val runLength = clashRunLength(list, i, thresholdMin)
+        val soonEnough = (i until i + runLength).any { idx ->
+            list[idx].effectiveRemaining(nowAbs) in 1..leadMin
+        }
+        if (soonEnough) return runLength
+    }
+    return null
+}
+
 /** Minutes remaining as the operator should actually see it — frozen at whatever it was the
  * moment Jeda was pressed (see [Estimasi.pausedAtAbsMin]) instead of continuing to count down
  * against wall-clock time while paused, so a long pause doesn't quietly push a card into Segera/

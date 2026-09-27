@@ -107,6 +107,11 @@ internal fun MainScreenHeader(
     haptic: HapticFeedback,
     operatorNama: String?,
     operatorGrup: String?,
+    // Machine count of a clash run about to come due soon (see upcomingClashMachineCount),
+    // or null when nothing's imminent — surfaced here rather than left to RadarSection's own
+    // GASPOL divider so it reaches the operator even when that part of the list isn't currently
+    // scrolled into view, or Riwayat is the active page.
+    upcomingClashCount: Int?,
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalAppColors.current
@@ -185,6 +190,21 @@ internal fun MainScreenHeader(
                     ""
                 }
             }
+            val gaspolWarning = upcomingClashCount?.let { "⚡ Bersiap! $it mesin GASPOL sebentar lagi" }
+            // Only pays for the animation while there's actually a warning to show — same
+            // reasoning RadarCard's own OVERDUE pulse uses for not running unconditionally.
+            val gaspolAlpha = if (gaspolWarning != null) {
+                val pulse = rememberInfiniteTransition(label = "gaspolWarningPulse")
+                val alpha by pulse.animateFloat(
+                    initialValue = 0.55f,
+                    targetValue = 1f,
+                    animationSpec = infiniteRepeatable(tween(500, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+                    label = "gaspolWarningAlpha",
+                )
+                alpha
+            } else {
+                1f
+            }
             Column(
                 modifier = Modifier.padding(vertical = 2.dp),
             ) {
@@ -240,14 +260,19 @@ internal fun MainScreenHeader(
                         style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Black, color = Amber500),
                     )
                 }
-                // Swaps to a random cheer for ~1.4s on tap, same slot the shift/operator label
-                // already occupies — no separate floating bubble to worry about clipping against
-                // floatingHeaderCard's own rounded-rect clip.
+                // Same slot the shift/operator label already occupies, in priority order: the
+                // tap cheer (brief, dismisses itself) outranks the GASPOL warning (holds as long
+                // as the condition does) outranks the normal label — no separate floating bubble
+                // to worry about clipping against floatingHeaderCard's own rounded-rect clip.
                 Text(
-                    text = tapPhrase ?: (shiftLabel + operatorSuffix),
+                    text = tapPhrase ?: gaspolWarning ?: (shiftLabel + operatorSuffix),
                     style = AppType.Caption.copy(
-                        color = if (tapPhrase != null) Emerald400 else colors.textFaint,
-                        fontWeight = if (tapPhrase != null) FontWeight.Bold else FontWeight.Normal,
+                        color = when {
+                            tapPhrase != null -> Emerald400
+                            gaspolWarning != null -> Amber400.copy(alpha = gaspolAlpha)
+                            else -> colors.textFaint
+                        },
+                        fontWeight = if (tapPhrase != null || gaspolWarning != null) FontWeight.Bold else FontWeight.Normal,
                     ),
                 )
             }

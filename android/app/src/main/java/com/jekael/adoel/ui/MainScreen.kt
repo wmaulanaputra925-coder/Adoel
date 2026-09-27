@@ -147,6 +147,13 @@ fun MainScreen(
     val radarList = remember(state.estimasi) {
         sortedByNearest(state.estimasi)
     }
+    // Heads-up for the header's own subtitle line — the header stays on screen regardless of
+    // scroll position or whether Radar or Riwayat is the active page, so this reaches the
+    // operator even when the actual GASPOL divider (RadarSection, drawn once the clash is already
+    // sitting in the list) isn't currently in view.
+    val upcomingClashCount = remember(radarList, nowAbs) {
+        upcomingClashMachineCount(radarList, nowAbs)
+    }
     // Filters by mc number only so an operator can jump straight to a machine instead of
     // scanning past everything else when a lot of machines are running at once.
     val filteredRadarList = remember(radarList, radarFilter) {
@@ -413,6 +420,7 @@ fun MainScreen(
             onHeightMeasured = { headerHeight = it },
             operatorNama = state.operatorNama,
             operatorGrup = state.operatorGrup,
+            upcomingClashCount = upcomingClashCount,
             haptic = haptic,
             modifier = Modifier.align(Alignment.TopCenter).fillMaxWidth(),
         )
