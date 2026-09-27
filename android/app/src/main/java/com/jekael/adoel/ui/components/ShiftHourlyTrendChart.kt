@@ -313,24 +313,25 @@ private const val CHART_BOTTOM_PAD_DP = 22f
 private const val CHART_TOP_PAD_DP = 12f
 
 /** Appends a smooth curve through [points] onto [path], which must already be positioned at
- * `points.first()` (via a preceding moveTo/lineTo) — a quadratic Bézier through each consecutive
- * pair's midpoint. Simple and impossible to overshoot, unlike a full Catmull-Rom spline, and
- * reaches the same "no sharp corners between points" look recharts' `type="monotone"` was the
- * reference for, the cheap way. */
+ * `points.first()` (via a preceding moveTo/lineTo) — a Catmull-Rom spline, converted to cubic
+ * Bézier segments (the standard 1/6-tangent form). Each segment's own start/end *is* one of
+ * [points] exactly, unlike a quadratic-through-midpoints shortcut (an earlier version of this
+ * function used exactly that, and it visibly cut inside every data point instead of passing
+ * through it — reported as the plotted dots not lining up with the curve drawn through them) —
+ * Catmull-Rom is the standard spline family for precisely this "smooth, but still interpolates
+ * every real data point" requirement. */
 private fun appendSmoothCurve(path: Path, points: List<Offset>) {
-    when {
-        points.size < 2 -> return
-        points.size == 2 -> path.lineTo(points[1].x, points[1].y)
-        else -> {
-            for (i in 1 until points.size - 1) {
-                val curr = points[i]
-                val next = points[i + 1]
-                path.quadraticBezierTo(curr.x, curr.y, (curr.x + next.x) / 2f, (curr.y + next.y) / 2f)
-            }
-            val secondLast = points[points.size - 2]
-            val last = points.last()
-            path.quadraticBezierTo(secondLast.x, secondLast.y, last.x, last.y)
-        }
+    if (points.size < 2) return
+    for (i in 0 until points.size - 1) {
+        val p0 = points[(i - 1).coerceAtLeast(0)]
+        val p1 = points[i]
+        val p2 = points[i + 1]
+        val p3 = points[(i + 2).coerceAtMost(points.size - 1)]
+        path.cubicTo(
+            p1.x + (p2.x - p0.x) / 6f, p1.y + (p2.y - p0.y) / 6f,
+            p2.x - (p3.x - p1.x) / 6f, p2.y - (p3.y - p1.y) / 6f,
+            p2.x, p2.y,
+        )
     }
 }
 
