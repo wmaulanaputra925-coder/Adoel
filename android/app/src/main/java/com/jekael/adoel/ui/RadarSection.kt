@@ -21,12 +21,14 @@ import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
@@ -39,6 +41,7 @@ import androidx.compose.ui.unit.sp
 import com.jekael.adoel.data.*
 import com.jekael.adoel.ui.components.*
 import com.jekael.adoel.ui.theme.*
+import kotlinx.coroutines.delay
 
 /** ESTIMASI mode's list content: empty state, or the Segera/Menunggu urgency bands (each band's
  * own count lives in its [UrgencyBandHeader] — no separate "Estimasi N" header above both, since
@@ -267,9 +270,24 @@ private fun rowKey(row: MenungguRow): String = when (row) {
  * (within 5 minutes of each other) — replaces the old per-card "Bentrok Mc X, Y" badge, which
  * repeated the same warning on every card in the group and crowded RadarCard's own title row.
  * Grouping the cards themselves (they're already adjacent, since both Segera and Menunggu are
- * time-sorted) already says which machines are meant; this just marks where the group starts. */
+ * time-sorted) already says which machines are meant; this just marks where the group starts.
+ *
+ * "GASPOL" (not the more clinical "Bentrok") plus a lightning bolt that zaps every few seconds —
+ * a pile-up of machines due at once framed as a call to move fast, not a fault to worry over. The
+ * zap is a one-shot flash-and-settle (quick scale/brighten spike, eased back down), repeated on a
+ * long ~5s idle rather than looped continuously like OVERDUE's steady breathing pulse — that
+ * pulse means "ongoing danger, don't look away"; this one just means "yeah, still here," so it
+ * stays lively without nagging. */
 @Composable
 private fun ClashGroupDivider(machineCount: Int, modifier: Modifier = Modifier) {
+    val zap = remember { Animatable(0f) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            zap.animateTo(1f, tween(120, easing = FastOutSlowInEasing))
+            zap.animateTo(0f, tween(220, easing = FastOutSlowInEasing))
+            delay(5000)
+        }
+    }
     Row(modifier = modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         HorizontalDivider(modifier = Modifier.weight(1f), color = Amber400.copy(alpha = 0.45f))
         Row(
@@ -277,8 +295,19 @@ private fun ClashGroupDivider(machineCount: Int, modifier: Modifier = Modifier) 
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(horizontal = 8.dp),
         ) {
-            Icon(imageVector = Icons.Filled.Bolt, contentDescription = null, tint = Amber400, modifier = Modifier.size(14.dp))
-            Text("BENTROK · $machineCount MESIN", style = AppType.Caption.copy(color = Amber400, fontWeight = FontWeight.Bold))
+            Icon(
+                imageVector = Icons.Filled.Bolt,
+                contentDescription = null,
+                tint = lerp(Amber400, Color.White, zap.value),
+                modifier = Modifier
+                    .size(14.dp)
+                    .graphicsLayer {
+                        val scale = 1f + 0.35f * zap.value
+                        scaleX = scale
+                        scaleY = scale
+                    },
+            )
+            Text("GASPOL · $machineCount MESIN", style = AppType.Caption.copy(color = Amber400, fontWeight = FontWeight.Bold))
         }
         HorizontalDivider(modifier = Modifier.weight(1f), color = Amber400.copy(alpha = 0.45f))
     }
