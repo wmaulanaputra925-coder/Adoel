@@ -49,6 +49,28 @@ fun findClashingMachines(
         .toList()
 }
 
+/** How many machines a clash run starting at [index] covers in this time-sorted [list] — walks
+ * forward chaining consecutive pairs within [thresholdMin] of each other (so A-B-C can all group
+ * together even if A and C themselves are more than [thresholdMin] apart). Assumes [index] is
+ * really where a run starts; see [isClashRunStart]. */
+fun clashRunLength(list: List<Estimasi>, index: Int, thresholdMin: Long = 5L): Int {
+    var end = index
+    while (end + 1 < list.size && abs(list[end + 1].estAbsMin - list[end].estAbsMin) <= thresholdMin) {
+        end++
+    }
+    return end - index + 1
+}
+
+/** Whether [list]\[index\] is the first machine of a clash run — i.e., it doesn't clash with
+ * whatever's right before it (or there's nothing before it), but it does clash with what's right
+ * after it. Used to draw one group marker above a run of adjacent clashing cards instead of
+ * repeating a per-card "Bentrok Mc X, Y" badge on every one of them. */
+fun isClashRunStart(list: List<Estimasi>, index: Int, thresholdMin: Long = 5L): Boolean {
+    val clashesWithPrev = index > 0 && abs(list[index].estAbsMin - list[index - 1].estAbsMin) <= thresholdMin
+    if (clashesWithPrev) return false
+    return index + 1 < list.size && abs(list[index + 1].estAbsMin - list[index].estAbsMin) <= thresholdMin
+}
+
 /** Minutes remaining as the operator should actually see it — frozen at whatever it was the
  * moment Jeda was pressed (see [Estimasi.pausedAtAbsMin]) instead of continuing to count down
  * against wall-clock time while paused, so a long pause doesn't quietly push a card into Segera/

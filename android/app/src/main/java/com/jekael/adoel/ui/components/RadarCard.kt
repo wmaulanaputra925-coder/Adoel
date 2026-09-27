@@ -118,7 +118,6 @@ fun RadarCard(
     onEditWaktu: () -> Unit,
     modifier: Modifier = Modifier,
     entranceDelayMs: Long = 0L,
-    clashingMcNos: List<String> = emptyList(),
 ) {
     // Frozen while paused (see Estimasi.pausedAtAbsMin/effectiveRemaining) so a long Jeda doesn't
     // quietly count itself into OVERDUE against wall-clock time.
@@ -561,15 +560,16 @@ fun RadarCard(
                                 RadarTipeBadge(tipe = tipe)
                             }
                         }
-                        // Urgency icon and Bentrok badge stay outside the mcNo/tipe pill above
-                        // (mirroring web's single .radar-card-title-row for placement) — nesting
-                        // their own already-bordered badges inside another persistent box would
-                        // read as boxes-within-a-box, and they're rare/conditional, not part of
-                        // the field the pill itself represents. Shift-handover used to get its own
-                        // badge here too, but it crowded this row into wrapping/truncating on
-                        // narrower cards — the single divider line RadarSection now draws above
-                        // the first handed-over card already says the same thing, once, for the
-                        // whole group.
+                        // Urgency icon stays outside the mcNo/tipe pill above (mirroring web's
+                        // single .radar-card-title-row for placement) — nesting its own
+                        // already-bordered badge inside another persistent box would read as
+                        // boxes-within-a-box, and it's rare/conditional, not part of the field the
+                        // pill itself represents. Shift-handover and Bentrok both used to get their
+                        // own badge here too, but each crowded this row into wrapping/truncating on
+                        // narrower cards — a shared divider line RadarSection now draws above the
+                        // first card of each group (shift-handover, clashing estimates) already
+                        // says the same thing once, for the whole group, instead of repeating it
+                        // per card.
                         if (clr.icon != null) {
                             // 15dp, not the 12dp everything else in this row uses — Material's
                             // Schedule/Warning outlines carry more internal linework than web's
@@ -582,16 +582,6 @@ fun RadarCard(
                                 contentDescription = null,
                                 tint = clr.labelColor,
                                 modifier = Modifier.size(15.dp),
-                            )
-                        }
-                        if (clashingMcNos.isNotEmpty()) {
-                            RadarCardBadge(
-                                icon = Icons.Filled.Warning,
-                                text = "Bentrok Mc ${clashingMcNos.joinToString(", ")}",
-                                accent = Amber400,
-                                // Shrink-only: takes the room it needs, ellipsizing only when a
-                                // long clash list genuinely won't fit alongside mcNo/icon.
-                                modifier = Modifier.weight(1f, fill = false),
                             )
                         }
                     }
@@ -953,30 +943,6 @@ private fun PausedRadarCardFront(
                 DeleteIconButton(onClick = onHapus)
             }
         }
-    }
-}
-
-/** Small icon+label chip for a title-row badge (Bentrok) — Android equivalent of web's
- * .radar-clash-badge (RadarCard.tsx), a real vector icon instead of a raw emoji glyph so it
- * tints with [accent] and matches the rest of the icon system. */
-@Composable
-private fun RadarCardBadge(icon: ImageVector, text: String, accent: Color, modifier: Modifier = Modifier) {
-    Row(
-        modifier = modifier
-            .clip(RoundedCornerShape(6.dp))
-            .background(accent.copy(alpha = 0.16f))
-            .border(1.dp, accent.copy(alpha = 0.35f), RoundedCornerShape(6.dp))
-            .padding(horizontal = 7.dp, vertical = 2.dp),
-        horizontalArrangement = Arrangement.spacedBy(3.5.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(imageVector = icon, contentDescription = null, tint = accent, modifier = Modifier.size(10.dp))
-        Text(
-            text = text,
-            style = TextStyle(fontSize = 9.5.sp, fontWeight = FontWeight.Black, color = accent),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
     }
 }
 

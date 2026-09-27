@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.HourglassEmpty
 import androidx.compose.material.icons.outlined.LocalFireDepartment
 import androidx.compose.material.icons.outlined.Pause
@@ -129,7 +130,6 @@ internal fun LazyListScope.estimasiSection(
                 est = est,
                 mesin = db[est.mcNo],
                 nowAbs = nowAbs,
-                clashingMcNos = emptyList(),
                 onDoff = { onDoff(est.mcNo) },
                 onDoffMatching = { onDoffMatching(est.mcNo) },
                 onHapus = { onHapus(est.mcNo) },
@@ -148,24 +148,33 @@ internal fun LazyListScope.estimasiSection(
         item(key = "segera_head") {
             UrgencyBandHeader(label = "Segera", count = segeraList.size, color = Red400, icon = Icons.Outlined.LocalFireDepartment, modifier = Modifier.animateItem())
         }
+        // Machines whose estAbsMin clash (within 5 minutes of a neighbor) used to each carry their
+        // own "Bentrok Mc X, Y" badge — crowded the title row, and repeated the same warning once
+        // per card in the group. Grouped instead: one marker drawn above the first card of each
+        // run of adjacent clashing cards, same idea as the shift-handover divider above.
+        val segeraClashRuns = segeraList.indices
+            .filter { isClashRunStart(segeraList, it) }
+            .associateWith { clashRunLength(segeraList, it) }
         itemsIndexed(segeraList, key = { _, est -> est.mcNo }) { index, est ->
-            RadarCard(
-                est = est,
-                mesin = db[est.mcNo],
-                nowAbs = nowAbs,
-                clashingMcNos = findClashingMachines(est.mcNo, radarList),
-                onDoff = { onDoff(est.mcNo) },
-                onDoffMatching = { onDoffMatching(est.mcNo) },
-                onHapus = { onHapus(est.mcNo) },
-                onJeda = { onJeda(est.mcNo) },
-                onLanjutkan = { onLanjutkan(est.mcNo) },
-                onQuickEdit = { onQuickEdit(est.mcNo) },
-                onEditTipe = { onEditTipe(est.mcNo) },
-                onEditCorak = { onEditCorak(est.mcNo) },
-                onEditWaktu = { onEditWaktu(est.mcNo) },
-                modifier = Modifier.animateItem(),
-                entranceDelayMs = (index * Motion.LIST_STAGGER_STEP_MS).coerceAtMost(Motion.LIST_STAGGER_MAX_MS),
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                segeraClashRuns[index]?.let { runSize -> ClashGroupDivider(machineCount = runSize) }
+                RadarCard(
+                    est = est,
+                    mesin = db[est.mcNo],
+                    nowAbs = nowAbs,
+                    onDoff = { onDoff(est.mcNo) },
+                    onDoffMatching = { onDoffMatching(est.mcNo) },
+                    onHapus = { onHapus(est.mcNo) },
+                    onJeda = { onJeda(est.mcNo) },
+                    onLanjutkan = { onLanjutkan(est.mcNo) },
+                    onQuickEdit = { onQuickEdit(est.mcNo) },
+                    onEditTipe = { onEditTipe(est.mcNo) },
+                    onEditCorak = { onEditCorak(est.mcNo) },
+                    onEditWaktu = { onEditWaktu(est.mcNo) },
+                    modifier = Modifier.animateItem(),
+                    entranceDelayMs = (index * Motion.LIST_STAGGER_STEP_MS).coerceAtMost(Motion.LIST_STAGGER_MAX_MS),
+                )
+            }
         }
     }
     if (menungguList.isNotEmpty()) {
@@ -182,6 +191,12 @@ internal fun LazyListScope.estimasiSection(
         // the first one. Precomputing the one true first-crossing index up front, over the whole
         // list rather than one neighbor at a time, fixes that for good.
         val firstHandoverIdx = menungguRows.indexOfFirst { it is MenungguRow.CardRow && it.est.estAbsMin > shiftBoundary }
+        // Same grouped-clash marker as the Segera band above, computed against menungguList (the
+        // plain time-sorted machines) rather than menungguRows — BreakGapCards interleaved between
+        // cards don't carry a real estAbsMin of their own to chain against.
+        val menungguClashRuns = menungguList.indices
+            .filter { isClashRunStart(menungguList, it) }
+            .associate { menungguList[it].mcNo to clashRunLength(menungguList, it) }
         itemsIndexed(menungguRows, key = { _, row -> rowKey(row) }) { index, row ->
             val entranceDelayMs = (index * Motion.LIST_STAGGER_STEP_MS).coerceAtMost(Motion.LIST_STAGGER_MAX_MS)
             when (row) {
@@ -201,11 +216,11 @@ internal fun LazyListScope.estimasiSection(
                             HorizontalDivider(modifier = Modifier.weight(1f), color = Amber400.copy(alpha = 0.45f))
                         }
                     }
+                    menungguClashRuns[row.est.mcNo]?.let { runSize -> ClashGroupDivider(machineCount = runSize) }
                     RadarCard(
                         est = row.est,
                         mesin = db[row.est.mcNo],
                         nowAbs = nowAbs,
-                        clashingMcNos = findClashingMachines(row.est.mcNo, radarList),
                         onDoff = { onDoff(row.est.mcNo) },
                         onDoffMatching = { onDoffMatching(row.est.mcNo) },
                         onHapus = { onHapus(row.est.mcNo) },
@@ -239,6 +254,27 @@ internal fun LazyListScope.estimasiSection(
 private fun rowKey(row: MenungguRow): String = when (row) {
     is MenungguRow.CardRow -> row.est.mcNo
     is MenungguRow.GapRow -> "gap_after_${row.afterMcNo}"
+}
+
+/** Group marker drawn above the first card of a run of adjacent machines whose estAbsMin clash
+ * (within 5 minutes of each other) — replaces the old per-card "Bentrok Mc X, Y" badge, which
+ * repeated the same warning on every card in the group and crowded RadarCard's own title row.
+ * Grouping the cards themselves (they're already adjacent, since both Segera and Menunggu are
+ * time-sorted) already says which machines are meant; this just marks where the group starts. */
+@Composable
+private fun ClashGroupDivider(machineCount: Int, modifier: Modifier = Modifier) {
+    Row(modifier = modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        HorizontalDivider(modifier = Modifier.weight(1f), color = Amber400.copy(alpha = 0.45f))
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 8.dp),
+        ) {
+            Icon(imageVector = Icons.Filled.Warning, contentDescription = null, tint = Amber400, modifier = Modifier.size(14.dp))
+            Text("BENTROK · $machineCount MESIN", style = AppType.Caption.copy(color = Amber400, fontWeight = FontWeight.Bold))
+        }
+        HorizontalDivider(modifier = Modifier.weight(1f), color = Amber400.copy(alpha = 0.45f))
+    }
 }
 
 // Carries its own count instead of a separate "Estimasi N"/"Doffing N" header above it — the
