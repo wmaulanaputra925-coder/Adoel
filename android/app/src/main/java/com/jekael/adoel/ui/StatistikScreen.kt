@@ -9,6 +9,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -17,6 +18,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -38,7 +41,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.CalendarToday
+import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -58,6 +65,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalContext
@@ -623,6 +633,40 @@ private fun DoffCountChart(history: List<ShiftRecord>, selectedShiftId: Int?, on
     }
 }
 
+/** Small info tag for [ShiftRow]'s header — icon-optional, tinted when [tint] is given (the
+ * "N doff"/"N HB"/"N Match" counts) or a neutral outline otherwise (time range, operator). Purely
+ * informational: unlike the app's tactilePill-styled action chips, nothing here is tappable, so
+ * it keeps the flatter low-alpha-tint look that signals "tag", not "button". Single-line with
+ * ellipsis as a safety net — the operator name is the one field here of unbounded length. */
+@Composable
+private fun ShiftInfoPill(text: String, tint: Color? = null, icon: ImageVector? = null) {
+    val colors = LocalAppColors.current
+    val shape = RoundedCornerShape(6.dp)
+    val fg = tint ?: colors.textSecondary
+    Row(
+        modifier = Modifier
+            .clip(shape)
+            .background(tint?.copy(alpha = 0.16f) ?: colors.bgElevated2)
+            .border(1.dp, tint?.copy(alpha = 0.35f) ?: colors.border, shape)
+            .padding(horizontal = 8.dp, vertical = 3.dp)
+            .widthIn(max = 150.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        if (icon != null) {
+            Icon(icon, contentDescription = null, tint = fg, modifier = Modifier.size(11.dp))
+        }
+        Text(
+            text,
+            style = TextStyle(fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = fg),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            softWrap = false,
+        )
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ShiftRow(
     shift: ShiftRecord,
@@ -664,6 +708,29 @@ private fun ShiftRow(
         val stamped = chronological.mapNotNull { it.tsEpochMin }
         if (stamped.size >= 2) stamped.zipWithNext { a, b -> b - a }.average() else null
     }
+    // Captured on the record itself at archive time (see ShiftRecord.operatorNama's doc), not
+    // read from the live current settings — an old archive keeps whoever actually closed it even
+    // after the operator/grup in Pengaturan later changes. [operatorNama]/[operatorGrup] (the
+    // params) only fill in for archives predating that field.
+    val operatorLabel = remember(shift.operatorNama, shift.operatorGrup, operatorNama, operatorGrup) {
+        val nama = shift.operatorNama.ifBlank { operatorNama }.trim()
+        val grup = shift.operatorGrup.ifBlank { operatorGrup }.trim()
+        when {
+            nama.isEmpty() -> null
+            grup.isEmpty() -> nama
+            else -> "$nama ($grup)"
+        }
+    }
+    // ket is stored as "jam(extra)" or bare "jam" (see prosesBarisUmum in DoffViewModel.kt) — the
+    // same extraction DoffEntryRow.kt's own MetaTagPill uses to read the flagged HB/MATCHING code
+    // back out, just counted across the whole shift instead of shown per-row.
+    val hbCount = remember(shift.aktual) {
+        shift.aktual.count { it.ket.removePrefix(it.jam).removeSurrounding("(", ")").uppercase().contains("HB") }
+    }
+    val matchCount = remember(shift.aktual) {
+        shift.aktual.count { it.ket.removePrefix(it.jam).removeSurrounding("(", ")").uppercase().contains("MATCH") }
+    }
+    val chevronRotation by animateFloatAsState(if (expanded) 90f else 0f, label = "shiftChevron")
 
     // Bagikan langsung — bukan salin, supaya tidak perlu ganti aplikasi lalu tempel manual.
     // Tidak berarti apa-apa untuk shift tanpa doff (mis. diarsipkan dengan estimasi yang belum
@@ -705,28 +772,56 @@ private fun ShiftRow(
             )
             Spacer(Modifier.width(10.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    dateStr,
-                    style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary),
-                )
-                Text(timeRange, style = AppType.Caption.copy(color = colors.textFaint))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Outlined.CalendarToday,
+                        contentDescription = null,
+                        tint = colors.textFaint,
+                        modifier = Modifier.size(13.dp),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        dateStr,
+                        style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    ShiftInfoPill(text = "${shift.aktual.size} doff", tint = Cyan400)
+                }
                 Spacer(Modifier.height(6.dp))
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    ShiftInfoPill(icon = Icons.Outlined.Schedule, text = timeRange)
+                    if (operatorLabel != null) {
+                        ShiftInfoPill(icon = Icons.Outlined.Person, text = operatorLabel)
+                    }
+                }
+                if (hbCount > 0 || matchCount > 0 || avgGapMin != null) {
+                    Spacer(Modifier.height(6.dp))
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        if (hbCount > 0) ShiftInfoPill(text = "$hbCount HB", tint = Amber400)
+                        if (matchCount > 0) ShiftInfoPill(text = "$matchCount Match", tint = Emerald400)
+                        if (avgGapMin != null) {
+                            Text(
+                                "±${formatDeltaMin(avgGapMin.toLong())}/doff",
+                                style = TextStyle(fontSize = 12.sp, color = colors.textFaint),
+                            )
+                        }
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
                 LinearProgressBar(
                     fraction = shift.aktual.size.toFloat() / maxDoffCount,
                     trackColor = colors.bgElevated2,
                     fillColor = Cyan500,
-                    width = 60.dp,
+                    fillMaxWidth = true,
                 )
             }
-            Column(horizontalAlignment = Alignment.End) {
-                Text("${shift.aktual.size} doff", style = AppType.TabLabel.copy(color = Cyan400))
-                if (avgGapMin != null) {
-                    Text(
-                        "±${formatDeltaMin(avgGapMin.toLong())}/doff",
-                        style = TextStyle(fontSize = 12.sp, color = colors.textFaint),
-                    )
-                }
-            }
+            Spacer(Modifier.width(6.dp))
+            Icon(
+                imageVector = Icons.Outlined.ChevronRight,
+                contentDescription = if (expanded) "Tutup rincian shift" else "Lihat rincian shift",
+                tint = colors.textFaint,
+                modifier = Modifier.size(18.dp).rotate(chevronRotation),
+            )
         }
 
         Row(
