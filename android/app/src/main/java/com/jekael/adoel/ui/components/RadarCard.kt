@@ -72,7 +72,6 @@ private enum class CardFace { FRONT, ACTIONS }
 
 private data class UrgencyStyle(
     val accent: Color,
-    val barColor: Color,
     val textColor: Color,
     val labelColor: Color,
     val pulse: Boolean,
@@ -80,12 +79,12 @@ private data class UrgencyStyle(
 )
 
 private fun urgency(remaining: Long): UrgencyStyle = when (urgencyLevel(remaining)) {
-    UrgencyLevel.CALM -> UrgencyStyle(Cyan500, Cyan500, Cyan400, Cyan700, false, null)
-    UrgencyLevel.SOON -> UrgencyStyle(Amber500, Amber400, Amber400, Amber400, false, Icons.Outlined.Schedule)
+    UrgencyLevel.CALM -> UrgencyStyle(Cyan500, Cyan400, Cyan700, false, null)
+    UrgencyLevel.SOON -> UrgencyStyle(Amber500, Amber400, Amber400, false, Icons.Outlined.Schedule)
     // textColor is Orange400, not Amber — the last-10-minutes countdown needs to read as visibly
     // hotter than Segera's amber at a glance, not just a slightly darker shade of the same color.
-    UrgencyLevel.IMMINENT -> UrgencyStyle(Amber600, Amber600, Orange400, Amber500, false, Icons.Outlined.Warning)
-    UrgencyLevel.OVERDUE -> UrgencyStyle(Red500, Red500, Red400, Red400, true, Icons.Filled.Warning)
+    UrgencyLevel.IMMINENT -> UrgencyStyle(Amber600, Orange400, Amber500, false, Icons.Outlined.Warning)
+    UrgencyLevel.OVERDUE -> UrgencyStyle(Red500, Red400, Red400, true, Icons.Filled.Warning)
 }
 
 @Composable
@@ -123,9 +122,6 @@ fun RadarCard(
     // quietly count itself into OVERDUE against wall-clock time.
     val remaining = est.effectiveRemaining(nowAbs)
     val clr = urgency(remaining)
-    val totalDur = est.estAbsMin - est.startAbsMin
-    val elapsed = nowAbs - est.startAbsMin
-    val progress = if (totalDur > 0) (elapsed.toFloat() / totalDur).coerceIn(0f, 1f) else 0f
     val remStr = formatDeltaMin(remaining)
     val corak = est.corakOverride ?: mesin?.corak ?: "—"
     val standardYard = est.yardOverride ?: mesin?.targetYard
@@ -610,14 +606,6 @@ fun RadarCard(
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
-                    LinearProgressBar(
-                        fraction = progress,
-                        trackColor = colors.bgElevated2,
-                        fillColor = clr.barColor,
-                        modifier = Modifier.fillMaxWidth(),
-                        fillMaxWidth = true,
-                        height = 3.dp,
-                    )
                 }
 
                 // Right: ping dot + estimated time + remaining — same persistent boxed-pill
