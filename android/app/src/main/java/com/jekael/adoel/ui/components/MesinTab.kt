@@ -15,6 +15,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Cancel
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Search
@@ -410,6 +411,18 @@ internal fun MesinTab(
                     leadingIcon = {
                         Icon(Icons.Outlined.Search, contentDescription = null, tint = colors.textFaint, modifier = Modifier.size(18.dp))
                     },
+                    trailingIcon = if (search.isNotEmpty()) {
+                        {
+                            IconButton(onClick = { search = "" }, modifier = Modifier.size(28.dp)) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Cancel,
+                                    contentDescription = "Hapus pencarian",
+                                    tint = colors.textFaint,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                            }
+                        }
+                    } else null,
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = Amber500,
                         unfocusedBorderColor = colors.border,
