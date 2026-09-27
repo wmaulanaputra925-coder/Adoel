@@ -333,9 +333,11 @@ internal fun MainScreenHeader(
 
 /** One row in the "Aksi lainnya" dropdown — Android equivalent of web's `.dropdown-item`
  * (App.tsx/index.css): icon + label, rounded-10dp hover/press tint instead of Material's default
- * item chrome, sized to its own content rather than stretching to whatever the widest sibling
- * item needs. [danger] reads the label/icon in [Red400] (Selesai Shift, Hapus Semua) — everything
- * else stays neutral [LocalAppColors.textPrimary]. */
+ * item chrome. Filled to the menu's own width (matching web: `.header-dropdown-menu` is a flex
+ * column, and its children stretch to fill it by default) rather than sized to just the icon+label
+ * — leaving a row narrower than the menu meant whatever empty space sat to its right, inside the
+ * same visible highlight-shaped row, wasn't actually tappable. [danger] reads the label/icon in
+ * [Red400] (Selesai Shift, Hapus Semua) — everything else stays neutral [LocalAppColors.textPrimary]. */
 @Composable
 private fun ActionMenuItem(
     icon: @Composable () -> Unit,
@@ -346,6 +348,7 @@ private fun ActionMenuItem(
     val colors = LocalAppColors.current
     Row(
         modifier = Modifier
+            .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
             .clickable(onClickLabel = label, onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 10.dp),
