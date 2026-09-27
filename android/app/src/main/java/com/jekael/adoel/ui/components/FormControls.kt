@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Cancel
@@ -98,6 +99,7 @@ fun ClearableOutlinedTextField(
     label: String? = null,
     textStyle: TextStyle = AppType.FieldText,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    keyboardActions: KeyboardActions = KeyboardActions.Default,
     singleLine: Boolean = true,
 ) {
     val colors = LocalAppColors.current
@@ -123,6 +125,7 @@ fun ClearableOutlinedTextField(
         shape = RoundedCornerShape(Dimens.RadiusControl),
         textStyle = textStyle.copy(color = colors.textPrimary),
         keyboardOptions = keyboardOptions,
+        keyboardActions = keyboardActions,
         singleLine = singleLine,
     )
 }

@@ -196,16 +196,11 @@ fun TambahAktSheet(
         Spacer(Modifier.height(Dimens.Space16))
 
         FieldLabel("Keterangan (opsional)")
-        OutlinedTextField(
+        ClearableOutlinedTextField(
             value = ketInput,
             onValueChange = { ketInput = it },
-            modifier = Modifier.fillMaxWidth(),
-            colors = outlinedFieldColors(),
-            shape = RoundedCornerShape(Dimens.RadiusControl),
-            textStyle = AppType.FieldText.copy(color = colors.textPrimary),
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { doSave() }),
-            singleLine = true,
         )
         KeteranganShortcutPicker(
             value = ketInput,

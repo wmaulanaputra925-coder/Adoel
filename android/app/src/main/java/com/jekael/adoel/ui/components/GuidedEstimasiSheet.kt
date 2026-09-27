@@ -224,17 +224,13 @@ fun GuidedEstimasiSheet(
                         modifier = Modifier.fillMaxWidth(),
                     )
                 } else {
-                    OutlinedTextField(
+                    ClearableOutlinedTextField(
                         value = valueInput,
                         onValueChange = { valueInput = it },
-                        modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
-                        placeholder = { Text("cth: ${hint.example}", color = colors.textFaint) },
-                        colors = outlinedFieldColors(),
-                        shape = RoundedCornerShape(Dimens.RadiusControl),
-                        textStyle = AppType.FieldText.copy(color = colors.textPrimary),
+                        modifier = Modifier.focusRequester(focusRequester),
+                        placeholder = "cth: ${hint.example}",
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
                         keyboardActions = KeyboardActions(onDone = { submit() }),
-                        singleLine = true,
                     )
                 }
                 if (nozzleProgress.value > 0f && nozzleProgress.value < 1f) {

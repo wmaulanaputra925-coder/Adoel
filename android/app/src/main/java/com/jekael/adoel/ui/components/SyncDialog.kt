@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material.icons.outlined.Cancel
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -461,6 +462,18 @@ fun SyncDialog(onClose: () -> Unit, isFirstTimeEmpty: Boolean = false) {
                             value = pastedText,
                             onValueChange = { pastedText = it },
                             placeholder = { Text("Tempel data JSON/teks QR...", style = TextStyle(fontSize = 13.sp, color = colors.textMuted)) },
+                            trailingIcon = if (pastedText.isNotEmpty()) {
+                                {
+                                    IconButton(onClick = { pastedText = "" }) {
+                                        Icon(
+                                            imageVector = Icons.Outlined.Cancel,
+                                            contentDescription = "Hapus semua",
+                                            tint = colors.textFaint,
+                                            modifier = Modifier.size(18.dp),
+                                        )
+                                    }
+                                }
+                            } else null,
                             singleLine = true,
                             colors = outlinedFieldColors(),
                             modifier = Modifier.weight(1f),

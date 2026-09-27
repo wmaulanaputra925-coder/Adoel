@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.outlined.Cancel
 import androidx.compose.material.icons.outlined.HourglassEmpty
 import androidx.compose.material.icons.outlined.LocalFireDepartment
 import androidx.compose.material.icons.outlined.Pause
@@ -409,6 +410,18 @@ internal fun ListFilterField(value: String, onValueChange: (String) -> Unit, pla
         onValueChange = onValueChange,
         modifier = modifier,
         placeholder = { Text(placeholder, style = AppType.Caption.copy(color = colors.textFaint)) },
+        trailingIcon = if (value.isNotEmpty()) {
+            {
+                IconButton(onClick = { onValueChange("") }, modifier = Modifier.size(28.dp)) {
+                    Icon(
+                        imageVector = Icons.Outlined.Cancel,
+                        contentDescription = "Hapus pencarian",
+                        tint = colors.textFaint,
+                        modifier = Modifier.size(16.dp),
+                    )
+                }
+            }
+        } else null,
         colors = outlinedFieldColors(),
         shape = RoundedCornerShape(50.dp),
         textStyle = AppType.FieldText.copy(color = colors.textPrimary),

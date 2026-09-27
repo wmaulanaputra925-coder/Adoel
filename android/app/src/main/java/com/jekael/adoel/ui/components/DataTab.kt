@@ -452,15 +452,11 @@ internal fun DataTab(
                 horizontalArrangement = Arrangement.spacedBy(Dimens.Space8),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                OutlinedTextField(
+                ClearableOutlinedTextField(
                     value = newKetInput,
                     onValueChange = { newKetInput = it },
                     modifier = Modifier.weight(1f),
-                    placeholder = { Text("Ketik keterangan baru...", color = colors.textFaint) },
-                    colors = outlinedFieldColors(),
-                    shape = RoundedCornerShape(Dimens.RadiusControl),
-                    textStyle = AppType.FieldText.copy(color = colors.textPrimary),
-                    singleLine = true,
+                    placeholder = "Ketik keterangan baru...",
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(onDone = {
                         val clean = newKetInput.trim()
@@ -579,15 +575,11 @@ internal fun DataTab(
                 horizontalArrangement = Arrangement.spacedBy(Dimens.Space8),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                OutlinedTextField(
+                ClearableOutlinedTextField(
                     value = newCorakInput,
                     onValueChange = { newCorakInput = it },
                     modifier = Modifier.weight(1f),
-                    placeholder = { Text("Ketik kode corak baru...", color = colors.textFaint) },
-                    colors = outlinedFieldColors(),
-                    shape = RoundedCornerShape(Dimens.RadiusControl),
-                    textStyle = AppType.FieldText.copy(color = colors.textPrimary),
-                    singleLine = true,
+                    placeholder = "Ketik kode corak baru...",
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(onDone = {
                         val clean = newCorakInput.trim()
@@ -703,15 +695,11 @@ internal fun DataTab(
                 horizontalArrangement = Arrangement.spacedBy(Dimens.Space8),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                OutlinedTextField(
+                ClearableOutlinedTextField(
                     value = newPotonganAwalInput,
                     onValueChange = { newPotonganAwalInput = it },
                     modifier = Modifier.weight(1f),
-                    placeholder = { Text("Tambah kode corak (cth: 80125)...", color = colors.textFaint) },
-                    colors = outlinedFieldColors(),
-                    shape = RoundedCornerShape(Dimens.RadiusControl),
-                    textStyle = AppType.FieldText.copy(color = colors.textPrimary),
-                    singleLine = true,
+                    placeholder = "Tambah kode corak (cth: 80125)...",
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(onDone = {
                         val clean = newPotonganAwalInput.trim()
