@@ -1017,12 +1017,15 @@ private fun CardActionChip(icon: ImageVector, label: String, accent: Color, onCl
     // No haptic here — [onClick] (onJeda/onHapus) already triggers it in MainScreenHandlers, the
     // single source both this tap and RadarCard's TalkBack custom actions funnel through (see
     // triggerDoff for the same pattern), so adding one here too would double-buzz.
+    // accent (Amber400/Red400) is a bright, light accent meant to be read as text on a dark
+    // surface, not as a background behind white text — darkening it down for the fill keeps
+    // that same accent-colored icon/text legible against its own now-bold background instead of
+    // forcing white onto a fill too light to carry it.
+    val fillBase = lerp(accent, Color.Black, 0.55f)
     Row(
         modifier = modifier
             .height(38.dp)
-            .clip(RoundedCornerShape(10.dp))
-            .background(accent.copy(alpha = 0.18f))
-            .border(1.dp, accent.copy(alpha = 0.35f), RoundedCornerShape(10.dp))
+            .tactilePill(fillBase, RoundedCornerShape(10.dp))
             .clickable(onClickLabel = label, onClick = onClick),
         horizontalArrangement = Arrangement.spacedBy(7.dp, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
@@ -1038,8 +1041,7 @@ private fun CardActionChip(icon: ImageVector, label: String, accent: Color, onCl
 private fun ResumeChip(onClick: () -> Unit) {
     Row(
         modifier = Modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(Emerald500)
+            .tactilePill(Emerald500, RoundedCornerShape(10.dp))
             .clickable(onClickLabel = "Lanjutkan", onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),

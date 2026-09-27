@@ -59,6 +59,7 @@ import com.jekael.adoel.ui.theme.Cyan600
 import com.jekael.adoel.ui.theme.Dimens
 import com.jekael.adoel.ui.theme.Emerald400
 import com.jekael.adoel.ui.theme.LocalAppColors
+import com.jekael.adoel.ui.theme.tactilePill
 import java.util.Calendar
 import kotlin.math.max
 import kotlin.math.roundToInt
@@ -235,8 +236,7 @@ private fun TrendModeChip(label: String, selected: Boolean, modifier: Modifier =
     val colors = LocalAppColors.current
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(6.dp))
-            .background(if (selected) Cyan600.copy(alpha = 0.18f) else colors.bgElevated)
+            .tactilePill(if (selected) Cyan600 else colors.bgElevated2)
             .clickable(onClick = onClick)
             .padding(horizontal = 8.dp, vertical = 5.dp),
         contentAlignment = Alignment.Center,
@@ -247,7 +247,7 @@ private fun TrendModeChip(label: String, selected: Boolean, modifier: Modifier =
             style = TextStyle(
                 fontSize = 10.5.sp,
                 fontWeight = FontWeight.Bold,
-                color = if (selected) Cyan400 else colors.textFaint,
+                color = if (selected) Color.White else colors.textFaint,
             ),
         )
     }

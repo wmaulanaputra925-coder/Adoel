@@ -20,6 +20,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -89,16 +90,14 @@ fun BaseShortcutPicker(
         verticalArrangement = Arrangement.spacedBy(7.dp),
         modifier = modifier.fillMaxWidth().padding(top = Dimens.Space10),
     ) {
-        // Existing shortcut chips — tinted+bordered when active, neutral+bordered otherwise
-        // (matches the meta-tag/corak-chip-filter pill language used everywhere else now: a pill
-        // always carries its own border, not just a flat fill, active or not).
+        // Existing shortcut chips — a bold, mostly-opaque tactilePill fill when active, a bolder
+        // neutral one otherwise (was a washed-out low-alpha tint either way, which read as a
+        // plain informational tag rather than something pressable).
         shortcuts.forEach { code ->
             val isActive = currentTrimmed.equals(code, ignoreCase = true)
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(if (isActive) Cyan500.copy(alpha = 0.16f) else colors.bgElevated)
-                    .border(1.dp, if (isActive) Cyan400.copy(alpha = 0.45f) else colors.border, RoundedCornerShape(6.dp))
+                    .tactilePill(if (isActive) Cyan600 else colors.bgElevated2)
                     .clickable { onSelect(code) }
                     .padding(horizontal = 10.dp, vertical = 6.dp),
                 contentAlignment = Alignment.Center,
@@ -106,7 +105,7 @@ fun BaseShortcutPicker(
                 Text(
                     text = code,
                     style = AppType.Caption.copy(
-                        color = if (isActive) Cyan400 else colors.textSecondary,
+                        color = if (isActive) Color.White else colors.textSecondary,
                         fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
                         fontSize = 12.5.sp,
                     ),
@@ -119,8 +118,9 @@ fun BaseShortcutPicker(
             Surface(
                 onClick = { handleSaveCurrent() },
                 shape = RoundedCornerShape(6.dp),
-                color = Cyan600.copy(alpha = 0.12f),
-                border = BorderStroke(1.dp, Cyan600.copy(alpha = 0.35f)),
+                color = Cyan600,
+                border = BorderStroke(1.dp, lerp(Cyan600, Color.Black, 0.3f)),
+                shadowElevation = 2.dp,
                 modifier = Modifier.height(28.dp),
             ) {
                 Row(
@@ -131,13 +131,13 @@ fun BaseShortcutPicker(
                     Icon(
                         imageVector = Icons.Default.Add,
                         contentDescription = null,
-                        tint = Cyan400,
+                        tint = Color.White,
                         modifier = Modifier.size(13.dp),
                     )
                     Text(
                         text = "Simpan \"$currentTrimmed\" ke Shortcut",
                         style = AppType.Caption.copy(
-                            color = Cyan400,
+                            color = Color.White,
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 12.sp,
                         ),
@@ -183,6 +183,7 @@ fun BaseShortcutPicker(
                     onClick = { handleAddInline() },
                     shape = RoundedCornerShape(4.dp),
                     color = if (inlineInput.isNotBlank()) Cyan600 else colors.bgElevated1,
+                    shadowElevation = if (inlineInput.isNotBlank()) 2.dp else 0.dp,
                 ) {
                     Text(
                         text = "+ OK",
@@ -208,8 +209,9 @@ fun BaseShortcutPicker(
             Surface(
                 onClick = { isAdding = true },
                 shape = RoundedCornerShape(6.dp),
-                color = colors.bgElevated1,
+                color = colors.bgElevated2,
                 border = BorderStroke(1.dp, colors.border),
+                shadowElevation = 2.dp,
                 modifier = Modifier.height(28.dp),
             ) {
                 Row(
@@ -220,13 +222,13 @@ fun BaseShortcutPicker(
                     Icon(
                         imageVector = Icons.Default.Add,
                         contentDescription = null,
-                        tint = colors.textMuted,
+                        tint = colors.textSecondary,
                         modifier = Modifier.size(13.dp),
                     )
                     Text(
                         text = "Tambah $itemTypeLabel",
                         style = AppType.Caption.copy(
-                            color = colors.textMuted,
+                            color = colors.textSecondary,
                             fontWeight = FontWeight.Medium,
                             fontSize = 12.sp,
                         ),

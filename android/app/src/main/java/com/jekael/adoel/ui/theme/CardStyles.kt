@@ -18,6 +18,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.unit.Dp
@@ -116,6 +117,35 @@ fun Modifier.glossyListCard(
             )
         }
         .border(1.dp, borderColor ?: colors.border, shape)
+}
+
+/**
+ * Tactile "pressable button" treatment for small actionable chips/pills — shortcut chips, filter
+ * chips, radar card action chips. These used to read as flat labels: a washed-out, low-alpha tint
+ * of [baseColor] with only a thin border for definition, easy to mistake for a plain informational
+ * tag (a tipe badge, say, which really is one and stays that way). This gives them the bold,
+ * mostly-opaque [baseColor] fill a pressable control needs, plus the same lifted-surface language
+ * as [glossyListCard] scaled down to chip size (a top-lit gradient, a thin top sheen line, a soft
+ * shadow) so they read as buttons, not tags.
+ */
+@Composable
+fun Modifier.tactilePill(baseColor: Color, shape: Shape = RoundedCornerShape(6.dp)): Modifier {
+    val gradient = Brush.verticalGradient(listOf(lerp(baseColor, Color.White, 0.14f), baseColor))
+    return this
+        .shadow(elevation = 2.dp, shape = shape, clip = false)
+        .clip(shape)
+        .background(gradient)
+        .drawWithContent {
+            drawContent()
+            val y = 0.5.dp.toPx()
+            drawLine(
+                color = Color.White.copy(alpha = 0.20f),
+                start = Offset(0f, y),
+                end = Offset(size.width, y),
+                strokeWidth = 1.dp.toPx(),
+            )
+        }
+        .border(1.dp, lerp(baseColor, Color.Black, 0.3f), shape)
 }
 
 private fun Modifier.dashedRoundedBorder(color: Color, cornerRadius: Dp, strokeWidth: Dp = 1.dp): Modifier =

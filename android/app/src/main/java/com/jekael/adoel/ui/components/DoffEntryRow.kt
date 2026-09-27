@@ -25,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -36,8 +37,10 @@ import com.jekael.adoel.data.MesinData
 import com.jekael.adoel.data.formatYard
 import com.jekael.adoel.ui.theme.Amber400
 import com.jekael.adoel.ui.theme.Cyan400
+import com.jekael.adoel.ui.theme.Cyan600
 import com.jekael.adoel.ui.theme.Emerald400
 import com.jekael.adoel.ui.theme.LocalAppColors
+import com.jekael.adoel.ui.theme.tactilePill
 
 /**
  * The one row layout for a recorded doff, shared by Riwayat and by Statistik's shift detail so the
@@ -171,17 +174,32 @@ private fun MetaTagPill(
 ) {
     val colors = LocalAppColors.current
     val shape = RoundedCornerShape(6.dp)
-    val fg = tint ?: colors.textSecondary
-    val bg = tint?.copy(alpha = 0.16f) ?: colors.bgElevated
-    val border = tint?.copy(alpha = 0.35f) ?: colors.border
-    Row(
-        modifier = modifier
+    // Only the actionable case (onClick != null — Riwayat/Statistik's tap-to-edit tags) gets the
+    // bold tactilePill treatment; RadarCard's own display-only tags keep the original flat tint,
+    // since a pressable-looking control on something that isn't pressable would be misleading.
+    // [tint] is always one of the app's bright "400" accents (Cyan400/Emerald400/Amber400) — too
+    // light to carry white text as a solid fill. Darkening it down for the background and keeping
+    // the original bright tint as the text/icon color (same "accent-colored content on a darker
+    // tinted surface" language as everywhere else) stays legible instead.
+    val fg = if (onClick != null) {
+        tint ?: colors.textPrimary
+    } else {
+        tint ?: colors.textSecondary
+    }
+    val styledModifier = if (onClick != null) {
+        modifier
+            .height(22.dp)
+            .tactilePill(if (tint != null) lerp(tint, Color.Black, 0.55f) else colors.bgElevated2, shape)
+            .clickable(onClickLabel = onClickLabel, onClick = onClick)
+    } else {
+        modifier
             .height(22.dp)
             .clip(shape)
-            .background(bg)
-            .border(1.dp, border, shape)
-            .then(if (onClick != null) Modifier.clickable(onClickLabel = onClickLabel, onClick = onClick) else Modifier)
-            .padding(horizontal = 8.dp),
+            .background(tint?.copy(alpha = 0.16f) ?: colors.bgElevated)
+            .border(1.dp, tint?.copy(alpha = 0.35f) ?: colors.border, shape)
+    }
+    Row(
+        modifier = styledModifier.padding(horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
@@ -207,18 +225,16 @@ private fun AddKeteranganPill(onClick: () -> Unit, mcNo: String) {
     Row(
         modifier = Modifier
             .height(22.dp)
-            .clip(shape)
-            .background(Cyan400.copy(alpha = 0.08f))
-            .border(1.dp, Cyan400.copy(alpha = 0.45f), shape)
+            .tactilePill(Cyan600, shape)
             .clickable(onClickLabel = "Tambah keterangan Mc $mcNo", onClick = onClick)
             .padding(horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Icon(imageVector = Icons.Outlined.Add, contentDescription = null, tint = Cyan400, modifier = Modifier.size(11.dp))
+        Icon(imageVector = Icons.Outlined.Add, contentDescription = null, tint = Color.White, modifier = Modifier.size(11.dp))
         Text(
             "Keterangan",
-            style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Cyan400),
+            style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White),
             maxLines = 1,
             softWrap = false,
         )

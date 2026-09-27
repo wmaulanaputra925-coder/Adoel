@@ -270,6 +270,7 @@ internal fun MesinTab(
                                 containerColor = colors.bgElevated2,
                                 labelColor = colors.textSecondary,
                             ),
+                            elevation = FilterChipDefaults.filterChipElevation(elevation = 2.dp),
                         )
                         corakSummary.forEach { (corak, count) ->
                             FilterChip(
@@ -282,6 +283,7 @@ internal fun MesinTab(
                                     containerColor = colors.bgElevated2,
                                     labelColor = colors.textSecondary,
                                 ),
+                                elevation = FilterChipDefaults.filterChipElevation(elevation = 2.dp),
                             )
                         }
                     }
