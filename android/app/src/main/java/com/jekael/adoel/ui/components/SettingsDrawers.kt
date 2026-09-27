@@ -47,11 +47,12 @@ private fun SlideOverPanel(
             // No systemBarsPadding() here — this panel now lives inside MainScreen's own root
             // Box, which already insets its children from the system bars once.
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = Dimens.Space20),
-            ) {
+            // No horizontal margin here — MesinTab and DataTab each own their own inset (like
+            // MainScreen's Radar/Riwayat do), rather than getting one from this shared shell.
+            // A blanket margin here used to stack on top of MesinTab's own LazyColumn
+            // contentPadding (20dp + 12dp = 32dp total), making Daftar Mesin's cards sit
+            // noticeably further from the screen edge than every other card in the app.
+            Box(modifier = Modifier.fillMaxSize()) {
                 content(headerHeight)
             }
 

@@ -201,14 +201,13 @@ internal fun DataTab(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(scrollState),
-        // No horizontal screen margin here — unlike MesinTab's MachineListItem (12dp internal
-        // padding, genuinely flush/cramped before its own fix), SectionCard already carries a
-        // generous 16dp of its own internal padding. Adding the same 12dp screen margin on top of
-        // that (as an earlier pass did, by analogy with MesinTab, without this screen actually
-        // being reported as cramped) stacked into a 28dp total inset per side — visibly narrowing
-        // every card's usable body width for no real gain, since SectionCard's own padding was
-        // already doing that job on its own.
+            .verticalScroll(scrollState)
+            // Own margin now (this used to come from SlideOverPanel's shared shell — see its
+            // doc comment). 20dp, not MesinTab's 12dp: SectionCard already carries a generous
+            // 16dp of its own internal padding, so a 12dp outer margin here (as an earlier pass
+            // tried, by analogy with MesinTab) stacked into just 28dp total — visibly narrower
+            // than this screen's own established 20dp+16dp look, for no real gain.
+            .padding(horizontal = Dimens.Space20),
         verticalArrangement = Arrangement.spacedBy(Dimens.Space12),
     ) {
         Spacer(Modifier.height(10.dp + headerHeight + Dimens.Space16))
