@@ -80,8 +80,14 @@ private fun MetaTag(text: String, tint: Color? = null, icon: ImageVector? = null
 }
 
 /** One row in the Daftar Mesin list — the [McBadgeBox] (same badge Riwayat/Statistik use for a
- * machine number) up front, corak as the bold highlight next to it, then tipe/yard/speed/koreksi
- * as supporting tags. */
+ * machine number) up front, corak on its own full-width line, tipe/yard/speed/koreksi as
+ * supporting tags on a second line below it. Web's own `.machine-list-item` puts corak and the
+ * tags inline in one row instead (`.corak-info { flex: 1 }` beside `.meta-tags { flex-shrink: 0 }`)
+ * — ported that way at first, but a D408 machine with both its yard and koreksi tags showing
+ * left corak sharing the row with three fixed-width tags at once, ellipsizing it far more
+ * aggressively than any other card's own corak text (Riwayat's own row already gives corak a full
+ * line to itself, tags on their own line below — this now matches that instead of web's tighter
+ * single row). */
 @Composable
 private fun MachineListItem(
     mcNo: String,
@@ -100,36 +106,40 @@ private fun MachineListItem(
     ) {
         McBadgeBox(mcNo = mcNo, numberFontSize = 15.sp)
 
-        Row(
+        Column(
             modifier = Modifier.weight(1f),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(5.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Icon(
-                imageVector = Icons.Outlined.Texture,
-                contentDescription = null,
-                tint = Cyan400,
-                modifier = Modifier.size(14.dp),
-            )
-            Text(
-                mesin.corak,
-                style = TextStyle(fontSize = 14.5.sp, fontWeight = FontWeight.Black, color = colors.textPrimary),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(5.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Texture,
+                    contentDescription = null,
+                    tint = Cyan400,
+                    modifier = Modifier.size(14.dp),
+                )
+                Text(
+                    mesin.corak,
+                    style = TextStyle(fontSize = 14.5.sp, fontWeight = FontWeight.Black, color = colors.textPrimary),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
 
-        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            MetaTag(mesin.tipe.name, tint = mesinTipeColor(mesin.tipe))
-            if (mesin.targetYard != null) {
-                MetaTag("${formatYard(mesin.targetYard)}y", tint = Cyan400, icon = Icons.Outlined.Straighten)
-            }
-            if (mesin.speed != null && mesin.tipe == MesinTipe.D405) {
-                MetaTag("${formatYard(mesin.speed)}y/m", tint = Emerald400)
-            }
-            val koreksi = mesin.koreksi
-            if (koreksi != null && mesin.tipe == MesinTipe.D408) {
-                MetaTag(if (koreksi > 0) "+${formatYard(koreksi)}m" else "${formatYard(koreksi)}m", tint = Amber400)
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                MetaTag(mesin.tipe.name, tint = mesinTipeColor(mesin.tipe))
+                if (mesin.targetYard != null) {
+                    MetaTag("${formatYard(mesin.targetYard)}y", tint = Cyan400, icon = Icons.Outlined.Straighten)
+                }
+                if (mesin.speed != null && mesin.tipe == MesinTipe.D405) {
+                    MetaTag("${formatYard(mesin.speed)}y/m", tint = Emerald400)
+                }
+                val koreksi = mesin.koreksi
+                if (koreksi != null && mesin.tipe == MesinTipe.D408) {
+                    MetaTag(if (koreksi > 0) "+${formatYard(koreksi)}m" else "${formatYard(koreksi)}m", tint = Amber400)
+                }
             }
         }
 
