@@ -103,9 +103,17 @@ fun EditAktSheet(
         }
     }
 
-    LaunchedEffect(entry.id) {
-        delay(100)
-        focusRequester.requestFocus()
+    // The FocusRequester is only ever attached to the Jam field below (Modifier.focusRequester),
+    // and that field only renders when isSpecific is false or specificField is JAM — editing
+    // Corak/Yard/Keterangan on its own means the Jam field (and the only place this requester is
+    // attached) never composes at all. Requesting focus on an unattached FocusRequester throws
+    // rather than no-oping, crashing the dialog the instant it opened for exactly those three
+    // fields.
+    LaunchedEffect(entry.id, specificField) {
+        if (!isSpecific || specificField == EditAktField.JAM) {
+            delay(100)
+            focusRequester.requestFocus()
+        }
     }
 
     val dialogTitle = when (specificField) {
