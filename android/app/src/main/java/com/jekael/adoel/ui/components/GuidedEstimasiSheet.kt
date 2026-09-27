@@ -7,10 +7,14 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Keyboard
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -125,16 +129,21 @@ fun GuidedEstimasiSheet(
     var wheelMinute by remember(mcNo, tipe) { mutableStateOf(initialWheelTotalMin % 60) }
     var wheelTouched by remember(mcNo, tipe) { mutableStateOf(existing != null) }
     val usesWheel = tipe != MesinTipe.D405
-    LaunchedEffect(wheelHour, wheelMinute, tipe) {
-        if (usesWheel) valueInput = "$wheelHour.${wheelMinute.toString().padStart(2, '0')}"
+    // Operator-chosen override, independent of [usesWheel] — some prefer typing "3.45" outright
+    // over scrolling a wheel to it, even on a tipe that defaults to one. Only meaningful where
+    // there's actually a wheel to opt out of; D405 has none to begin with.
+    var manualKeyboardMode by remember(mcNo, tipe) { mutableStateOf(false) }
+    val showWheel = usesWheel && !manualKeyboardMode
+    LaunchedEffect(wheelHour, wheelMinute, tipe, manualKeyboardMode) {
+        if (showWheel) valueInput = "$wheelHour.${wheelMinute.toString().padStart(2, '0')}"
     }
     val focusRequester = remember { FocusRequester() }
 
-    LaunchedEffect(mcNo, needQuickCorakSetup, usesWheel) {
-        // Only D405's plain text field ever attaches this focusRequester (see below) — a wheel
-        // picker has nothing to focus, and requesting focus on an unattached FocusRequester
-        // throws, not just no-ops.
-        if (!needQuickCorakSetup && !usesWheel) {
+    LaunchedEffect(mcNo, needQuickCorakSetup, showWheel) {
+        // Only the plain text field (D405, or any tipe with manualKeyboardMode on) ever attaches
+        // this focusRequester — a wheel picker has nothing to focus, and requesting focus on an
+        // unattached FocusRequester throws, not just no-ops.
+        if (!needQuickCorakSetup && !showWheel) {
             delay(100)
             focusRequester.requestFocus()
         }
@@ -212,9 +221,47 @@ fun GuidedEstimasiSheet(
                 }
             }
 
-            FieldLabel(hint.label)
-            Box(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                FieldLabel(hint.label)
                 if (usesWheel) {
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .clickable {
+                                // Switching to keyboard mode starts the field blank rather than
+                                // pre-filled from wherever the wheel happened to be sitting — same
+                                // "must actually type something" guard wheelTouched gives the
+                                // wheel itself (see its own doc), just enforced by valueInput's own
+                                // isNotBlank() check on this side instead. Switching back to the
+                                // wheel needs no such reset: its LaunchedEffect above already
+                                // resyncs valueInput from wheelHour/wheelMinute once showWheel
+                                // flips true again.
+                                if (showWheel) valueInput = ""
+                                manualKeyboardMode = !manualKeyboardMode
+                            }
+                            .padding(horizontal = 8.dp, vertical = 3.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Icon(
+                            imageVector = if (showWheel) Icons.Outlined.Keyboard else Icons.Outlined.Schedule,
+                            contentDescription = null,
+                            tint = Cyan400,
+                            modifier = Modifier.size(13.dp),
+                        )
+                        Text(
+                            if (showWheel) "Keyboard" else "Wheel",
+                            style = TextStyle(fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = Cyan400),
+                        )
+                    }
+                }
+            }
+            Box(modifier = Modifier.fillMaxWidth()) {
+                if (showWheel) {
                     HourMinuteWheelPicker(
                         hour = wheelHour,
                         minute = wheelMinute,
@@ -270,7 +317,7 @@ fun GuidedEstimasiSheet(
                 ) { Text("Batal") }
                 Button(
                     onClick = ::submit,
-                    enabled = if (usesWheel) wheelTouched else valueInput.isNotBlank(),
+                    enabled = if (showWheel) wheelTouched else valueInput.isNotBlank(),
                     modifier = Modifier.weight(1f).height(48.dp),
                     shape = RoundedCornerShape(Dimens.RadiusControl),
                     colors = ButtonDefaults.buttonColors(containerColor = Cyan600),
