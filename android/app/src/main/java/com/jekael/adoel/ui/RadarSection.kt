@@ -85,12 +85,19 @@ internal fun LazyListScope.estimasiSection(
         return
     }
 
+    // Computed up here (not down with the rest of the Menunggu band below) since the status bar
+    // right below needs it too — a machine that's actually next shift's business isn't part of
+    // "how many estimates are running right now" either, the same reasoning that keeps it out of
+    // Menunggu's own OPERAN SHIFT-marked group in the first place.
+    val shiftBoundary = currentShiftStartAbsMin(nowAbs) + 480
+    val shiftHandoverCount = menungguList.count { it.estAbsMin > shiftBoundary }
+
     // Live Monitoring Status Header (Radar Aktif & Mesin Terdekat)
     item(key = "radar_status_bar") {
         val activeEstimasi = remember(radarList) { radarList.filter { it.pausedAtAbsMin == null } }
         val nearestActive = remember(activeEstimasi) { activeEstimasi.minByOrNull { it.estAbsMin } }
         RadarStatusBar(
-            totalActive = radarList.size,
+            totalActive = radarList.size - shiftHandoverCount,
             nearestActive = nearestActive,
             nowAbs = nowAbs,
             modifier = Modifier.fillMaxWidth().padding(horizontal = Dimens.Space4, vertical = Dimens.Space4).animateItem(),
@@ -120,7 +127,6 @@ internal fun LazyListScope.estimasiSection(
         }
         return
     }
-    val shiftBoundary = currentShiftStartAbsMin(nowAbs) + 480
     if (dijedaList.isNotEmpty()) {
         item(key = "dijeda_head") {
             UrgencyBandHeader(label = "Dijeda", count = dijedaList.size, color = Amber400, icon = Icons.Outlined.Pause, modifier = Modifier.animateItem())
@@ -211,7 +217,7 @@ internal fun LazyListScope.estimasiSection(
                                 modifier = Modifier.padding(horizontal = 8.dp),
                             ) {
                                 Icon(imageVector = Icons.Outlined.SwapHoriz, contentDescription = null, tint = Amber400, modifier = Modifier.size(14.dp))
-                                Text("OPERAN SHIFT", style = AppType.Caption.copy(color = Amber400, fontWeight = FontWeight.Bold))
+                                Text("OPERAN SHIFT · $shiftHandoverCount MESIN", style = AppType.Caption.copy(color = Amber400, fontWeight = FontWeight.Bold))
                             }
                             HorizontalDivider(modifier = Modifier.weight(1f), color = Amber400.copy(alpha = 0.45f))
                         }
