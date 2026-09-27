@@ -49,8 +49,35 @@ import com.jekael.adoel.ui.components.GearIcon
 import com.jekael.adoel.ui.components.LinearProgressBar
 import com.jekael.adoel.ui.components.SlidingToggle
 import com.jekael.adoel.ui.theme.*
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.Calendar
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
+
+/** Random cheers swapped into the branding tap's subtitle line for a beat (see brandPulseKey) —
+ * plain, casual shop-floor encouragement, not corporate-sounding, and "Bravooo!!!" stays exactly
+ * as loud as it was typed. */
+private val logoTapPhrases = listOf(
+    "Gaspol!",
+    "Semangat, Bos!",
+    "Mantap jiwa!",
+    "Kerja solid!",
+    "Tetap melaju!",
+    "Juara hari ini!",
+    "Ayo lanjut!",
+    "Kerja cerdas!",
+    "Ngebut terus!",
+    "Top markotop!",
+    "Bravooo!!!",
+)
+
+/** Fixed 6-way spread for the tap confetti below — angles only, no randomness (recomputing a
+ * fresh random spread every tap would jitter between one burst and the next; a fixed spread reads
+ * as one consistent little firework each time instead). */
+private val confettiAngles = List(6) { i -> (i * 60f) * (PI.toFloat() / 180f) }
+private val confettiColors = listOf(Cyan400, Amber500, Emerald400, Red400, Cyan400, Amber500)
 
 /** Floating header — branding (with a tap-pulse micro-interaction), shift progress, the
  * permanently-visible Statistik/Pengaturan icons, and the Radar/Riwayat page tab row (Master
@@ -103,12 +130,18 @@ internal fun MainScreenHeader(
         ) {
             // Branding — a one-shot ~320ms tap pulse: logo settles to 0.97, the dot hops up
             // 7dp and a thin glow blooms from it, all finishing on their own (not tied to how
-            // long the finger stays down) so repeated daily taps stay quick and subtle.
+            // long the finger stays down) so repeated daily taps stay quick and subtle. A small
+            // confetti burst off the dot plus a random cheer swapped into the subtitle line for a
+            // beat (see logoTapPhrases) layer on top of that first small experiment — this is a
+            // rigid production-floor app the rest of the time, so the one purely playful moment
+            // in it earns a proper pop instead of staying this understated forever.
             var brandPulseKey by remember { mutableStateOf(0) }
             val brandScale = remember { Animatable(1f) }
             val dotOffsetY = remember { Animatable(0f) }
             val glowAlpha = remember { Animatable(0f) }
             val glowScale = remember { Animatable(0.6f) }
+            val confetti = remember { Animatable(0f) }
+            var tapPhrase by remember { mutableStateOf<String?>(null) }
             LaunchedEffect(brandPulseKey) {
                 if (brandPulseKey == 0) return@LaunchedEffect
                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
@@ -125,6 +158,15 @@ internal fun MainScreenHeader(
                     glowAlpha.snapTo(0.4f)
                     launch { glowAlpha.animateTo(0f, tween(300, easing = LinearOutSlowInEasing)) }
                     glowScale.animateTo(2.2f, tween(320, easing = LinearOutSlowInEasing))
+                }
+                launch {
+                    confetti.snapTo(0f)
+                    confetti.animateTo(1f, tween(500, easing = LinearOutSlowInEasing))
+                }
+                launch {
+                    tapPhrase = logoTapPhrases.random()
+                    delay(1400)
+                    tapPhrase = null
                 }
             }
             val shiftLabel = remember(nowAbs) {
@@ -177,13 +219,36 @@ internal fun MainScreenHeader(
                                     radius = (size.minDimension.coerceAtLeast(20f)) * glowScale.value,
                                     center = Offset(size.width / 2f, size.height / 2f),
                                 )
+                                val center = Offset(size.width / 2f, size.height / 2f)
+                                val burst = confetti.value
+                                if (burst > 0f && burst < 1f) {
+                                    val travel = (size.minDimension.coerceAtLeast(20f)) * 1.6f * burst
+                                    val fade = 1f - burst
+                                    confettiColors.forEachIndexed { i, color ->
+                                        val angle = confettiAngles[i]
+                                        drawCircle(
+                                            color = color.copy(alpha = fade),
+                                            radius = 2.5f * fade + 1f,
+                                            center = Offset(
+                                                center.x + cos(angle) * travel,
+                                                center.y + sin(angle) * travel - 6f * burst * burst,
+                                            ),
+                                        )
+                                    }
+                                }
                             },
                         style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Black, color = Amber500),
                     )
                 }
+                // Swaps to a random cheer for ~1.4s on tap, same slot the shift/operator label
+                // already occupies — no separate floating bubble to worry about clipping against
+                // floatingHeaderCard's own rounded-rect clip.
                 Text(
-                    text = shiftLabel + operatorSuffix,
-                    style = AppType.Caption.copy(color = colors.textFaint),
+                    text = tapPhrase ?: (shiftLabel + operatorSuffix),
+                    style = AppType.Caption.copy(
+                        color = if (tapPhrase != null) Emerald400 else colors.textFaint,
+                        fontWeight = if (tapPhrase != null) FontWeight.Bold else FontWeight.Normal,
+                    ),
                 )
             }
 
