@@ -207,9 +207,20 @@ fun MainScreen(
     // based gap) would suddenly re-evaluate against a fresh anchor and vanish — exactly the report
     // this went out to fix. Editing the estimate should only smoothly move the displayed number,
     // never yank the anchor out from under it.
+    //
+    // rememberSaveable, not plain remember — a plain remember here reintroduces the exact same
+    // "collapse back to nowAbs" bug through a different door: a process recreation (screen
+    // lock/unlock, backgrounding long enough for Android to reclaim the process, a config change)
+    // wipes ordinary remembered state, but noSegera/mcNo can easily be unchanged across it (same
+    // single machine, still nothing overdue) — so this would silently re-anchor to whatever nowAbs
+    // is *at that moment*, not the original one, collapsing an already-comfortable gap down to
+    // whatever's left right then. If that's already under BREAK_GAP_THRESHOLD_MIN, the card
+    // vanishes with no edit involved at all — reported as it disappearing once the live remaining
+    // time crossed 30 minutes, entirely explained by the process happening to get recreated
+    // sometime after that point.
     val noSegera = segeraList.isEmpty()
     val firstMenunggu = menungguList.firstOrNull()
-    val leadingGapAnchor = remember(noSegera, firstMenunggu?.mcNo) { nowAbs }
+    val leadingGapAnchor = rememberSaveable(noSegera, firstMenunggu?.mcNo) { nowAbs }
 
     // Flag long idle stretches between two upcoming doffs so the operator knows when it's
     // actually safe to step away, instead of having to eyeball the gap between two times.
