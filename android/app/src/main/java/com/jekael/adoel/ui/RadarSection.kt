@@ -10,7 +10,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.outlined.Cancel
 import androidx.compose.material.icons.outlined.HourglassEmpty
 import androidx.compose.material.icons.outlined.LocalFireDepartment
@@ -277,7 +277,7 @@ private fun ClashGroupDivider(machineCount: Int, modifier: Modifier = Modifier) 
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(horizontal = 8.dp),
         ) {
-            Icon(imageVector = Icons.Filled.Warning, contentDescription = null, tint = Amber400, modifier = Modifier.size(14.dp))
+            Icon(imageVector = Icons.Filled.Bolt, contentDescription = null, tint = Amber400, modifier = Modifier.size(14.dp))
             Text("BENTROK · $machineCount MESIN", style = AppType.Caption.copy(color = Amber400, fontWeight = FontWeight.Bold))
         }
         HorizontalDivider(modifier = Modifier.weight(1f), color = Amber400.copy(alpha = 0.45f))
