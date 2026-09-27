@@ -11,6 +11,7 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.automirrored.outlined.Undo
+import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.*
@@ -162,7 +163,7 @@ private fun OperationalFlowGuide() {
             iconBg = Cyan600,
             titleColor = Cyan400,
             stepNumber = "1. Estimasi Waktu Doff",
-            description = "Ketik nomor mesin di konsol bawah lalu ketuk tombol ⏱ Estimasi. Isi sisa menit (Tappet/Cam), yard berjalan (D405), atau jam counter (D408).",
+            description = "Ketik nomor mesin di konsol bawah lalu ketuk tombol ⏱ Estimasi. Isi sisa menit (Tappet/Cam), yard berjalan (D405), atau jam counter (D408). Untuk Tappet/Cam/D408, ketuk ikon ⌨ di sebelah label untuk beralih dari roda putar ke ketik langsung, dan sebaliknya.",
         )
         GuideRow(
             icon = Icons.Outlined.ContentCut,
@@ -191,6 +192,13 @@ private fun OperationalFlowGuide() {
             titleColor = Sky400,
             stepNumber = "5. Operan Antar-Shift",
             description = "Mesin yang jadwal doffing-nya melebihi jam kerja shift saat ini (>8 jam) secara otomatis ditandai sebagai Operan agar grafik progres kerja tetap rapi.",
+        )
+        GuideRow(
+            icon = Icons.Filled.Bolt,
+            iconBg = Amber600,
+            titleColor = Amber400,
+            stepNumber = "6. Estimasi Bentrok (GASPOL)",
+            description = "Beberapa mesin yang dijadwalkan doffing hampir bersamaan dikelompokkan di bawah label ⚡ GASPOL — tandanya saatnya bergerak cepat menyelesaikan beberapa mesin sekaligus.",
         )
     }
 }
@@ -359,6 +367,17 @@ private fun RadarGestureGuide() {
             badgeText = "Menu Jeda / Hapus",
             badgeColor = Amber400,
             description = "Tahan sentuhan pada kartu untuk membuka menu cepat Jeda Mesin atau Hapus. Kartu yang dijeda akan dipisahkan ke baris khusus 'Dijeda' dan dapat dilanjutkan seketika melalui tombol '▶ Lanjutkan'.",
+        )
+
+        // Gesture 6: Geser Kartu Riwayat — beda layar dari 5 gestur RadarCard di atas, jadi
+        // penjelasannya menegaskan ini soal kartu di layar Riwayat.
+        GestureItem(
+            icon = Icons.Outlined.Delete,
+            iconTint = Red400,
+            actionLabel = "Geser Kartu Riwayat",
+            badgeText = "Hapus Entri",
+            badgeColor = Red400,
+            description = "Di layar Riwayat, geser kartu doffing ke kiri atau ke kanan untuk menghapusnya — kedua arah sama-sama berfungsi.",
         )
     }
 }

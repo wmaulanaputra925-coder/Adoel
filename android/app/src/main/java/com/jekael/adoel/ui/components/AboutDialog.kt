@@ -45,15 +45,30 @@ internal fun AboutDialog(onClose: () -> Unit) {
                 }
             }
 
-            Text(
-                "Adoel.",
-                style = TextStyle(
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Black,
-                    letterSpacing = (-0.5).sp,
-                    color = colors.textPrimary,
-                ),
-            )
+            // Same brand blue "Adoel" + amber "." split MainScreenHeader's own wordmark uses
+            // (matching the app icon's own colors) — this used to be a single flat textPrimary
+            // string, its own separate identity instead of the one the header/icon already
+            // established.
+            Row {
+                Text(
+                    "Adoel",
+                    style = TextStyle(
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = (-0.5).sp,
+                        color = if (colors.isDark) Cyan400 else Cyan600,
+                    ),
+                )
+                Text(
+                    ".",
+                    style = TextStyle(
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = (-0.5).sp,
+                        color = Amber500,
+                    ),
+                )
+            }
             Spacer(Modifier.height(Dimens.Space4))
             Text(
                 "Aplikasi Estimasi Doff & Manajemen Mesin Tenun",
@@ -90,6 +105,17 @@ internal fun AboutDialog(onClose: () -> Unit) {
                     textAlign = TextAlign.Center,
                 )
             }
+
+            Spacer(Modifier.height(Dimens.Space12))
+
+            Text(
+                "Dikembangkan oleh Wahyu Maulana Putra",
+                style = AppType.Caption.copy(
+                    color = colors.textFaint,
+                    fontSize = 11.sp,
+                ),
+                textAlign = TextAlign.Center,
+            )
 
             Spacer(Modifier.height(Dimens.Space20))
 
