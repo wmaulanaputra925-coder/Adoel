@@ -895,34 +895,34 @@ private fun PausedRadarCardFront(
                 modifier = Modifier.weight(1f, fill = false),
                 verticalArrangement = Arrangement.spacedBy(3.dp),
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Dimens.Space6)) {
-                    // Same persistent boxed pill as the active card's mcNo/tipe zone — no
-                    // long-press here (paused cards don't flip, see this composable's own doc
-                    // comment), so onLongClick is a no-op.
-                    RadarZoneBox(
-                        onClickLabel = "Ubah tipe mesin Mc ${est.mcNo}",
-                        onClick = { onEditTipe?.invoke() ?: onQuickEdit() },
-                        onLongClickLabel = "",
-                        onLongClick = {},
-                        interactionSource = mcNoZoneInteraction,
-                        enabled = true,
-                    ) {
-                        Text(
-                            text = est.mcNo,
-                            style = TextStyle(
-                                fontSize = if (est.mcNo.length >= 3) 23.sp else 27.sp,
-                                fontWeight = FontWeight.Black,
-                                color = colors.textPrimary,
-                            ),
-                            maxLines = 1,
-                            softWrap = false,
-                        )
-                        val tipe = mesin?.tipe
-                        if (tipe != null) {
-                            RadarTipeBadge(tipe = tipe)
-                        }
+                // Same persistent boxed pill as the active card's mcNo/tipe zone — no long-press
+                // here (paused cards don't flip, see this composable's own doc comment), so
+                // onLongClick is a no-op. No separate "DIJEDA" badge next to it any more either —
+                // the amber "Dijeda" band header above and this card's own big Lanjutkan button
+                // already say that unambiguously, and the badge's text was getting squeezed down
+                // to an unreadable "…" between the tipe pill and that same button anyway.
+                RadarZoneBox(
+                    onClickLabel = "Ubah tipe mesin Mc ${est.mcNo}",
+                    onClick = { onEditTipe?.invoke() ?: onQuickEdit() },
+                    onLongClickLabel = "",
+                    onLongClick = {},
+                    interactionSource = mcNoZoneInteraction,
+                    enabled = true,
+                ) {
+                    Text(
+                        text = est.mcNo,
+                        style = TextStyle(
+                            fontSize = if (est.mcNo.length >= 3) 23.sp else 27.sp,
+                            fontWeight = FontWeight.Black,
+                            color = colors.textPrimary,
+                        ),
+                        maxLines = 1,
+                        softWrap = false,
+                    )
+                    val tipe = mesin?.tipe
+                    if (tipe != null) {
+                        RadarTipeBadge(tipe = tipe)
                     }
-                    RadarCardBadge(icon = Icons.Outlined.Pause, text = "DIJEDA", accent = Amber400)
                 }
                 RadarZoneBox(
                     onClickLabel = "Ubah corak Mc ${est.mcNo}",
