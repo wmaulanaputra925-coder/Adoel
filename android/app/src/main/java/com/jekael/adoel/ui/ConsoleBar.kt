@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Cancel
 import androidx.compose.material.icons.outlined.ContentCut
 import androidx.compose.material.icons.outlined.Redo
 import androidx.compose.material.icons.outlined.Schedule
@@ -120,10 +121,28 @@ internal fun ConsoleBar(
                     // the field (and prosesBaris* accepts \d{1,4}), so a 3-digit cap here silently
                     // made those machines untypable from the console.
                     onValueChange = { mcNoInput = it.filter(Char::isDigit).take(4) },
-                    modifier = Modifier.width(96.dp),
+                    // Widened from 96dp to fit the clear button below without squeezing the 4-digit
+                    // text itself.
+                    modifier = Modifier.width(112.dp),
                     // Shortened from "Nomor mesin" — doesn't fit this field's new, deliberately
                     // compact width, and singleLine would otherwise just clip it mid-word.
                     placeholder = { Text("No. Mc", color = colors.textFaint, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) },
+                    // Every other text field in the app clears itself this way (ClearableOutlinedTextField
+                    // in FormControls.kt) — this one's a hand-rolled OutlinedTextField instead (its
+                    // pill shape/Amber accent/centered digits don't match that component's own
+                    // styling), so it needs its own copy rather than reusing that composable outright.
+                    trailingIcon = if (mcNoInput.isNotEmpty()) {
+                        {
+                            IconButton(onClick = { mcNoInput = "" }, modifier = Modifier.size(28.dp)) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Cancel,
+                                    contentDescription = "Hapus",
+                                    tint = colors.textFaint,
+                                    modifier = Modifier.size(14.dp),
+                                )
+                            }
+                        }
+                    } else null,
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = Amber500,
                         unfocusedBorderColor = colors.border,
