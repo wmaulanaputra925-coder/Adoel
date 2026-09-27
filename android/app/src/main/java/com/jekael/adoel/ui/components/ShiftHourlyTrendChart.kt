@@ -61,6 +61,7 @@ import com.jekael.adoel.ui.theme.Emerald400
 import com.jekael.adoel.ui.theme.LocalAppColors
 import java.util.Calendar
 import kotlin.math.max
+import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -335,6 +336,19 @@ private fun appendSmoothCurve(path: Path, points: List<Offset>) {
     }
 }
 
+/** Picks up to [targetCount] indices out of `0 until total`, spread as evenly as possible and
+ * always including both 0 and `total - 1` — used to thin a row of axis labels too narrow to all
+ * show at once. Spacing by *position* (not a fixed "every Nth" stride) matters here: a stride
+ * leaves an uneven, oddly-bunched gap right at the end whenever `total - 1` isn't a clean multiple
+ * of it — this instead lands each pick as close to its ideal evenly-spaced slot as rounding
+ * allows. */
+private fun evenlySpacedIndices(total: Int, targetCount: Int): Set<Int> {
+    if (total <= targetCount) return (0 until total).toSet()
+    return (0 until targetCount)
+        .map { i -> (i * (total - 1).toFloat() / (targetCount - 1)).roundToInt() }
+        .toSet()
+}
+
 @Composable
 private fun TrendChartCanvas(
     data: List<HourlyPoint>,
@@ -405,11 +419,13 @@ private fun TrendChartCanvas(
         }
 
         // X-axis: the hour label under every point would crowd 8 columns into illegible overlap
-        // (the same clipping problem the Statistik shift-history chart had), so only roughly one
-        // in every few gets a label — always keeping the first and the last.
-        val xLabelStride = ((data.size + 4) / 5).coerceAtLeast(1)
+        // (the same clipping problem the Statistik shift-history chart had), so only up to 5
+        // spread evenly across the row get a label — always keeping the first and the last. Picks
+        // by *position*, not a fixed "every Nth" stride — a stride leaves an uneven, oddly-bunched
+        // gap right at the end whenever data.size - 1 isn't a clean multiple of it.
+        val shownHourIndices = evenlySpacedIndices(data.size, targetCount = 5)
         data.forEachIndexed { i, p ->
-            if (i % xLabelStride == 0 || i == data.lastIndex) {
+            if (i in shownHourIndices) {
                 val measured = textMeasurer.measure(p.label, axisLabelStyle)
                 drawText(textLayoutResult = measured, topLeft = Offset(xFor(i) - measured.size.width / 2f, baselineY + 6.dp.toPx()))
             }
