@@ -26,11 +26,9 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.jekael.adoel.data.Estimasi
 import com.jekael.adoel.data.MesinData
 import com.jekael.adoel.data.MesinTipe
 import com.jekael.adoel.data.absMinToTimeStr
-import com.jekael.adoel.data.effectiveRemaining
 import com.jekael.adoel.data.estAbsD408
 import com.jekael.adoel.data.estimasiFieldHint
 import com.jekael.adoel.data.formatYard
@@ -46,7 +44,6 @@ import com.jekael.adoel.ui.theme.Dimens
 import com.jekael.adoel.ui.theme.LocalAppColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlin.math.roundToInt
 
 /** Terpandu (guided) ESTIMASI entry — one field whose label/keyboard adapt to the tapped
  * machine's [MesinTipe], with a live "≈ jam" preview computed from the exact same pure formulas
@@ -70,11 +67,6 @@ fun GuidedEstimasiSheet(
     showToast: (String) -> Unit = {},
     corakShortcuts: List<String>? = null,
     onAddCorakShortcut: (String) -> Unit = {},
-    // The estimasi already running for this Mc, if any — e.g. tapping RadarCard's own waktu
-    // zone to correct a live countdown, as opposed to setting one up fresh from the console.
-    // When present, the field opens pre-filled with roughly that reading instead of blank, so
-    // nudging a countdown that's already close to right doesn't mean retyping it from scratch.
-    existing: Estimasi? = null,
 ) {
     val colors = LocalAppColors.current
     var activeMesin by remember(mcNo) { mutableStateOf(mesin) }
@@ -83,43 +75,11 @@ fun GuidedEstimasiSheet(
 
     var corakInput by remember(mcNo) { mutableStateOf("") }
     var targetYardInput by remember(mcNo) { mutableStateOf("") }
+    // Always blank, even when correcting an estimasi that's already running (e.g. tapping
+    // RadarCard's own waktu zone) — the operator re-enters the reading fresh rather than editing
+    // a pre-filled value.
     var valueInput by remember(mcNo) { mutableStateOf("") }
-    // Guards the pre-fill effect below the same way the old wheel's `wheelTouched` guarded
-    // Simpan: once the operator has actually typed something, [existing] ticking live (its
-    // countdown moves every render) must never overwrite it back out from under them.
-    var valueTouched by remember(mcNo) { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
-
-    // TAPPET/CAM ("sisa waktu") and D408 ("bacaan jam counter") pre-fill as an "H.MM" string from
-    // the estimasi's current reading when editing one already running — TAPPET/CAM from its own
-    // live remaining time, D408 by reconstructing the counter reading its koreksi was computed
-    // against: estAbsD408 is `jamKeShiftAbs(counter, now) + koreksi`, and jamKeShiftAbs's own job
-    // is just "snap a bare time-of-day reading onto the calendar day nearest now" — so inverting
-    // it is exactly the time-of-day component of (estAbsMin − koreksi), no day-snapping needed
-    // since that's already baked into estAbsMin. D405 ("yard sudah berjalan") isn't a time reading
-    // at all, so it's left untouched: blank until typed, as before. A LaunchedEffect (not a
-    // one-shot `remember` initializer) on purpose — [existing] can still be null on the very first
-    // composition if the caller's own state hasn't finished resolving it yet, and a `remember`
-    // block only ever runs once, so a same-frame null there would leave the field permanently
-    // blank even once [existing] resolves a moment later. This re-fires whenever [existing] or
-    // [tipe] change but bails immediately once [valueTouched], so it can never clobber typing.
-    LaunchedEffect(mcNo, existing, tipe) {
-        if (valueTouched) return@LaunchedEffect
-        val prefill = when {
-            existing == null -> return@LaunchedEffect
-            tipe == MesinTipe.TAPPET || tipe == MesinTipe.CAM -> {
-                val totalMin = existing.effectiveRemaining(nowAbsMin()).toInt().coerceAtLeast(0)
-                "${totalMin / 60}.${(totalMin % 60).toString().padStart(2, '0')}"
-            }
-            tipe == MesinTipe.D408 -> {
-                val koreksi = activeMesin?.koreksi ?: 0.0
-                val totalMin = (existing.estAbsMin - koreksi.roundToInt()).mod(1440L).toInt()
-                "${totalMin / 60}.${(totalMin % 60).toString().padStart(2, '0')}"
-            }
-            else -> return@LaunchedEffect
-        }
-        valueInput = prefill
-    }
 
     LaunchedEffect(mcNo, needQuickCorakSetup) {
         if (!needQuickCorakSetup) {
@@ -204,7 +164,7 @@ fun GuidedEstimasiSheet(
             Box(modifier = Modifier.fillMaxWidth()) {
                 ClearableOutlinedTextField(
                     value = valueInput,
-                    onValueChange = { valueInput = it; valueTouched = true },
+                    onValueChange = { valueInput = it },
                     modifier = Modifier.focusRequester(focusRequester),
                     placeholder = "cth: ${hint.example}",
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
