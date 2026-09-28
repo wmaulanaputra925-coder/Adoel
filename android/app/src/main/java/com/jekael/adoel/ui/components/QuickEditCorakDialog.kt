@@ -27,6 +27,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jekael.adoel.data.MesinTipe
 import com.jekael.adoel.data.formatYard
+import com.jekael.adoel.data.nowTimeStr
+import com.jekael.adoel.data.parseJam
+import com.jekael.adoel.data.selisihKoreksiD408
 import com.jekael.adoel.ui.theme.Cyan600
 import com.jekael.adoel.ui.theme.Dimens
 import com.jekael.adoel.ui.theme.LocalAppColors
@@ -37,8 +40,9 @@ import com.jekael.adoel.ui.theme.LocalAppColors
  * Mesin flow (search, open, edit, save, close, close). Speed/koreksi only show up when the
  * selected tipe actually needs them (D405/D408) and are only overwritten if the operator edits
  * them while that tipe is selected — switching tipe away and back doesn't lose the other tipe's
- * calibration. The fuller helpers (koreksi +/- stepper, "hitung dari jam") stay behind the full
- * Settings editor (MesinEditPanel) — this dialog is deliberately just the plain fields.
+ * calibration. D408's "Hitung Koreksi dari Selisih" calculator is mirrored here too (see
+ * [selisihKoreksiD408]) since it's the one field operators actually need mid-shift — only the
+ * +/- stepper on the koreksi field stays behind the full Settings editor (MesinEditPanel).
  */
 /** Which field a tap on RadarCard's own title-row zones asked to edit — [ALL] is the old
  * combined dialog (every section shown), [TIPE]/[CORAK] each narrow it to just that zone's field,
@@ -67,6 +71,12 @@ fun QuickEditCorakDialog(
     var targetYardInput by remember(mcNo) { mutableStateOf(targetYard?.let { formatYard(it) } ?: "") }
     var speedInput by remember(mcNo) { mutableStateOf(speed?.let { formatYard(it) } ?: "") }
     var koreksiInput by remember(mcNo) { mutableStateOf(koreksi?.let { formatYard(it) } ?: "") }
+    // "Hitung Koreksi" helper (D408 only, see below) — mirrors MesinEditPanel's own copy of this
+    // same calculator so the fast path reachable from RadarCard doesn't lack a field the full
+    // Settings editor has. waktuAktualInput defaults to the current wall-clock time so the
+    // operator usually only has to type the counter reading.
+    var waktuAktualInput by remember(mcNo) { mutableStateOf(nowTimeStr()) }
+    var bacaanCounterInput by remember(mcNo) { mutableStateOf("") }
     val isSpecific = specificField != QuickEditField.ALL
     val dialogTitle = when (specificField) {
         QuickEditField.TIPE -> "Ubah Tipe Mesin"
@@ -152,6 +162,47 @@ fun QuickEditCorakDialog(
                     placeholder = "contoh: 0 atau -15",
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 )
+
+                Spacer(Modifier.height(Dimens.Space12))
+                FieldLabel("Hitung Koreksi dari Selisih")
+                Row(horizontalArrangement = Arrangement.spacedBy(Dimens.Space8)) {
+                    ClearableOutlinedTextField(
+                        value = waktuAktualInput,
+                        onValueChange = { waktuAktualInput = it },
+                        modifier = Modifier.weight(1f),
+                        label = "Waktu Aktual",
+                        placeholder = "12.48",
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    )
+                    ClearableOutlinedTextField(
+                        value = bacaanCounterInput,
+                        onValueChange = { bacaanCounterInput = it },
+                        modifier = Modifier.weight(1f),
+                        label = "Bacaan Counter",
+                        placeholder = "12.30",
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    )
+                }
+                Spacer(Modifier.height(Dimens.Space8))
+                OutlinedButton(
+                    onClick = {
+                        val aktualMin = parseJam(waktuAktualInput)
+                        val counterMin = parseJam(bacaanCounterInput)
+                        when {
+                            aktualMin == null -> showToast?.invoke("Waktu Aktual tidak valid, format jam.menit (cth 12.48)")
+                            counterMin == null -> showToast?.invoke("Bacaan Counter tidak valid, format jam.menit (cth 12.30)")
+                            else -> {
+                                val selisih = selisihKoreksiD408(aktualMin, counterMin)
+                                koreksiInput = selisih.toString()
+                                showToast?.invoke("Koreksi diisi otomatis: $selisih menit")
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().height(44.dp),
+                    shape = RoundedCornerShape(Dimens.RadiusControl),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Cyan600),
+                    border = BorderStroke(1.dp, colors.border),
+                ) { Text("Hitung & Isi Koreksi") }
                 Spacer(Modifier.height(Dimens.Space16))
             }
         }

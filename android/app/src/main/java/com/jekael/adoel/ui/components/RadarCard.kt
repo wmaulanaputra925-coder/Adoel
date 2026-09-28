@@ -146,7 +146,7 @@ fun RadarCard(
     // every card on screen (CALM/SOON/IMMINENT included) for the entire shift, for no visible effect.
     // Ambient alert breathing, not a micro-interaction — deliberately outside the 150-250ms range
     // (see PingDot's comment above for why a loop this fast would read as flickering, not calm).
-    // Sole carrier of the urgency signal now that the card face is static — breathes 6dp↔10dp
+    // Sole carrier of the urgency signal now that the card face is static — breathes 6dp↖10dp
     // instead of washing the whole card, so it stays legible without the card itself flickering.
     // 6dp base (not the original 4dp) to match web's 6px strip and read clearly on its own now
     // that there's no background tint backing it up.
@@ -942,7 +942,10 @@ private fun PausedRadarCardFront(
  * the redesign request to bring RadarCard's zones in line with every other card's pill treatment.
  * Each zone keeps its own copy of long-press-to-flip (see the mcNo/corak zone's own comment at
  * the call site) since combinedClickable here would otherwise swallow the outer Box's long-press
- * detector before it ever sees the gesture. */
+ * detector before it ever sees the gesture. Also squishes via [pressScale] on tap, off the same
+ * [interactionSource] that already drives [ChargeWhilePressed] here — same rubber-button feel as
+ * every [tactilePill] elsewhere, just wired manually since this box keeps its own inline gradient
+ * instead of calling [tactilePill] itself. */
 @Composable
 private fun RadarZoneBox(
     onClickLabel: String,
@@ -958,6 +961,7 @@ private fun RadarZoneBox(
     val shape = RoundedCornerShape(10.dp)
     Row(
         modifier = modifier
+            .pressScale(interactionSource)
             .clip(shape)
             .background(Brush.verticalGradient(listOf(lerp(colors.bgElevated2, Color.White, 0.05f), colors.bgElevated2)))
             .border(1.dp, colors.border, shape)
@@ -1013,8 +1017,7 @@ private fun CardActionChip(icon: ImageVector, label: String, accent: Color, onCl
     Row(
         modifier = modifier
             .height(38.dp)
-            .tactilePill(fillBase, RoundedCornerShape(10.dp))
-            .clickable(onClickLabel = label, onClick = onClick),
+            .tactilePillClickable(fillBase, RoundedCornerShape(10.dp), label, onClick),
         horizontalArrangement = Arrangement.spacedBy(7.dp, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -1029,8 +1032,7 @@ private fun CardActionChip(icon: ImageVector, label: String, accent: Color, onCl
 private fun ResumeChip(onClick: () -> Unit) {
     Row(
         modifier = Modifier
-            .tactilePill(Emerald500, RoundedCornerShape(10.dp))
-            .clickable(onClickLabel = "Lanjutkan", onClick = onClick)
+            .tactilePillClickable(Emerald500, RoundedCornerShape(10.dp), "Lanjutkan", onClick)
             .padding(horizontal = 14.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically,
