@@ -3,6 +3,7 @@ package com.jekael.adoel.ui
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -160,30 +161,51 @@ internal fun LazyListScope.estimasiSection(
         }
         // Machines whose estAbsMin clash (within 5 minutes of a neighbor) used to each carry their
         // own "Bentrok Mc X, Y" badge — crowded the title row, and repeated the same warning once
-        // per card in the group. Grouped instead: one marker drawn above the first card of each
-        // run of adjacent clashing cards, same idea as the shift-handover divider above.
-        val segeraClashRuns = segeraList.indices
-            .filter { isClashRunStart(segeraList, it) }
-            .associateWith { clashRunLength(segeraList, it) }
-        itemsIndexed(segeraList, key = { _, est -> est.mcNo }) { index, est ->
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                segeraClashRuns[index]?.let { runSize -> ClashGroupDivider(machineCount = runSize) }
-                RadarCard(
-                    est = est,
-                    mesin = db[est.mcNo],
-                    nowAbs = nowAbs,
-                    onDoff = { onDoff(est.mcNo) },
-                    onDoffMatching = { onDoffMatching(est.mcNo) },
-                    onHapus = { onHapus(est.mcNo) },
-                    onJeda = { onJeda(est.mcNo) },
-                    onLanjutkan = { onLanjutkan(est.mcNo) },
-                    onQuickEdit = { onQuickEdit(est.mcNo) },
-                    onEditTipe = { onEditTipe(est.mcNo) },
-                    onEditCorak = { onEditCorak(est.mcNo) },
-                    onEditWaktu = { onEditWaktu(est.mcNo) },
-                    modifier = Modifier.animateItem(),
-                    entranceDelayMs = (index * Motion.LIST_STAGGER_STEP_MS).coerceAtMost(Motion.LIST_STAGGER_MAX_MS),
-                )
+        // per card in the group. Grouped instead: every clash run renders as one ClashGroupCard
+        // wrapping its member cards, rather than one card each with a marker above the first.
+        var segeraIndex = 0
+        groupClashRuns(segeraList).forEach { group ->
+            val startIndex = segeraIndex
+            segeraIndex += group.size
+            if (group.size > 1) {
+                item(key = "clash_${group.first().mcNo}") {
+                    ClashGroupCard(
+                        group = group,
+                        db = db,
+                        nowAbs = nowAbs,
+                        onDoff = onDoff,
+                        onDoffMatching = onDoffMatching,
+                        onHapus = onHapus,
+                        onJeda = onJeda,
+                        onLanjutkan = onLanjutkan,
+                        onQuickEdit = onQuickEdit,
+                        onEditTipe = onEditTipe,
+                        onEditCorak = onEditCorak,
+                        onEditWaktu = onEditWaktu,
+                        entranceDelayMsFor = { i -> ((startIndex + i) * Motion.LIST_STAGGER_STEP_MS).coerceAtMost(Motion.LIST_STAGGER_MAX_MS) },
+                        modifier = Modifier.animateItem(),
+                    )
+                }
+            } else {
+                val est = group[0]
+                item(key = est.mcNo) {
+                    RadarCard(
+                        est = est,
+                        mesin = db[est.mcNo],
+                        nowAbs = nowAbs,
+                        onDoff = { onDoff(est.mcNo) },
+                        onDoffMatching = { onDoffMatching(est.mcNo) },
+                        onHapus = { onHapus(est.mcNo) },
+                        onJeda = { onJeda(est.mcNo) },
+                        onLanjutkan = { onLanjutkan(est.mcNo) },
+                        onQuickEdit = { onQuickEdit(est.mcNo) },
+                        onEditTipe = { onEditTipe(est.mcNo) },
+                        onEditCorak = { onEditCorak(est.mcNo) },
+                        onEditWaktu = { onEditWaktu(est.mcNo) },
+                        modifier = Modifier.animateItem(),
+                        entranceDelayMs = (startIndex * Motion.LIST_STAGGER_STEP_MS).coerceAtMost(Motion.LIST_STAGGER_MAX_MS),
+                    )
+                }
             }
         }
     }
@@ -201,61 +223,95 @@ internal fun LazyListScope.estimasiSection(
         // the first one. Precomputing the one true first-crossing index up front, over the whole
         // list rather than one neighbor at a time, fixes that for good.
         val firstHandoverIdx = menungguRows.indexOfFirst { it is MenungguRow.CardRow && it.est.estAbsMin > shiftBoundary }
-        // Same grouped-clash marker as the Segera band above, computed against menungguList (the
-        // plain time-sorted machines) rather than menungguRows — BreakGapCards interleaved between
-        // cards don't carry a real estAbsMin of their own to chain against.
-        val menungguClashRuns = menungguList.indices
-            .filter { isClashRunStart(menungguList, it) }
-            .associate { menungguList[it].mcNo to clashRunLength(menungguList, it) }
-        itemsIndexed(menungguRows, key = { _, row -> rowKey(row) }) { index, row ->
+        // Same grouped-clash rendering as the Segera band above, computed against menungguList
+        // (the plain time-sorted machines) rather than menungguRows — BreakGapCards interleaved
+        // between cards don't carry a real estAbsMin of their own to chain against. A clash never
+        // straddles a BreakGapCard (its members are always within 5 minutes of each other, far
+        // under the gap this band's own BreakGapCard exists to flag), so each run's members stay
+        // consecutive CardRows in menungguRows too — [groupByMcNo]/[consumedMcNos] below can key
+        // purely off mcNo without re-deriving row adjacency.
+        val menungguGroups = groupClashRuns(menungguList).filter { it.size > 1 }
+        val groupByMcNo = menungguGroups.flatMap { g -> g.map { it.mcNo to g } }.toMap()
+        val consumedMcNos = menungguGroups.flatMap { g -> g.drop(1).map { it.mcNo } }.toSet()
+        menungguRows.forEachIndexed { index, row ->
+            // A group's 2nd..Nth member renders as part of its ClashGroupCard at the group's own
+            // start index (below) — nothing left to draw for it here.
+            if (row is MenungguRow.CardRow && row.est.mcNo in consumedMcNos) return@forEachIndexed
             val entranceDelayMs = (index * Motion.LIST_STAGGER_STEP_MS).coerceAtMost(Motion.LIST_STAGGER_MAX_MS)
             when (row) {
                 is MenungguRow.CardRow -> {
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    if (index == firstHandoverIdx) {
-                        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            HorizontalDivider(modifier = Modifier.weight(1f), color = Amber400.copy(alpha = 0.45f))
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(5.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(horizontal = 8.dp),
-                            ) {
-                                Icon(imageVector = Icons.Outlined.SwapHoriz, contentDescription = null, tint = Amber400, modifier = Modifier.size(14.dp))
-                                Text("OPERAN SHIFT · $shiftHandoverCount MESIN", style = AppType.Caption.copy(color = Amber400, fontWeight = FontWeight.Bold))
+                    val group = groupByMcNo[row.est.mcNo]
+                    // The handover boundary can land on any member of a group, not just its first
+                    // — the divider still belongs above the group as a whole, so its whole
+                    // [index, index + group.size) span is checked, not just this exact index.
+                    val spanEnd = index + (group?.size ?: 1)
+                    val showHandoverDivider = firstHandoverIdx in index until spanEnd
+                    item(key = rowKey(row)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            if (showHandoverDivider) {
+                                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                    HorizontalDivider(modifier = Modifier.weight(1f), color = Amber400.copy(alpha = 0.45f))
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(5.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.padding(horizontal = 8.dp),
+                                    ) {
+                                        Icon(imageVector = Icons.Outlined.SwapHoriz, contentDescription = null, tint = Amber400, modifier = Modifier.size(14.dp))
+                                        Text("OPERAN SHIFT · $shiftHandoverCount MESIN", style = AppType.Caption.copy(color = Amber400, fontWeight = FontWeight.Bold))
+                                    }
+                                    HorizontalDivider(modifier = Modifier.weight(1f), color = Amber400.copy(alpha = 0.45f))
+                                }
                             }
-                            HorizontalDivider(modifier = Modifier.weight(1f), color = Amber400.copy(alpha = 0.45f))
+                            if (group != null) {
+                                ClashGroupCard(
+                                    group = group,
+                                    db = db,
+                                    nowAbs = nowAbs,
+                                    onDoff = onDoff,
+                                    onDoffMatching = onDoffMatching,
+                                    onHapus = onHapus,
+                                    onJeda = onJeda,
+                                    onLanjutkan = onLanjutkan,
+                                    onQuickEdit = onQuickEdit,
+                                    onEditTipe = onEditTipe,
+                                    onEditCorak = onEditCorak,
+                                    onEditWaktu = onEditWaktu,
+                                    entranceDelayMsFor = { i -> ((index + i) * Motion.LIST_STAGGER_STEP_MS).coerceAtMost(Motion.LIST_STAGGER_MAX_MS) },
+                                )
+                            } else {
+                                RadarCard(
+                                    est = row.est,
+                                    mesin = db[row.est.mcNo],
+                                    nowAbs = nowAbs,
+                                    onDoff = { onDoff(row.est.mcNo) },
+                                    onDoffMatching = { onDoffMatching(row.est.mcNo) },
+                                    onHapus = { onHapus(row.est.mcNo) },
+                                    onJeda = { onJeda(row.est.mcNo) },
+                                    onLanjutkan = { onLanjutkan(row.est.mcNo) },
+                                    onQuickEdit = { onQuickEdit(row.est.mcNo) },
+                                    onEditTipe = { onEditTipe(row.est.mcNo) },
+                                    onEditCorak = { onEditCorak(row.est.mcNo) },
+                                    onEditWaktu = { onEditWaktu(row.est.mcNo) },
+                                    modifier = Modifier.animateItem(),
+                                    entranceDelayMs = entranceDelayMs,
+                                )
+                            }
                         }
                     }
-                    menungguClashRuns[row.est.mcNo]?.let { runSize -> ClashGroupDivider(machineCount = runSize) }
-                    RadarCard(
-                        est = row.est,
-                        mesin = db[row.est.mcNo],
+                }
+                is MenungguRow.GapRow -> item(key = rowKey(row)) {
+                    BreakGapCard(
+                        gapMin = row.gapMin,
+                        nextMcNo = row.nextMcNo,
+                        nextAbsMin = row.nextAbsMin,
                         nowAbs = nowAbs,
-                        onDoff = { onDoff(row.est.mcNo) },
-                        onDoffMatching = { onDoffMatching(row.est.mcNo) },
-                        onHapus = { onHapus(row.est.mcNo) },
-                        onJeda = { onJeda(row.est.mcNo) },
-                        onLanjutkan = { onLanjutkan(row.est.mcNo) },
-                        onQuickEdit = { onQuickEdit(row.est.mcNo) },
-                        onEditTipe = { onEditTipe(row.est.mcNo) },
-                        onEditCorak = { onEditCorak(row.est.mcNo) },
-                        onEditWaktu = { onEditWaktu(row.est.mcNo) },
+                        // Only the very first row in the whole list is the gap actually happening
+                        // right now — any GapRow further down previews a break that hasn't started,
+                        // so its bar should read as not-yet-active rather than fill in.
+                        isActive = index == 0,
                         modifier = Modifier.animateItem(),
-                        entranceDelayMs = entranceDelayMs,
                     )
                 }
-                }
-                is MenungguRow.GapRow -> BreakGapCard(
-                    gapMin = row.gapMin,
-                    nextMcNo = row.nextMcNo,
-                    nextAbsMin = row.nextAbsMin,
-                    nowAbs = nowAbs,
-                    // Only the very first row in the whole list is the gap actually happening
-                    // right now — any GapRow further down previews a break that hasn't started,
-                    // so its bar should read as not-yet-active rather than fill in.
-                    isActive = index == 0,
-                    modifier = Modifier.animateItem(),
-                )
             }
         }
     }
@@ -266,20 +322,40 @@ private fun rowKey(row: MenungguRow): String = when (row) {
     is MenungguRow.GapRow -> "gap_after_${row.afterMcNo}"
 }
 
-/** Group marker drawn above the first card of a run of adjacent machines whose estAbsMin clash
- * (within 5 minutes of each other) — replaces the old per-card "Bentrok Mc X, Y" badge, which
- * repeated the same warning on every card in the group and crowded RadarCard's own title row.
- * Grouping the cards themselves (they're already adjacent, since both Segera and Menunggu are
- * time-sorted) already says which machines are meant; this just marks where the group starts.
+/** Bordered box wrapping every card of a run of adjacent machines whose estAbsMin clash (within 5
+ * minutes of each other) — replaces both the old per-card "Bentrok Mc X, Y" badge (repeated the
+ * same warning on every card in the group) and this group's own earlier divider-only treatment (a
+ * thin rule with a label floating on it, easy to miss against a card-heavy list). A real amber
+ * border around the whole run — closer to the AI Studio web experiment's own boxed clash
+ * grouping — reads as "these belong together" at a glance the way a bare divider line didn't.
+ * Only the machine *count* shows in the header, not each mcNo — the cards themselves, now visibly
+ * boxed together, already say which machines are meant.
  *
  * "GASPOL" (not the more clinical "Bentrok") plus a lightning bolt that zaps every few seconds —
  * a pile-up of machines due at once framed as a call to move fast, not a fault to worry over. The
  * zap is a one-shot flash-and-settle (quick scale/brighten spike, eased back down), repeated on a
  * long ~5s idle rather than looped continuously like OVERDUE's steady breathing pulse — that
  * pulse means "ongoing danger, don't look away"; this one just means "yeah, still here," so it
- * stays lively without nagging. */
+ * stays lively without nagging. Now that the zap sits on a header badge inside a much bigger
+ * boxed area instead of a lone icon on a thin line, the box's own border briefly brightens in the
+ * same beat — a small icon flash alone would get lost against the larger container. */
 @Composable
-private fun ClashGroupDivider(machineCount: Int, modifier: Modifier = Modifier) {
+private fun ClashGroupCard(
+    group: List<Estimasi>,
+    db: Map<String, MesinData>,
+    nowAbs: Long,
+    onDoff: (String) -> Unit,
+    onDoffMatching: (String) -> Unit,
+    onHapus: (String) -> Unit,
+    onJeda: (String) -> Unit,
+    onLanjutkan: (String) -> Unit,
+    onQuickEdit: (String) -> Unit,
+    onEditTipe: (String) -> Unit,
+    onEditCorak: (String) -> Unit,
+    onEditWaktu: (String) -> Unit,
+    entranceDelayMsFor: (Int) -> Long,
+    modifier: Modifier = Modifier,
+) {
     val zap = remember { Animatable(0f) }
     LaunchedEffect(Unit) {
         while (true) {
@@ -288,12 +364,23 @@ private fun ClashGroupDivider(machineCount: Int, modifier: Modifier = Modifier) 
             delay(5000)
         }
     }
-    Row(modifier = modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        HorizontalDivider(modifier = Modifier.weight(1f), color = Amber400.copy(alpha = 0.45f))
+    val shape = RoundedCornerShape(Dimens.RadiusCard)
+    val borderColor = lerp(Amber400, Color.White, zap.value * 0.5f).copy(alpha = 0.55f + zap.value * 0.3f)
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .border(1.5.dp, borderColor, shape)
+            .padding(Dimens.Space8),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
         Row(
+            modifier = Modifier
+                .clip(RoundedCornerShape(50))
+                .background(Amber500.copy(alpha = 0.16f))
+                .padding(horizontal = 8.dp, vertical = 3.dp),
             horizontalArrangement = Arrangement.spacedBy(5.dp),
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 8.dp),
         ) {
             Icon(
                 imageVector = Icons.Filled.Bolt,
@@ -307,9 +394,25 @@ private fun ClashGroupDivider(machineCount: Int, modifier: Modifier = Modifier) 
                         scaleY = scale
                     },
             )
-            Text("GASPOL · $machineCount MESIN", style = AppType.Caption.copy(color = Amber400, fontWeight = FontWeight.Bold))
+            Text("GASPOL · ${group.size} MESIN", style = AppType.Caption.copy(color = Amber400, fontWeight = FontWeight.Bold))
         }
-        HorizontalDivider(modifier = Modifier.weight(1f), color = Amber400.copy(alpha = 0.45f))
+        group.forEachIndexed { i, est ->
+            RadarCard(
+                est = est,
+                mesin = db[est.mcNo],
+                nowAbs = nowAbs,
+                onDoff = { onDoff(est.mcNo) },
+                onDoffMatching = { onDoffMatching(est.mcNo) },
+                onHapus = { onHapus(est.mcNo) },
+                onJeda = { onJeda(est.mcNo) },
+                onLanjutkan = { onLanjutkan(est.mcNo) },
+                onQuickEdit = { onQuickEdit(est.mcNo) },
+                onEditTipe = { onEditTipe(est.mcNo) },
+                onEditCorak = { onEditCorak(est.mcNo) },
+                onEditWaktu = { onEditWaktu(est.mcNo) },
+                entranceDelayMs = entranceDelayMsFor(i),
+            )
+        }
     }
 }
 
@@ -524,4 +627,3 @@ private fun RadarStatusBar(
         }
     }
 }
-

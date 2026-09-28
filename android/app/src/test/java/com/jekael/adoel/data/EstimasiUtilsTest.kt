@@ -66,6 +66,18 @@ class EstimasiUtilsTest {
     }
 
     @Test
+    fun groupClashRunsChainsAdjacentMachinesAndLeavesSolosSingle() {
+        // a/b/c chain (each within 5 min of its neighbor, even though a and c are 6 apart);
+        // d is isolated; e/f are a second, separate run.
+        val sorted = listOf(est("a", 100), est("b", 103), est("c", 106), est("d", 150), est("e", 200), est("f", 204))
+        val groups = groupClashRuns(sorted)
+        assertEquals(
+            listOf(listOf("a", "b", "c"), listOf("d"), listOf("e", "f")),
+            groups.map { g -> g.map { it.mcNo } },
+        )
+    }
+
+    @Test
     fun upcomingClashMachineCountFindsSoonestRunWithinLeadTime() {
         // Two clash-run candidates: a/b due soon (10/13 min away), c/d calm (100/103 min away).
         val sorted = listOf(est("a", 110), est("b", 113), est("c", 200), est("d", 203))

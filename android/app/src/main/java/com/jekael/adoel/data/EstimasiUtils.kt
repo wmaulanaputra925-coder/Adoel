@@ -71,6 +71,21 @@ fun isClashRunStart(list: List<Estimasi>, index: Int, thresholdMin: Long = 5L): 
     return index + 1 < list.size && abs(list[index + 1].estAbsMin - list[index].estAbsMin) <= thresholdMin
 }
 
+/** Splits a time-sorted [list] into consecutive runs — every clash run (as [isClashRunStart]/
+ * [clashRunLength] define one) becomes its own sublist, everything else stays a singleton sublist
+ * of one — so a caller can render each clash run as one grouped unit (e.g. RadarSection's
+ * ClashGroupCard) without re-deriving run boundaries itself. */
+fun groupClashRuns(list: List<Estimasi>, thresholdMin: Long = 5L): List<List<Estimasi>> {
+    val groups = mutableListOf<List<Estimasi>>()
+    var i = 0
+    while (i < list.size) {
+        val runLength = if (isClashRunStart(list, i, thresholdMin)) clashRunLength(list, i, thresholdMin) else 1
+        groups.add(list.subList(i, i + runLength))
+        i += runLength
+    }
+    return groups
+}
+
 /** How far ahead of an upcoming clash run's due time the header's "bersiap" warning fires. */
 const val GASPOL_PREPARE_LEAD_MIN = 10L
 
