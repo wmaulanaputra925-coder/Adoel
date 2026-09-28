@@ -40,7 +40,7 @@ import com.jekael.adoel.ui.theme.Cyan400
 import com.jekael.adoel.ui.theme.Cyan600
 import com.jekael.adoel.ui.theme.Emerald400
 import com.jekael.adoel.ui.theme.LocalAppColors
-import com.jekael.adoel.ui.theme.tactilePill
+import com.jekael.adoel.ui.theme.tactilePillClickable
 
 /**
  * The one row layout for a recorded doff, shared by Riwayat and by Statistik's shift detail so the
@@ -189,8 +189,12 @@ private fun MetaTagPill(
     val styledModifier = if (onClick != null) {
         modifier
             .height(22.dp)
-            .tactilePill(if (tint != null) lerp(tint, Color.Black, 0.55f) else colors.bgElevated2, shape)
-            .clickable(onClickLabel = onClickLabel, onClick = onClick)
+            .tactilePillClickable(
+                if (tint != null) lerp(tint, Color.Black, 0.55f) else colors.bgElevated2,
+                shape,
+                onClickLabel,
+                onClick,
+            )
     } else {
         modifier
             .height(22.dp)
@@ -225,8 +229,7 @@ private fun AddKeteranganPill(onClick: () -> Unit, mcNo: String) {
     Row(
         modifier = Modifier
             .height(22.dp)
-            .tactilePill(Cyan600, shape)
-            .clickable(onClickLabel = "Tambah keterangan Mc $mcNo", onClick = onClick)
+            .tactilePillClickable(Cyan600, shape, "Tambah keterangan Mc $mcNo", onClick)
             .padding(horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp),

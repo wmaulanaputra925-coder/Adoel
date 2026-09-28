@@ -5,7 +5,6 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -59,7 +58,7 @@ import com.jekael.adoel.ui.theme.Cyan600
 import com.jekael.adoel.ui.theme.Dimens
 import com.jekael.adoel.ui.theme.Emerald400
 import com.jekael.adoel.ui.theme.LocalAppColors
-import com.jekael.adoel.ui.theme.tactilePill
+import com.jekael.adoel.ui.theme.tactilePillClickable
 import java.util.Calendar
 import kotlin.math.max
 import kotlin.math.roundToInt
@@ -236,8 +235,7 @@ private fun TrendModeChip(label: String, selected: Boolean, modifier: Modifier =
     val colors = LocalAppColors.current
     Box(
         modifier = modifier
-            .tactilePill(if (selected) Cyan600 else colors.bgElevated2)
-            .clickable(onClick = onClick)
+            .tactilePillClickable(if (selected) Cyan600 else colors.bgElevated2, onClick = onClick)
             .padding(horizontal = 8.dp, vertical = 5.dp),
         contentAlignment = Alignment.Center,
     ) {
