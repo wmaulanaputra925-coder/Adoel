@@ -41,6 +41,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -274,6 +275,11 @@ internal fun MainScreenHeader(
                         },
                         fontWeight = if (tapPhrase != null || gaspolWarning != null) FontWeight.Bold else FontWeight.Normal,
                     ),
+                    // Pinned to one line so the GASPOL warning's longer sentence can't wrap and
+                    // grow the header's measured height (onHeightMeasured) out from under the
+                    // radar list sitting below it — same slot, same height, whatever the text.
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
 
