@@ -1,5 +1,7 @@
 package com.jekael.adoel.ui.components
 
+import android.content.Context
+import android.media.AudioManager
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
@@ -36,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.TextStyle
@@ -96,6 +99,12 @@ fun WheelColumn(
     val haptic = LocalHapticFeedback.current
     val itemHeightPx = with(density) { itemHeight.toPx() }
     val scope = rememberCoroutineScope()
+    // Paired with the per-row haptic tick below for the "real mechanical dial" feel — a system
+    // click sound needs no bundled audio asset, respects the device's own touch-sound-effects
+    // setting/volume automatically, and (unlike a raw MediaPlayer/SoundPool) has no per-instance
+    // lifecycle to manage here.
+    val context = LocalContext.current
+    val audioManager = remember { context.getSystemService(Context.AUDIO_SERVICE) as AudioManager }
 
     // Wraps into `range` (0..23 → 24 wraps to 0, -1 wraps to 23) instead of clamping — a scroll
     // or fling never hits a hard stop at either end, it just keeps cycling through the same
@@ -169,12 +178,14 @@ fun WheelColumn(
             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
         }
     }
-    // One light tick per row crossed while a scroll/fling is actually moving the wheel — the
-    // same per-row feedback a real picker gives, not just a silent slide.
+    // One light tick — haptic *and* a system click sound — per row crossed while a scroll/fling
+    // is actually moving the wheel, together reading as an actual mechanical counter turning
+    // rather than a silent slide.
     var lastTickedIndex by remember { mutableIntStateOf(liveIndex) }
     LaunchedEffect(liveIndex, scrollableState.isScrollInProgress) {
         if (scrollableState.isScrollInProgress && liveIndex != lastTickedIndex) {
             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            audioManager.playSoundEffect(AudioManager.FX_KEY_CLICK)
         }
         lastTickedIndex = liveIndex
     }

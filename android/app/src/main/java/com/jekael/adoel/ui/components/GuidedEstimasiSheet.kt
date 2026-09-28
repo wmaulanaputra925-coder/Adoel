@@ -52,11 +52,11 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
-/** A shift is 8 jam — TAPPET/CAM's "sisa waktu" wheel is capped here so it can never dial in a
- * remaining time longer than a whole shift itself, which would fall well outside what an
- * estimasi is actually for. D408's clock-reading wheel doesn't use this (it passes 23, the
- * normal 0-23 clock range) since it isn't a duration at all. */
-private const val MAX_ESTIMASI_HOUR = 8
+/** A shift is 8 jam, but TAPPET/CAM's "sisa waktu" wheel is capped one below that — 7, not 8 — so
+ * it can never dial in a remaining time reading as long as an entire untouched shift. D408's
+ * clock-reading wheel doesn't use this (it passes 23, the normal 0-23 clock range) since it isn't
+ * a duration at all. */
+private const val MAX_ESTIMASI_HOUR = 7
 
 /** Terpandu (guided) ESTIMASI entry — one field whose label/keyboard adapt to the tapped
  * machine's [MesinTipe], with a live "≈ jam" preview computed from the exact same pure formulas
