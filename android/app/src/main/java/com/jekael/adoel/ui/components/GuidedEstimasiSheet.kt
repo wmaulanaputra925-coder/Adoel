@@ -11,9 +11,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Keyboard
-import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,7 +19,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -48,17 +44,9 @@ import com.jekael.adoel.ui.theme.Cyan500
 import com.jekael.adoel.ui.theme.Cyan600
 import com.jekael.adoel.ui.theme.Dimens
 import com.jekael.adoel.ui.theme.LocalAppColors
-import com.jekael.adoel.ui.theme.tactilePillClickable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
-
-/** A shift is 8 jam, so that's the cap on TAPPET/CAM's "sisa waktu" hour wheel — the minute wheel
- * next to it stays a free, independent 0–59 dial regardless of what hour reads (see
- * [HourMinuteWheelPicker]'s own doc for why it's deliberately not locked once hour hits this).
- * D408's clock-reading wheel doesn't use this (it passes 23, the normal 0-23 clock range) since it
- * isn't a duration at all. */
-private const val MAX_ESTIMASI_HOUR = 8
 
 /** Terpandu (guided) ESTIMASI entry — one field whose label/keyboard adapt to the tapped
  * machine's [MesinTipe], with a live "≈ jam" preview computed from the exact same pure formulas
@@ -84,9 +72,8 @@ fun GuidedEstimasiSheet(
     onAddCorakShortcut: (String) -> Unit = {},
     // The estimasi already running for this Mc, if any — e.g. tapping RadarCard's own waktu
     // zone to correct a live countdown, as opposed to setting one up fresh from the console.
-    // When present, the wheel opens already at roughly that reading instead of 0:00, so nudging
-    // a countdown that's already close to right doesn't mean scrolling all the way up from zero
-    // every time.
+    // When present, the field opens pre-filled with roughly that reading instead of blank, so
+    // nudging a countdown that's already close to right doesn't mean retyping it from scratch.
     existing: Estimasi? = null,
 ) {
     val colors = LocalAppColors.current
@@ -96,59 +83,35 @@ fun GuidedEstimasiSheet(
 
     var corakInput by remember(mcNo) { mutableStateOf("") }
     var targetYardInput by remember(mcNo) { mutableStateOf("") }
-    var valueInput by remember(mcNo) { mutableStateOf("") }
-    // TAPPET/CAM ("sisa waktu") and D408 ("bacaan jam counter") both key off a wheel picker
-    // instead of the free-typed field D405 ("yard sudah berjalan") keeps — see
-    // MAX_ESTIMASI_HOUR's own doc for why TAPPET/CAM's hour wheel is capped where D408's isn't.
-    //
-    // Initial position: TAPPET/CAM starts from the estimasi's own current countdown (the exact
-    // number already on the radar card), clamped into the wheel's own 0..MAX_ESTIMASI_HOUR jam
-    // range (a card can be OVERDUE — negative remaining — or the operator can open this from the
-    // console before any countdown exists at all, neither of which is a position on this wheel,
-    // so both fall back to 0:00). D408 reconstructs the counter reading its koreksi was computed
+    // TAPPET/CAM ("sisa waktu") and D408 ("bacaan jam counter") pre-fill as an "H.MM" string from
+    // the estimasi's current reading when editing one already running — TAPPET/CAM from its own
+    // live remaining time, D408 by reconstructing the counter reading its koreksi was computed
     // against: estAbsD408 is `jamKeShiftAbs(counter, now) + koreksi`, and jamKeShiftAbs's own job
     // is just "snap a bare time-of-day reading onto the calendar day nearest now" — so inverting
     // it is exactly the time-of-day component of (estAbsMin − koreksi), no day-snapping needed
-    // since that's already baked into estAbsMin. D405 has no wheel at all.
-    val initialWheelTotalMin = remember(mcNo, tipe, existing) {
-        when {
-            existing == null -> 0
-            tipe == MesinTipe.TAPPET || tipe == MesinTipe.CAM ->
-                existing.effectiveRemaining(nowAbsMin()).toInt().coerceIn(0, MAX_ESTIMASI_HOUR * 60)
-            tipe == MesinTipe.D408 -> {
-                val koreksi = activeMesin?.koreksi ?: 0.0
-                (existing.estAbsMin - koreksi.roundToInt()).mod(1440L).toInt()
-            }
-            else -> 0
-        }
-    }
-    // wheelTouched guards Simpan the same way `valueInput.isNotBlank()` did for the old text
-    // field: a wheel always *has* a value, so without this an operator who opens the sheet and
-    // taps Simpan without touching anything would silently submit whatever that starting value
-    // means — fine when it's the estimasi's own current reading (that's the whole point of
-    // pre-filling it), not fine when it's just 0:00 because nothing existed yet to pre-fill from.
-    var wheelHour by remember(mcNo, tipe) { mutableStateOf(initialWheelTotalMin / 60) }
-    var wheelMinute by remember(mcNo, tipe) { mutableStateOf(initialWheelTotalMin % 60) }
-    var wheelTouched by remember(mcNo, tipe) { mutableStateOf(existing != null) }
-    val usesWheel = tipe != MesinTipe.D405
-    // Operator-chosen override, independent of [usesWheel] — some prefer typing "3.45" outright
-    // over scrolling a wheel to it, even on a tipe that defaults to one. Only meaningful where
-    // there's actually a wheel to opt out of; D405 has none to begin with.
-    var manualKeyboardMode by remember(mcNo, tipe) { mutableStateOf(false) }
-    val showWheel = usesWheel && !manualKeyboardMode
-    // D408's wheel is a plain 0-23 clock (never actually reaches a cap worth pinning); TAPPET/CAM
-    // is the one capped at MAX_ESTIMASI_HOUR — see that constant's own doc for why.
-    val wheelMaxHour = if (tipe == MesinTipe.D408) 23 else MAX_ESTIMASI_HOUR
-    LaunchedEffect(wheelHour, wheelMinute, tipe, manualKeyboardMode) {
-        if (showWheel) valueInput = "$wheelHour.${wheelMinute.toString().padStart(2, '0')}"
+    // since that's already baked into estAbsMin. D405 ("yard sudah berjalan") isn't a time reading
+    // at all, so it stays unchanged: blank until typed.
+    var valueInput by remember(mcNo) {
+        mutableStateOf(
+            when {
+                existing == null -> ""
+                tipe == MesinTipe.TAPPET || tipe == MesinTipe.CAM -> {
+                    val totalMin = existing.effectiveRemaining(nowAbsMin()).toInt().coerceAtLeast(0)
+                    "${totalMin / 60}.${(totalMin % 60).toString().padStart(2, '0')}"
+                }
+                tipe == MesinTipe.D408 -> {
+                    val koreksi = activeMesin?.koreksi ?: 0.0
+                    val totalMin = (existing.estAbsMin - koreksi.roundToInt()).mod(1440L).toInt()
+                    "${totalMin / 60}.${(totalMin % 60).toString().padStart(2, '0')}"
+                }
+                else -> ""
+            },
+        )
     }
     val focusRequester = remember { FocusRequester() }
 
-    LaunchedEffect(mcNo, needQuickCorakSetup, showWheel) {
-        // Only the plain text field (D405, or any tipe with manualKeyboardMode on) ever attaches
-        // this focusRequester — a wheel picker has nothing to focus, and requesting focus on an
-        // unattached FocusRequester throws, not just no-ops.
-        if (!needQuickCorakSetup && !showWheel) {
+    LaunchedEffect(mcNo, needQuickCorakSetup) {
+        if (!needQuickCorakSetup) {
             delay(100)
             focusRequester.requestFocus()
         }
@@ -226,69 +189,16 @@ fun GuidedEstimasiSheet(
                 }
             }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                FieldLabel(hint.label)
-                if (usesWheel) {
-                    // Bold tactilePill fill (not just tinted icon+text) — this used to read as a
-                    // plain colored label rather than something tappable, easy to miss as a mode
-                    // switch entirely. Cyan600-filled while showing the wheel (the "you're here,
-                    // tap for Keyboard" state) mirrors every other selected/active pill elsewhere
-                    // in the app; the neutral fill on the Keyboard side reverses that same cue.
-                    Row(
-                        modifier = Modifier
-                            .tactilePillClickable(if (showWheel) Cyan600 else colors.bgElevated2) {
-                                // Switching to keyboard mode starts the field blank rather than
-                                // pre-filled from wherever the wheel happened to be sitting — same
-                                // "must actually type something" guard wheelTouched gives the
-                                // wheel itself (see its own doc), just enforced by valueInput's own
-                                // isNotBlank() check on this side instead. Switching back to the
-                                // wheel needs no such reset: its LaunchedEffect above already
-                                // resyncs valueInput from wheelHour/wheelMinute once showWheel
-                                // flips true again.
-                                if (showWheel) valueInput = ""
-                                manualKeyboardMode = !manualKeyboardMode
-                            }
-                            .padding(horizontal = 10.dp, vertical = 5.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        Icon(
-                            imageVector = if (showWheel) Icons.Outlined.Keyboard else Icons.Outlined.Schedule,
-                            contentDescription = null,
-                            tint = if (showWheel) Color.White else Cyan400,
-                            modifier = Modifier.size(13.dp),
-                        )
-                        Text(
-                            if (showWheel) "Keyboard" else "Wheel",
-                            style = TextStyle(fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = if (showWheel) Color.White else Cyan400),
-                        )
-                    }
-                }
-            }
+            FieldLabel(hint.label)
             Box(modifier = Modifier.fillMaxWidth()) {
-                if (showWheel) {
-                    HourMinuteWheelPicker(
-                        hour = wheelHour,
-                        minute = wheelMinute,
-                        onHourChange = { wheelHour = it; wheelTouched = true },
-                        onMinuteChange = { wheelMinute = it; wheelTouched = true },
-                        maxHour = wheelMaxHour,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                } else {
-                    ClearableOutlinedTextField(
-                        value = valueInput,
-                        onValueChange = { valueInput = it },
-                        modifier = Modifier.focusRequester(focusRequester),
-                        placeholder = "cth: ${hint.example}",
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
-                        keyboardActions = KeyboardActions(onDone = { submit() }),
-                    )
-                }
+                ClearableOutlinedTextField(
+                    value = valueInput,
+                    onValueChange = { valueInput = it },
+                    modifier = Modifier.focusRequester(focusRequester),
+                    placeholder = "cth: ${hint.example}",
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = { submit() }),
+                )
                 if (nozzleProgress.value > 0f && nozzleProgress.value < 1f) {
                     Canvas(modifier = Modifier.matchParentSize()) {
                         val progress = nozzleProgress.value
@@ -326,7 +236,7 @@ fun GuidedEstimasiSheet(
                 ) { Text("Batal") }
                 Button(
                     onClick = ::submit,
-                    enabled = if (showWheel) wheelTouched else valueInput.isNotBlank(),
+                    enabled = valueInput.isNotBlank(),
                     modifier = Modifier.weight(1f).height(48.dp),
                     shape = RoundedCornerShape(Dimens.RadiusControl),
                     colors = ButtonDefaults.buttonColors(containerColor = Cyan600),
