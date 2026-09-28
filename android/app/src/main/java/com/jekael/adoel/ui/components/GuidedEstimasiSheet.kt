@@ -7,7 +7,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -23,6 +22,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -48,6 +48,7 @@ import com.jekael.adoel.ui.theme.Cyan500
 import com.jekael.adoel.ui.theme.Cyan600
 import com.jekael.adoel.ui.theme.Dimens
 import com.jekael.adoel.ui.theme.LocalAppColors
+import com.jekael.adoel.ui.theme.tactilePillClickable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -134,8 +135,21 @@ fun GuidedEstimasiSheet(
     // there's actually a wheel to opt out of; D405 has none to begin with.
     var manualKeyboardMode by remember(mcNo, tipe) { mutableStateOf(false) }
     val showWheel = usesWheel && !manualKeyboardMode
+    // D408's wheel is a plain 0-23 clock (never actually reaches a cap worth pinning); TAPPET/CAM
+    // is the one capped at MAX_ESTIMASI_HOUR — see that constant's own doc for why.
+    val wheelMaxHour = if (tipe == MesinTipe.D408) 23 else MAX_ESTIMASI_HOUR
     LaunchedEffect(wheelHour, wheelMinute, tipe, manualKeyboardMode) {
-        if (showWheel) valueInput = "$wheelHour.${wheelMinute.toString().padStart(2, '0')}"
+        // Clamped here at read time, not by mutating wheelMinute itself when the hour wheel
+        // merely *passes through* maxHour mid-fling (a flick can sail straight through the max —
+        // this is a wrapping wheel, not a clamped one — without ever actually settling there):
+        // mutating wheelMinute on every such transient crossing was zeroing it out for good, even
+        // once the hour wheel kept spinning well past max to its real resting value. Reading it
+        // through this clamp instead leaves the operator's real minute dial-in untouched — it only
+        // reads as 0 for as long as the hour wheel genuinely sits at its cap.
+        if (showWheel) {
+            val cappedMinute = if (wheelHour >= wheelMaxHour) 0 else wheelMinute
+            valueInput = "$wheelHour.${cappedMinute.toString().padStart(2, '0')}"
+        }
     }
     val focusRequester = remember { FocusRequester() }
 
@@ -228,10 +242,14 @@ fun GuidedEstimasiSheet(
             ) {
                 FieldLabel(hint.label)
                 if (usesWheel) {
+                    // Bold tactilePill fill (not just tinted icon+text) — this used to read as a
+                    // plain colored label rather than something tappable, easy to miss as a mode
+                    // switch entirely. Cyan600-filled while showing the wheel (the "you're here,
+                    // tap for Keyboard" state) mirrors every other selected/active pill elsewhere
+                    // in the app; the neutral fill on the Keyboard side reverses that same cue.
                     Row(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .clickable {
+                            .tactilePillClickable(if (showWheel) Cyan600 else colors.bgElevated2) {
                                 // Switching to keyboard mode starts the field blank rather than
                                 // pre-filled from wherever the wheel happened to be sitting — same
                                 // "must actually type something" guard wheelTouched gives the
@@ -243,19 +261,19 @@ fun GuidedEstimasiSheet(
                                 if (showWheel) valueInput = ""
                                 manualKeyboardMode = !manualKeyboardMode
                             }
-                            .padding(horizontal = 8.dp, vertical = 3.dp),
+                            .padding(horizontal = 10.dp, vertical = 5.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         Icon(
                             imageVector = if (showWheel) Icons.Outlined.Keyboard else Icons.Outlined.Schedule,
                             contentDescription = null,
-                            tint = Cyan400,
+                            tint = if (showWheel) Color.White else Cyan400,
                             modifier = Modifier.size(13.dp),
                         )
                         Text(
                             if (showWheel) "Keyboard" else "Wheel",
-                            style = TextStyle(fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = Cyan400),
+                            style = TextStyle(fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = if (showWheel) Color.White else Cyan400),
                         )
                     }
                 }
@@ -267,7 +285,7 @@ fun GuidedEstimasiSheet(
                         minute = wheelMinute,
                         onHourChange = { wheelHour = it; wheelTouched = true },
                         onMinuteChange = { wheelMinute = it; wheelTouched = true },
-                        maxHour = if (tipe == MesinTipe.D408) 23 else MAX_ESTIMASI_HOUR,
+                        maxHour = wheelMaxHour,
                         modifier = Modifier.fillMaxWidth(),
                     )
                 } else {

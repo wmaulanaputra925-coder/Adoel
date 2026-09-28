@@ -334,9 +334,19 @@ private const val WHEEL_MAX_TILT_DEG = 55f
  * number). D405's field (yard sudah berjalan) isn't a time at all, so it keeps its own plain
  * numeric field instead of using this.
  *
- * Once the hour wheel reaches [maxHour], the minute wheel is pinned to :00 so the combined value
- * can never read past it (e.g. exactly 8 jam, never 8 jam 59) — for D408's plain clock, pass 23
- * so the cap never actually binds.
+ * Once the hour wheel reaches [maxHour], the minute wheel's own [minuteRange] narrows to just
+ * :00 so it can't be scrolled anywhere else while the hour wheel sits there — the combined value
+ * can never read past the cap (e.g. exactly 8 jam, never 8 jam 59) — for D408's plain clock, pass
+ * 23 so the cap never actually binds. This is a display-time constraint only, not an imperative
+ * "force minute to 0" write on [onHourChange]: this wheel wraps rather than clamps (see
+ * [WheelColumn]'s own doc), so a fast fling toward a value well past [maxHour] genuinely passes
+ * *through* it mid-flight without ever settling there — an eager write on every such transient
+ * crossing was zeroing the operator's real minute dial-in for good, even once the hour wheel kept
+ * spinning past the cap to its actual resting value far below it. The caller reads [minute]
+ * through this same "is hour actually at max" clamp when it needs the final submitted value (see
+ * GuidedEstimasiSheet's own wheelMaxHour clamp) instead of relying on this wheel to have mutated
+ * it — that reads correctly whether hour is genuinely resting at the cap or was just passed
+ * through on the way to somewhere else, without this wheel needing to tell the difference itself.
  */
 @Composable
 fun HourMinuteWheelPicker(
@@ -357,10 +367,7 @@ fun HourMinuteWheelPicker(
         WheelColumn(
             range = 0..maxHour,
             value = hour,
-            onValueChange = { h ->
-                onHourChange(h)
-                if (h >= maxHour && minute != 0) onMinuteChange(0)
-            },
+            onValueChange = onHourChange,
             modifier = Modifier.weight(1f),
         )
         Text(
