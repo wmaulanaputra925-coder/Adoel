@@ -71,10 +71,8 @@ fun isClashRunStart(list: List<Estimasi>, index: Int, thresholdMin: Long = 5L): 
     return index + 1 < list.size && abs(list[index + 1].estAbsMin - list[index].estAbsMin) <= thresholdMin
 }
 
-/** How far ahead of an upcoming clash run's due time the header's "bersiap" warning fires —
- * longer than [REMINDER_LEAD_MIN]'s single-machine reminder since juggling several machines at
- * once actually takes a moment to get ready for. */
-const val GASPOL_PREPARE_LEAD_MIN = 15L
+/** How far ahead of an upcoming clash run's due time the header's "bersiap" warning fires. */
+const val GASPOL_PREPARE_LEAD_MIN = 10L
 
 /** Machine count of the nearest clash run about to come due within [leadMin] minutes (but not yet
  * due), or null when no such run exists right now. [list] must already be sorted ascending by
