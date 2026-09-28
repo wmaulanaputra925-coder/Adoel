@@ -53,11 +53,12 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
-/** A shift is 8 jam, but TAPPET/CAM's "sisa waktu" wheel is capped one below that — 7, not 8 — so
- * it can never dial in a remaining time reading as long as an entire untouched shift. D408's
- * clock-reading wheel doesn't use this (it passes 23, the normal 0-23 clock range) since it isn't
- * a duration at all. */
-private const val MAX_ESTIMASI_HOUR = 7
+/** A shift is 8 jam, so that's the cap on TAPPET/CAM's "sisa waktu" hour wheel — the minute wheel
+ * next to it stays a free, independent 0–59 dial regardless of what hour reads (see
+ * [HourMinuteWheelPicker]'s own doc for why it's deliberately not locked once hour hits this).
+ * D408's clock-reading wheel doesn't use this (it passes 23, the normal 0-23 clock range) since it
+ * isn't a duration at all. */
+private const val MAX_ESTIMASI_HOUR = 8
 
 /** Terpandu (guided) ESTIMASI entry — one field whose label/keyboard adapt to the tapped
  * machine's [MesinTipe], with a live "≈ jam" preview computed from the exact same pure formulas
@@ -139,17 +140,7 @@ fun GuidedEstimasiSheet(
     // is the one capped at MAX_ESTIMASI_HOUR — see that constant's own doc for why.
     val wheelMaxHour = if (tipe == MesinTipe.D408) 23 else MAX_ESTIMASI_HOUR
     LaunchedEffect(wheelHour, wheelMinute, tipe, manualKeyboardMode) {
-        // Clamped here at read time, not by mutating wheelMinute itself when the hour wheel
-        // merely *passes through* maxHour mid-fling (a flick can sail straight through the max —
-        // this is a wrapping wheel, not a clamped one — without ever actually settling there):
-        // mutating wheelMinute on every such transient crossing was zeroing it out for good, even
-        // once the hour wheel kept spinning well past max to its real resting value. Reading it
-        // through this clamp instead leaves the operator's real minute dial-in untouched — it only
-        // reads as 0 for as long as the hour wheel genuinely sits at its cap.
-        if (showWheel) {
-            val cappedMinute = if (wheelHour >= wheelMaxHour) 0 else wheelMinute
-            valueInput = "$wheelHour.${cappedMinute.toString().padStart(2, '0')}"
-        }
+        if (showWheel) valueInput = "$wheelHour.${wheelMinute.toString().padStart(2, '0')}"
     }
     val focusRequester = remember { FocusRequester() }
 

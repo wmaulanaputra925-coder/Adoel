@@ -334,22 +334,12 @@ private const val WHEEL_MAX_TILT_DEG = 55f
  * number). D405's field (yard sudah berjalan) isn't a time at all, so it keeps its own plain
  * numeric field instead of using this.
  *
- * Once the hour wheel reaches [maxHour], minute has exactly one legal value — so the minute
- * WheelColumn is swapped out for a plain locked "00" display instead (see this composable's own
- * `atMaxHour` branch) rather than scrolled to a single-value range: a WheelColumn always renders
- * its usual 5-row window regardless of how narrow its range is, and every one of those rows
- * wrapping to the same one value read as a wall of identical zeroes — confusing ("the minute
- * always shows 00"), not obviously "nothing left to scroll to." Not an imperative "force minute
- * to 0" write on [onHourChange] either: this wheel wraps rather than clamps (see [WheelColumn]'s
- * own doc), so a fast fling toward a value well past [maxHour] genuinely passes *through* it
- * mid-flight without ever settling there — an eager write on every such transient crossing used
- * to zero the operator's real minute dial-in for good, even once the hour wheel kept spinning
- * past the cap to its actual resting value far below it. The caller reads [minute] through the
- * same "is hour actually at max" clamp when it needs the final submitted value (see
- * GuidedEstimasiSheet's own wheelMaxHour clamp) instead of relying on this wheel to have mutated
- * it — that reads correctly whether hour is genuinely resting at the cap or was just passed
- * through on the way to somewhere else, without this wheel needing to tell the difference itself.
- * For D408's plain clock, [maxHour] is passed as 23 so the cap never actually binds.
+ * Only the hour wheel is capped at [maxHour] (wraps back to 0, never scrolls past it — see
+ * [WheelColumn]'s own doc); the minute wheel is always a free, independent 0–59 dial regardless
+ * of whatever the hour wheel currently reads, deliberately not locked or zeroed once hour hits
+ * its cap — an earlier version pinned minute to :00 there, which both read as broken (every row
+ * of the pinned wheel showed the same "00") and second-guessed a combination the operator might
+ * genuinely want to dial in.
  */
 @Composable
 fun HourMinuteWheelPicker(
@@ -361,13 +351,6 @@ fun HourMinuteWheelPicker(
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalAppColors.current
-    // While hour sits at maxHour, minute has exactly one legal value — but a WheelColumn given a
-    // single-value range still renders its usual 5-row window, and since every one of those rows
-    // wraps to that same one value, all five read "00": a wall of identical zeroes that looks
-    // broken (reported: "the minute always shows 00") rather than what it actually is, a control
-    // with nothing left to scroll to. Swapped for a plain locked "00" display instead of a
-    // WheelColumn once hour is at the cap — nothing to drag, nothing to misread as broken.
-    val atMaxHour = hour >= maxHour
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
@@ -384,32 +367,11 @@ fun HourMinuteWheelPicker(
             modifier = Modifier.width(12.dp),
             style = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.Black, color = colors.textFaint),
         )
-        if (atMaxHour) {
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(40.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(colors.bgElevated2),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    "00",
-                    style = TextStyle(
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = FontFamily.Monospace,
-                        color = colors.textFaint,
-                    ),
-                )
-            }
-        } else {
-            WheelColumn(
-                range = 0..59,
-                value = minute,
-                onValueChange = onMinuteChange,
-                modifier = Modifier.weight(1f),
-            )
-        }
+        WheelColumn(
+            range = 0..59,
+            value = minute,
+            onValueChange = onMinuteChange,
+            modifier = Modifier.weight(1f),
+        )
     }
 }
