@@ -83,6 +83,13 @@ fun GuidedEstimasiSheet(
 
     var corakInput by remember(mcNo) { mutableStateOf("") }
     var targetYardInput by remember(mcNo) { mutableStateOf("") }
+    var valueInput by remember(mcNo) { mutableStateOf("") }
+    // Guards the pre-fill effect below the same way the old wheel's `wheelTouched` guarded
+    // Simpan: once the operator has actually typed something, [existing] ticking live (its
+    // countdown moves every render) must never overwrite it back out from under them.
+    var valueTouched by remember(mcNo) { mutableStateOf(false) }
+    val focusRequester = remember { FocusRequester() }
+
     // TAPPET/CAM ("sisa waktu") and D408 ("bacaan jam counter") pre-fill as an "H.MM" string from
     // the estimasi's current reading when editing one already running — TAPPET/CAM from its own
     // live remaining time, D408 by reconstructing the counter reading its koreksi was computed
@@ -90,25 +97,29 @@ fun GuidedEstimasiSheet(
     // is just "snap a bare time-of-day reading onto the calendar day nearest now" — so inverting
     // it is exactly the time-of-day component of (estAbsMin − koreksi), no day-snapping needed
     // since that's already baked into estAbsMin. D405 ("yard sudah berjalan") isn't a time reading
-    // at all, so it stays unchanged: blank until typed.
-    var valueInput by remember(mcNo) {
-        mutableStateOf(
-            when {
-                existing == null -> ""
-                tipe == MesinTipe.TAPPET || tipe == MesinTipe.CAM -> {
-                    val totalMin = existing.effectiveRemaining(nowAbsMin()).toInt().coerceAtLeast(0)
-                    "${totalMin / 60}.${(totalMin % 60).toString().padStart(2, '0')}"
-                }
-                tipe == MesinTipe.D408 -> {
-                    val koreksi = activeMesin?.koreksi ?: 0.0
-                    val totalMin = (existing.estAbsMin - koreksi.roundToInt()).mod(1440L).toInt()
-                    "${totalMin / 60}.${(totalMin % 60).toString().padStart(2, '0')}"
-                }
-                else -> ""
-            },
-        )
+    // at all, so it's left untouched: blank until typed, as before. A LaunchedEffect (not a
+    // one-shot `remember` initializer) on purpose — [existing] can still be null on the very first
+    // composition if the caller's own state hasn't finished resolving it yet, and a `remember`
+    // block only ever runs once, so a same-frame null there would leave the field permanently
+    // blank even once [existing] resolves a moment later. This re-fires whenever [existing] or
+    // [tipe] change but bails immediately once [valueTouched], so it can never clobber typing.
+    LaunchedEffect(mcNo, existing, tipe) {
+        if (valueTouched) return@LaunchedEffect
+        val prefill = when {
+            existing == null -> return@LaunchedEffect
+            tipe == MesinTipe.TAPPET || tipe == MesinTipe.CAM -> {
+                val totalMin = existing.effectiveRemaining(nowAbsMin()).toInt().coerceAtLeast(0)
+                "${totalMin / 60}.${(totalMin % 60).toString().padStart(2, '0')}"
+            }
+            tipe == MesinTipe.D408 -> {
+                val koreksi = activeMesin?.koreksi ?: 0.0
+                val totalMin = (existing.estAbsMin - koreksi.roundToInt()).mod(1440L).toInt()
+                "${totalMin / 60}.${(totalMin % 60).toString().padStart(2, '0')}"
+            }
+            else -> return@LaunchedEffect
+        }
+        valueInput = prefill
     }
-    val focusRequester = remember { FocusRequester() }
 
     LaunchedEffect(mcNo, needQuickCorakSetup) {
         if (!needQuickCorakSetup) {
@@ -193,7 +204,7 @@ fun GuidedEstimasiSheet(
             Box(modifier = Modifier.fillMaxWidth()) {
                 ClearableOutlinedTextField(
                     value = valueInput,
-                    onValueChange = { valueInput = it },
+                    onValueChange = { valueInput = it; valueTouched = true },
                     modifier = Modifier.focusRequester(focusRequester),
                     placeholder = "cth: ${hint.example}",
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
