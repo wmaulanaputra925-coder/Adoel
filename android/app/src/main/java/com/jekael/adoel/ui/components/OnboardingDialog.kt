@@ -163,7 +163,7 @@ private fun OperationalFlowGuide() {
             iconBg = Cyan600,
             titleColor = Cyan400,
             stepNumber = "1. Estimasi Waktu Doff",
-            description = "Ketik nomor mesin di konsol bawah lalu ketuk tombol ⏱ Estimasi. Isi sisa menit (Tappet/Cam), yard berjalan (D405), atau jam counter (D408). Untuk Tappet/Cam/D408, ketuk ikon ⌨ di sebelah label untuk beralih dari roda putar ke ketik langsung, dan sebaliknya.",
+            description = "Ketik nomor mesin di konsol bawah lalu ketuk tombol ⏱ Estimasi. Isi sisa menit (Tappet/Cam), yard berjalan (D405), atau jam counter (D408) lewat keyboard.",
         )
         GuideRow(
             icon = Icons.Outlined.ContentCut,
