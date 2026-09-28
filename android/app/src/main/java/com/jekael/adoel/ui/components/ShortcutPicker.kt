@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -97,8 +98,7 @@ fun BaseShortcutPicker(
             val isActive = currentTrimmed.equals(code, ignoreCase = true)
             Box(
                 modifier = Modifier
-                    .tactilePill(if (isActive) Cyan600 else colors.bgElevated2)
-                    .clickable { onSelect(code) }
+                    .tactilePillClickable(if (isActive) Cyan600 else colors.bgElevated2) { onSelect(code) }
                     .padding(horizontal = 10.dp, vertical = 6.dp),
                 contentAlignment = Alignment.Center,
             ) {
@@ -115,13 +115,15 @@ fun BaseShortcutPicker(
 
         // Quick save current value button
         if (canSaveCurrent) {
+            val saveInteractionSource = remember { MutableInteractionSource() }
             Surface(
                 onClick = { handleSaveCurrent() },
                 shape = RoundedCornerShape(6.dp),
                 color = Cyan600,
                 border = BorderStroke(1.dp, lerp(Cyan600, Color.Black, 0.3f)),
                 shadowElevation = 2.dp,
-                modifier = Modifier.height(28.dp),
+                interactionSource = saveInteractionSource,
+                modifier = Modifier.height(28.dp).pressScale(saveInteractionSource),
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
@@ -179,11 +181,14 @@ fun BaseShortcutPicker(
                         keyboardActions = KeyboardActions(onDone = { handleAddInline() }),
                     )
                 }
+                val okInteractionSource = remember { MutableInteractionSource() }
                 Surface(
                     onClick = { handleAddInline() },
                     shape = RoundedCornerShape(4.dp),
                     color = if (inlineInput.isNotBlank()) Cyan600 else colors.bgElevated1,
                     shadowElevation = if (inlineInput.isNotBlank()) 2.dp else 0.dp,
+                    interactionSource = okInteractionSource,
+                    modifier = Modifier.pressScale(okInteractionSource),
                 ) {
                     Text(
                         text = "+ OK",
@@ -206,13 +211,15 @@ fun BaseShortcutPicker(
             }
         } else {
             // Inline Add Trigger Button
+            val addTriggerInteractionSource = remember { MutableInteractionSource() }
             Surface(
                 onClick = { isAdding = true },
                 shape = RoundedCornerShape(6.dp),
                 color = colors.bgElevated2,
                 border = BorderStroke(1.dp, colors.border),
                 shadowElevation = 2.dp,
-                modifier = Modifier.height(28.dp),
+                interactionSource = addTriggerInteractionSource,
+                modifier = Modifier.height(28.dp).pressScale(addTriggerInteractionSource),
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),

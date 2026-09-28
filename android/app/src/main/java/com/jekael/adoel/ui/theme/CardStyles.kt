@@ -1,17 +1,27 @@
 package com.jekael.adoel.ui.theme
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.InteractionSource
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.graphicsLayer
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -146,6 +156,43 @@ fun Modifier.tactilePill(baseColor: Color, shape: Shape = RoundedCornerShape(6.d
             )
         }
         .border(1.dp, lerp(baseColor, Color.Black, 0.3f), shape)
+}
+
+/**
+ * Squish-on-press scale feedback — the give a real rubber button has, not just a ripple wash:
+ * dips to [pressedScale] the instant [interactionSource] reports a press, springs back the
+ * instant it's released or cancelled. Chain this *before* [tactilePill] (and before whatever
+ * modifier owns [interactionSource] — clickable/selectable/a Surface's own onClick) so the
+ * outer graphicsLayer scales the whole tactilePill visual — shadow, gradient, border — as one
+ * piece, not just its content.
+ */
+@Composable
+fun Modifier.pressScale(interactionSource: InteractionSource, pressedScale: Float = 0.94f): Modifier {
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) pressedScale else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessHigh),
+        label = "pressScale",
+    )
+    return this.graphicsLayer { scaleX = scale; scaleY = scale }
+}
+
+/** [tactilePill] plus [pressScale] plus the [clickable] that drives both, bundled into the one
+ * chain every actionable tactilePill site wants — own [MutableInteractionSource] created and
+ * shared between the two, ripple traded for the scale feedback alone (a rubber button doesn't
+ * also wash with a ripple) so the two feedback languages don't compete on the same tap. */
+@Composable
+fun Modifier.tactilePillClickable(
+    baseColor: Color,
+    shape: Shape = RoundedCornerShape(6.dp),
+    onClickLabel: String? = null,
+    onClick: () -> Unit,
+): Modifier {
+    val interactionSource = remember { MutableInteractionSource() }
+    return this
+        .pressScale(interactionSource)
+        .tactilePill(baseColor, shape)
+        .clickable(interactionSource = interactionSource, indication = null, onClickLabel = onClickLabel, onClick = onClick)
 }
 
 private fun Modifier.dashedRoundedBorder(color: Color, cornerRadius: Dp, strokeWidth: Dp = 1.dp): Modifier =
